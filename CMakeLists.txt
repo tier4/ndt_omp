@@ -5,6 +5,10 @@ project(ndt_omp)
 add_definitions(-std=c++14 -msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2)
 set(CMAKE_CXX_FLAGS "-std=c++14 -msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
 
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+endif()
+
 # pcl 1.7 causes a segfault when it is built with debug mode
 set(CMAKE_BUILD_TYPE "RELEASE")
 
