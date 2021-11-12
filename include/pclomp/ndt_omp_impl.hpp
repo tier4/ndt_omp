@@ -208,7 +208,7 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeDerivativ
   std::vector<std::vector<float>> distancess(num_threads_);
 
 	// Update gradient and hessian for each point, line 17 in Algorithm 2 [Magnusson 2009]
-#pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
+#pragma omp parallel for simd num_threads(num_threads_) schedule(guided, 8)
 	for (std::size_t idx = 0; idx < input_->points.size(); idx++)
 	{
 		int thread_n = omp_get_thread_num();
