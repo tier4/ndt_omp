@@ -25,56 +25,24 @@ message(STATUS "PCL_LIBRARY_DIRS:" ${PCL_LIBRARY_DIRS})
 message(STATUS "PCL_DEFINITIONS:" ${PCL_DEFINITIONS})
 
 find_package(OpenMP)
-if (OPENMP_FOUND)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-endif()
-
-###################################
-## catkin specific configuration ##
-###################################
-catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES ndt_omp
-)
 
 ###########
 ## Build ##
 ###########
-include_directories(include)
-include_directories(
-  ${catkin_INCLUDE_DIRS}
-)
 
-add_library(ndt_omp
+ament_auto_add_library(ndt_omp SHARED
   src/pclomp/voxel_grid_covariance_omp.cpp
   src/pclomp/ndt_omp.cpp
   src/pclomp/gicp_omp.cpp
 )
 
-add_executable(align
-  apps/align.cpp
-)
-add_dependencies(align
-  ndt_omp
-)
-target_link_libraries(align
-  ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES}
-  ndt_omp
-)
+target_link_libraries(ndt_omp PUBLIC ${PCL_LIBRARIES})
 
-#############
-## INSTALL ##
-#############
-
-install(
-  TARGETS
-    ndt_omp
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-)
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(ndt_omp PUBLIC OpenMP::OpenMP_CXX)
+else()
+  message(WARNING "OpenMP not found")
+endif()
 
 # install headers
 install(DIRECTORY include/pclomp

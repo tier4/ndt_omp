@@ -112,9 +112,15 @@ namespace pclomp
 		/** \brief Empty destructor */
 		virtual ~NormalDistributionsTransform() {}
 
-    void setNumThreads(int n) {
-      num_threads_ = n;
-    }
+		void setNumThreads(int n)
+		{
+			num_threads_ = n;
+		}
+
+		inline int getNumThreads() const
+		{
+			return num_threads_;
+		}
 
 		/** \brief Provide a pointer to the input target (e.g., the point cloud that we want to align the input source to).
 		  * \param[in] cloud the input point cloud target
@@ -190,6 +196,12 @@ namespace pclomp
 			search_method = method;
 		}
 
+		inline NeighborSearchMethod
+			getNeighborhoodSearchMethod() const
+		{
+			return search_method;
+		}
+
 		/** \brief Get the registration alignment probability.
 		  * \return transformation probability
 		  */
@@ -206,6 +218,20 @@ namespace pclomp
 			getFinalNumIteration() const
 		{
 			return (nr_iterations_);
+		}
+
+		/** \brief Return the hessian matrix */
+		inline Eigen::Matrix<double, 6, 6>
+			getHessian() const
+		{
+			return hessian_;
+		}
+
+		/** \brief Return the transformation array */
+		inline const std::vector<Eigen::Matrix4f>
+			getFinalTransformationArray() const
+		{
+			return transformation_array_;
 		}
 
 		/** \brief Convert 6 element transformation vector to affine transformation.
@@ -494,6 +520,9 @@ namespace pclomp
   //      Eigen::Matrix<double, 18, 6> point_hessian_;
 
     int num_threads_;
+
+	Eigen::Matrix<double, 6, 6> hessian_;
+	std::vector<Eigen::Matrix4f> transformation_array_;
 
 	public:
 		NeighborSearchMethod search_method;
