@@ -9,8 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN mkdir -p /root/colcon_ws/src
 WORKDIR /root/colcon_ws/src
-RUN git clone https://github.com/SMRT-AIST/fast_gicp.git --recursive --depth=1
 # Comment it out until the repository supports ROS2 builds.
+# RUN git clone https://github.com/SMRT-AIST/fast_gicp.git --recursive --depth=1
 # RUN git clone https://github.com/koide3/hdl_graph_slam.git --depth=1
 
 COPY . /root/colcon_ws/src/ndt_omp/
