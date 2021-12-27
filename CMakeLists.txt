@@ -104,10 +104,10 @@ ament_auto_add_library(ndt_omp SHARED
   src/pclomp/gicp_omp.cpp
 )
 
-target_link_libraries(ndt_omp PUBLIC ${PCL_LIBRARIES})
+target_link_libraries(ndt_omp ${PCL_LIBRARIES})
 
 if(OpenMP_CXX_FOUND)
-  target_link_libraries(ndt_omp PUBLIC OpenMP::OpenMP_CXX)
+  target_link_libraries(ndt_omp OpenMP::OpenMP_CXX)
 else()
   message(WARNING "OpenMP not found")
 endif()
