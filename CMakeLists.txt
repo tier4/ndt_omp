@@ -98,6 +98,7 @@ find_package(OpenMP)
 ###########
 ## Build ##
 ###########
+
 ament_auto_add_library(ndt_omp SHARED
   src/pclomp/voxel_grid_covariance_omp.cpp
   src/pclomp/ndt_omp.cpp
