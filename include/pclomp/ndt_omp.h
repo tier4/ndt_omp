@@ -213,6 +213,12 @@ namespace pclomp
 			return (trans_probability_);
 		}
 
+		inline double
+			getNearestVoxelTransformationProbability() const
+		{
+			return nearest_voxel_transformation_probability_;
+		}
+
 		/** \brief Get the number of iterations required to calculate alignment.
 		  * \return final number of iterations
 		  */
@@ -540,6 +546,7 @@ namespace pclomp
 
 	Eigen::Matrix<double, 6, 6> hessian_;
 	std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array_;
+	double nearest_voxel_transformation_probability_;
 
 	float regularization_scale_factor_;
 	boost::optional<Eigen::Matrix4f> regularization_pose_;
