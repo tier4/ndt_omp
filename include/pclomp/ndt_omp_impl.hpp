@@ -1008,18 +1008,13 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeStepLengt
   return (a_t);
 }
 
-
 template<typename PointSource, typename PointTarget>
 double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateScore(const PointCloudSource & trans_cloud) const
 {
 	double score = 0;
-  double nearest_voxel_score = 0;
-  size_t found_neigborhood_voxel_num = 0;
 
 	for (std::size_t idx = 0; idx < trans_cloud.points.size(); idx++)
 	{
-    double nearest_voxel_score_pt = 0;
-    double voxel_distance = 1000;
 		PointSource x_trans_pt = trans_cloud.points[idx];
 
 		// Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
@@ -1052,29 +1047,116 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
 			// Uses precomputed covariance for speed.
 			Eigen::Matrix3d c_inv = cell->getInverseCov();
 
-      Eigen::Matrix<float, 1, 4> x_trans4(x_trans[0], x_trans[1], x_trans[2], 0.0f);
-      Eigen::Matrix4f c_inv4 = Eigen::Matrix4f::Zero();
-      c_inv4.topLeftCorner(3, 3) = c_inv.cast<float>();
+			// e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
+			double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
+			// Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
+			double score_inc = -gauss_d1_ * e_x_cov_x - gauss_d3_;
+
+			score += score_inc / neighborhood.size();
+		}
+	}
+	return (score) / static_cast<double> (trans_cloud.size());
+}
+
+template<typename PointSource, typename PointTarget>
+double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateTransformationProbability(const PointCloudSource & trans_cloud) const
+{
+	double score = 0;
+
+	for (std::size_t idx = 0; idx < trans_cloud.points.size(); idx++)
+	{
+		PointSource x_trans_pt = trans_cloud.points[idx];
+
+		// Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
+		std::vector<TargetGridLeafConstPtr> neighborhood;
+		std::vector<float> distances;
+		switch (search_method) {
+		case KDTREE:
+			target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+			break;
+		case DIRECT26:
+			target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
+			break;
+		default:
+		case DIRECT7:
+			target_cells_.getNeighborhoodAtPoint7(x_trans_pt, neighborhood);
+			break;
+		case DIRECT1:
+			target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
+			break;
+		}
+
+		for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++)
+		{
+			TargetGridLeafConstPtr cell = *neighborhood_it;
+
+			Eigen::Vector3d x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
+
+			// Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
+			x_trans -= cell->getMean();
+			// Uses precomputed covariance for speed.
+			Eigen::Matrix3d c_inv = cell->getInverseCov();
 
 			// e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
-			double e_x_cov_x = exp(-gauss_d2_ * x_trans4.dot(x_trans4 * c_inv4) / 2);
+			double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
 			// Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
 			double score_inc = -gauss_d1_ * e_x_cov_x;
 
-      e_x_cov_x = gauss_d2_ * e_x_cov_x;
+      score += score_inc;
+		}
+	}
+	return (score) / static_cast<double> (trans_cloud.size());
+}
 
-      // Error checking for invalid values.
-      if (e_x_cov_x > 1 || e_x_cov_x < 0 || e_x_cov_x != e_x_cov_x) {
-        score_inc = 0;
-      }
-      // if (x_trans.norm() < voxel_distance) {
-      //   voxel_distance = x_trans.norm();
-      //   nearest_voxel_score_pt = score_inc;
-      // }
+template<typename PointSource, typename PointTarget>
+double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateNearestVoxelTransformationProbability(const PointCloudSource & trans_cloud) const
+{
+  double nearest_voxel_score = 0;
+  size_t found_neigborhood_voxel_num = 0;
+
+	for (std::size_t idx = 0; idx < trans_cloud.points.size(); idx++)
+	{
+    double nearest_voxel_score_pt = 0;
+		PointSource x_trans_pt = trans_cloud.points[idx];
+
+		// Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
+		std::vector<TargetGridLeafConstPtr> neighborhood;
+		std::vector<float> distances;
+		switch (search_method) {
+		case KDTREE:
+			target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+			break;
+		case DIRECT26:
+			target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
+			break;
+		default:
+		case DIRECT7:
+			target_cells_.getNeighborhoodAtPoint7(x_trans_pt, neighborhood);
+			break;
+		case DIRECT1:
+			target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
+			break;
+		}
+
+		for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++)
+		{
+			TargetGridLeafConstPtr cell = *neighborhood_it;
+
+			Eigen::Vector3d x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
+
+			// Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
+			x_trans -= cell->getMean();
+			// Uses precomputed covariance for speed.
+			Eigen::Matrix3d c_inv = cell->getInverseCov();
+
+			// e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
+			double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
+			// Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
+			double score_inc = -gauss_d1_ * e_x_cov_x;
+
       if (score_inc > nearest_voxel_score_pt) {
         nearest_voxel_score_pt = score_inc;
       }
-      score += score_inc;
 		}
 
     if (!neighborhood.empty()) {
@@ -1083,14 +1165,7 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
     }
 
 	}
-
-  if (trans_cloud.points.empty()) {
-    return 0.0f;
-  }
-  else {
-    return (score) / static_cast<double> (trans_cloud.points.size());
-  }
-
+  return nearest_voxel_score / static_cast<double> (found_neigborhood_voxel_num);
 }
 
 #endif // PCL_REGISTRATION_NDT_IMPL_H_
