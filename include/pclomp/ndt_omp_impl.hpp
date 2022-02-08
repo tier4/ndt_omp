@@ -357,7 +357,12 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeDerivativ
 		hessian += regularization_hessian;
 	}
 
-  nearest_voxel_transformation_probability_ = nearest_voxel_score / static_cast<double>(found_neigborhood_voxel_num);
+  if (found_neigborhood_voxel_num != 0) {
+    nearest_voxel_transformation_probability_ = nearest_voxel_score / static_cast<double>(found_neigborhood_voxel_num);
+  }
+  else {
+    nearest_voxel_transformation_probability_ = 0.0;
+  }
 
 	return (score);
 }
@@ -1105,7 +1110,12 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
       score += score_inc;
 		}
 	}
-	return (score) / static_cast<double> (trans_cloud.size());
+
+  double output_score = 0;
+  if (trans_cloud.size() != 0) {
+    output_score = (score) / static_cast<double> (trans_cloud.size());
+  }
+	return output_score;
 }
 
 template<typename PointSource, typename PointTarget>
@@ -1165,7 +1175,12 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
     }
 
 	}
-  return nearest_voxel_score / static_cast<double> (found_neigborhood_voxel_num);
+
+  double output_score = 0;
+  if (found_neigborhood_voxel_num != 0) {
+    output_score =  nearest_voxel_score / static_cast<double> (found_neigborhood_voxel_num);
+  }
+  return output_score;
 }
 
 #endif // PCL_REGISTRATION_NDT_IMPL_H_
