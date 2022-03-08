@@ -1060,7 +1060,12 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
 			score += score_inc / neighborhood.size();
 		}
 	}
-	return (score) / static_cast<double> (trans_cloud.size());
+
+  double output_score = 0;
+  if (!trans_cloud.points.empty()) {
+    output_score = (score) / static_cast<double> (trans_cloud.size());
+  }
+	return output_score;
 }
 
 template<typename PointSource, typename PointTarget>
@@ -1112,8 +1117,8 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
 	}
 
   double output_score = 0;
-  if (trans_cloud.size() != 0) {
-    output_score = (score) / static_cast<double> (trans_cloud.size());
+  if (!trans_cloud.points.empty()) {
+    output_score = (score) / static_cast<double> (trans_cloud.points.size());
   }
 	return output_score;
 }
