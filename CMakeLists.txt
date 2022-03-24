@@ -4,11 +4,12 @@ project(ndt_omp)
 add_definitions(-std=c++14)
 set(CMAKE_CXX_FLAGS "-std=c++14")
 
-if (BUILD_WITH_MARCH_NATIVE)
-  add_compile_options(-march=native)
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+  if(BUILD_WITH_MARCH_NATIVE)
+    add_compile_options(-march=native)
+  endif()
 else()
-  add_definitions(-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2)
-  set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
+  add_compile_options(-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2)
 endif()
 
 # pcl 1.7 causes a segfault when it is built with debug mode
