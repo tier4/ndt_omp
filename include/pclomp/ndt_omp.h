@@ -210,10 +210,35 @@ public:
     convertTransform(x, _affine);
     trans = _affine.matrix();
   }
+  
+  //add at 20220721 konishi
+  inline const std::vector<double>
+    getScores() const
+  {
+    return scores_;
+  }
+
+  inline const TargetGrid
+    getTargetCells() const 
+  {
+    return target_cells_;
+  }
+
+  inline const std::map<size_t,double>
+    getScoreMap() const
+  {
+    return voxel_score_map_;
+  }
+
+  inline const std::map<size_t,size_t>
+    getNoPointMap() const
+  {
+    return nomap_points_num_;
+  }
 
   // negative log likelihood function
   // lower is better
-  double calculateScore(const PointCloudSource & cloud) const;
+  double calculateScore(const PointCloudSource & cloud);
   double calculateTransformationProbability(const PointCloudSource & cloud) const;
   double calculateNearestVoxelTransformationLikelihood(const PointCloudSource & cloud) const;
 
@@ -509,6 +534,11 @@ protected:
 
   boost::optional<Eigen::Matrix4f> regularization_pose_;
   Eigen::Vector3f regularization_pose_translation_;
+
+	// add at 20220721 konishi
+	std::vector<double> scores_;
+	std::map<size_t,double> voxel_score_map_;
+	std::map<size_t,size_t> nomap_points_num_;
 
   NdtParams params_;
 

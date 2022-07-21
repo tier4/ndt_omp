@@ -96,24 +96,25 @@ public:
   typedef boost::shared_ptr<const pcl::VoxelGrid<PointT> > ConstPtr;
 #endif
 
-  /** \brief Simple structure to hold a centroid, covariance and the number of points in a leaf.
-   * Inverse covariance, eigen vectors and eigen values are precomputed. */
-  struct Leaf
-  {
-    /** \brief Constructor.
-     * Sets \ref nr_points, \ref icov_, \ref mean_ and \ref evals_ to 0 and \ref cov_ and \ref
-     * evecs_ to the identity matrix
-     */
-    Leaf()
-    : nr_points(0),
-      mean_(Eigen::Vector3d::Zero()),
-      centroid(),
-      cov_(Eigen::Matrix3d::Identity()),
-      icov_(Eigen::Matrix3d::Zero()),
-      evecs_(Eigen::Matrix3d::Identity()),
-      evals_(Eigen::Vector3d::Zero())
-    {
-    }
+      /** \brief Simple structure to hold a centroid, covariance and the number of points in a leaf.
+        * Inverse covariance, eigen vectors and eigen values are precomputed. */
+      struct Leaf
+      {
+        /** \brief Constructor.
+         * Sets \ref nr_points, \ref icov_, \ref mean_ and \ref evals_ to 0 and \ref cov_ and \ref evecs_ to the identity matrix
+         */
+        Leaf () :
+          nr_points (0),
+          mean_ (Eigen::Vector3d::Zero ()),
+          // add 20220721 konishi
+          voxelXYZ_ (Eigen::Vector3d::Zero ()),
+          centroid_ (),
+          cov_ (Eigen::Matrix3d::Identity ()),
+          icov_ (Eigen::Matrix3d::Zero ()),
+          evecs_ (Eigen::Matrix3d::Identity ()),
+          evals_ (Eigen::Vector3d::Zero ())
+        {
+        }
 
     /** \brief Get the voxel covariance.
      * \return covariance matrix
@@ -126,9 +127,19 @@ public:
     Eigen::Matrix3d getInverseCov() const { return (icov_); }
 
     /** \brief Get the voxel centroid.
-     * \return centroid
-     */
-    Eigen::Vector3d getMean() const { return (mean_); }
+      * \return centroid
+      */
+    Eigen::Vector3d
+    getMean () const
+    {
+      return (mean_);
+    }
+    // add at 20220721 by konishi
+    Eigen::Vector3d
+    getLeafCenter () const
+    {
+      return (voxelXYZ);
+    }
 
     /** \brief Get the eigen vectors of the voxel covariance.
      * \note Order corresponds with \ref getEvals
@@ -153,10 +164,13 @@ public:
     /** \brief 3D voxel centroid */
     Eigen::Vector3d mean_;
 
+    // add at 20220721 by konishi
+    Eigen::Vector3d voxelXYZ_;
+
     /** \brief Nd voxel centroid
      * \note Differs from \ref mean_ when color data is used
      */
-    Eigen::VectorXf centroid;
+    Eigen::VectorXf centroid_;
 
     /** \brief Voxel covariance matrix */
     Eigen::Matrix3d cov_;

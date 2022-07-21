@@ -1087,11 +1087,13 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeSt
   return (a_t);
 }
 
-template <typename PointSource, typename PointTarget>
-double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateScore(
-  const PointCloudSource & trans_cloud) const
+
+// change at 20220721 konishi
+template<typename PointSource, typename PointTarget>
+double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateScore(const PointCloudSource & trans_cloud)
 {
-  double score = 0;
+	double score = 0;
+  std::map<size_t,size_t> voxel_points_num;
 
   for (std::size_t idx = 0; idx < trans_cloud.points.size(); idx++) {
     PointSource x_trans_pt = trans_cloud.points[idx];
@@ -1115,38 +1117,62 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
         break;
     }
 
-    for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it =
-           neighborhood.begin();
-         neighborhood_it != neighborhood.end(); ++neighborhood_it) {
-      TargetGridLeafConstPtr cell = *neighborhood_it;
+    // add at 20220218 by konishi
+    size_t voxel_idx;
+    if (neighborhood.size() == 0){
+      
+      voxel_idx = target_cells_.getLeafIndex(Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z));
 
-      Eigen::Vector3d x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
+      Eigen::Vector3d voxelXYZ;
+      voxelXYZ = target_cells_.getLeafCenter(voxel_idx);
 
-      // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
-      x_trans -= cell->getMean();
-      // Uses precomputed covariance for speed.
-      Eigen::Matrix3d c_inv = cell->getInverseCov();
+      if (nomap_points_num.count(voxel_idx) == 0){
+        nomap_points_num[voxel_idx] = 0;
+      }
+      nomap_points_num[voxel_idx] += 1;
+    }else{
+      for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++)
+      {
+        TargetGridLeafConstPtr cell = *neighborhood_it;
+        PointSource x_pt = input_->points[idx];
+        Eigen::Vector3d x = Eigen::Vector3d(x_pt.x, x_pt.y, x_pt.z);
 
-      // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
-      double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
-      // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
-      double score_inc = -gauss_d1_ * e_x_cov_x - gauss_d3_;
+        Eigen::Vector3d x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
 
-      score += score_inc / neighborhood.size();
+        // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
+        x_trans -= cell->getMean();
+        // Uses precomputed covariance for speed.
+        Eigen::Matrix3d c_inv = cell->getInverseCov();
+
+        // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
+        double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
+        // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
+        double score_inc = -gauss_d1_ * e_x_cov_x;
+
+        score += score_inc;
+
+        voxel_idx = target_cells_.getLeafIndex(cell->getMean());
+
+        if (voxel_points_num.count(voxel_idx) == 0){
+          voxel_points_num[voxel_idx] = 0;
+          voxel_score_map[voxel_idx] = 0;
+        }
+        voxel_score_map[voxel_idx] += score_inc;
+        voxel_points_num[voxel_idx] += 1;
+      }
+    }
+  }
+  for (auto &voxel_score_output: voxel_score_map){
+    if (voxel_points_num[voxel_score_output.first] != 0){
+      voxel_score_output.second /= (voxel_points_num[voxel_score_output.first]);
     }
   }
 
-  double output_score = 0;
-  if (!trans_cloud.points.empty()) {
-    output_score = (score) / static_cast<double>(trans_cloud.size());
-  }
-  return output_score;
+	return (score) / static_cast<double> (trans_cloud.size());
 }
 
-template <typename PointSource, typename PointTarget>
-double
-pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateTransformationProbability(
-  const PointCloudSource & trans_cloud) const
+template<typename PointSource, typename PointTarget>
+double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateTransformationProbability(const PointCloudSource & trans_cloud) const
 {
   double score = 0;
 
