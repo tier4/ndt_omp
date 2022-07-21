@@ -242,6 +242,31 @@ namespace pclomp
 			return transformation_array_;
 		}
 
+		//add at 20220721 konishi
+		inline const std::vector<double>
+			getScores() const
+		{
+			return scores_;
+		}
+
+		inline const TargetGrid
+			getTargetCells() const 
+		{
+			return target_cells_;
+		}
+
+		inline const std::map<size_t,double>
+			getScoreMap() const
+		{
+			return voxel_score_map;
+		}
+
+		inline const std::map<size_t,size_t>
+			getNoPointMap() const
+		{
+			return nomap_points_num;
+		}
+
 		/** \brief Convert 6 element transformation vector to affine transformation.
 		  * \param[in] x transformation vector of the form [x, y, z, roll, pitch, yaw]
 		  * \param[out] trans affine transform corresponding to given transformation vector
@@ -269,7 +294,8 @@ namespace pclomp
 
 		// negative log likelihood function
 		// lower is better
-		double calculateScore(const PointCloudSource& cloud) const;
+		double calculateScore(const PointCloudSource& cloud); // change at 20220721 konishi
+		// double calculateScore(const PointCloudSource& cloud) const;
 		double calculateTransformationProbability(const PointCloudSource& cloud) const;
 		double calculateNearestVoxelTransformationLikelihood(const PointCloudSource& cloud) const;
 
@@ -549,6 +575,10 @@ namespace pclomp
 	Eigen::Matrix<double, 6, 6> hessian_;
 	std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array_;
 	double nearest_voxel_transformation_likelihood_;
+	// add at 20220721 konishi
+	std::vector<double> scores_;
+	std::map<size_t,double> voxel_score_map;
+	std::map<size_t,size_t> nomap_points_num;
 
 	float regularization_scale_factor_;
 	boost::optional<Eigen::Matrix4f> regularization_pose_;

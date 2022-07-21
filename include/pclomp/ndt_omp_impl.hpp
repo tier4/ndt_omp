@@ -329,6 +329,8 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeDerivativ
 		hessian += hessians[i];
 		total_neighborhood_count += neighborhood_counts[i];
 	}
+  //add at 20220721 konishi
+  scores_ = scores;
 
 	if (regularization_pose_) {
 		float regularization_score = 0.0f;
@@ -1013,10 +1015,16 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeStepLengt
   return (a_t);
 }
 
+// template<typename PointSource, typename PointTarget>
+// double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateScore(const PointCloudSource & trans_cloud) const
+// {
+// 	double score = 0;
+// change at 20220721 konishi
 template<typename PointSource, typename PointTarget>
-double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateScore(const PointCloudSource & trans_cloud) const
+double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateScore(const PointCloudSource & trans_cloud)
 {
 	double score = 0;
+  std::map<size_t,size_t> voxel_points_num;
 
 	for (std::size_t idx = 0; idx < trans_cloud.points.size(); idx++)
 	{
@@ -1041,32 +1049,129 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
 			break;
 		}
 
-		for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++)
-		{
-			TargetGridLeafConstPtr cell = *neighborhood_it;
+    // add at 20220218 by konishi
+    size_t voxel_idx;
+    if (neighborhood.size() == 0){
+      
+      voxel_idx = target_cells_.getLeafIndex(Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z));
 
-			Eigen::Vector3d x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
+      Eigen::Vector3d voxelXYZ;
+      voxelXYZ = target_cells_.getLeafCenter(voxel_idx);
+      // std::cerr << nomap_points_num.size() << std::endl;
+      // std::cerr << voxelXYZ[0] << " "<< voxelXYZ[1] <<" "<< voxelXYZ[2]  << std::endl;
+      // std::cerr << cell->getMean().x() <<" " << cell->getMean().y() << " " << cell->getMean().z() << std::endl;
 
-			// Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
-			x_trans -= cell->getMean();
-			// Uses precomputed covariance for speed.
-			Eigen::Matrix3d c_inv = cell->getInverseCov();
+      if (nomap_points_num.count(voxel_idx) == 0){
+        nomap_points_num[voxel_idx] = 0;
+      }
+      nomap_points_num[voxel_idx] += 1;
+    }else{
+      for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++)
+      {
+        TargetGridLeafConstPtr cell = *neighborhood_it;
+        PointSource x_pt = input_->points[idx];
+        Eigen::Vector3d x = Eigen::Vector3d(x_pt.x, x_pt.y, x_pt.z);
 
-			// e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
-			double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
-			// Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
-			double score_inc = -gauss_d1_ * e_x_cov_x - gauss_d3_;
+        Eigen::Vector3d x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
 
-			score += score_inc / neighborhood.size();
-		}
-	}
+        // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
+        x_trans -= cell->getMean();
+        // Uses precomputed covariance for speed.
+        Eigen::Matrix3d c_inv = cell->getInverseCov();
 
-  double output_score = 0;
-  if (!trans_cloud.points.empty()) {
-    output_score = (score) / static_cast<double> (trans_cloud.size());
+        // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
+        double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
+        // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
+        // double score_inc = -gauss_d1_ * e_x_cov_x - gauss_d3_;
+        double score_inc = -gauss_d1_ * e_x_cov_x;
+
+        // score += score_inc / neighborhood.size();
+        score += score_inc;
+        // Compute derivative of transform function w.r.t. transform vector, J_E and H_E in Equations 6.18 and 6.20 [Magnusson 2009]
+        // computePointDerivatives(x, point_gradient_, point_hessian_);
+        // Update score, gradient and hessian, lines 19-21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13, respectively [Magnusson 2009]
+        // score_pt += updateDerivatives(score_gradient_pt, hessian_pt, point_gradient_, point_hessian_, x_trans, c_inv, compute_hessian);
+
+        voxel_idx = target_cells_.getLeafIndex(cell->getMean());
+
+        Eigen::Vector3d voxelXYZ;
+        voxelXYZ = target_cells_.getLeafCenter(voxel_idx);
+
+        // std::cerr << voxelXYZ[0] << " "<< voxelXYZ[1] <<" "<< voxelXYZ[2]  << std::endl;
+        // std::cerr << cell->getMean().x() <<" " << cell->getMean().y() << " " << cell->getMean().z() << std::endl;
+        if (voxel_points_num.count(voxel_idx) == 0){
+          voxel_points_num[voxel_idx] = 0;
+          voxel_score_map[voxel_idx] = 0;
+        }
+        voxel_score_map[voxel_idx] += score_inc;
+        voxel_points_num[voxel_idx] += 1;
+      }
+    }
   }
-	return output_score;
+  for (auto &voxel_score_output: voxel_score_map){
+    if (voxel_points_num[voxel_score_output.first] != 0){
+      voxel_score_output.second /= (voxel_points_num[voxel_score_output.first]);
+    }
+  }
+
+	return (score) / static_cast<double> (trans_cloud.size());
 }
+
+// template<typename PointSource, typename PointTarget>
+// double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateScore(const PointCloudSource & trans_cloud) const
+// {
+// 	double score = 0;
+
+// 	for (std::size_t idx = 0; idx < trans_cloud.points.size(); idx++)
+// 	{
+// 		PointSource x_trans_pt = trans_cloud.points[idx];
+
+// 		// Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
+// 		std::vector<TargetGridLeafConstPtr> neighborhood;
+// 		std::vector<float> distances;
+// 		switch (search_method) {
+// 		case KDTREE:
+// 			target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+// 			break;
+// 		case DIRECT26:
+// 			target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
+// 			break;
+// 		default:
+// 		case DIRECT7:
+// 			target_cells_.getNeighborhoodAtPoint7(x_trans_pt, neighborhood);
+// 			break;
+// 		case DIRECT1:
+// 			target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
+// 			break;
+// 		}
+
+// 		for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++)
+// 		{
+// 			TargetGridLeafConstPtr cell = *neighborhood_it;
+
+// 			Eigen::Vector3d x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
+
+// 			// Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
+// 			x_trans -= cell->getMean();
+// 			// Uses precomputed covariance for speed.
+// 			Eigen::Matrix3d c_inv = cell->getInverseCov();
+
+// 			// e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
+// 			double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
+// 			// Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
+// 			double score_inc = -gauss_d1_ * e_x_cov_x - gauss_d3_;
+
+// 			score += score_inc / neighborhood.size();
+// 		}
+// 	}
+
+//   double output_score = 0;
+//   if (!trans_cloud.points.empty()) {
+//     output_score = (score) / static_cast<double> (trans_cloud.size());
+//   }
+// 	return output_score;
+// }
+
 
 template<typename PointSource, typename PointTarget>
 double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateTransformationProbability(const PointCloudSource & trans_cloud) const

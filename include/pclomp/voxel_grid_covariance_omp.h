@@ -103,6 +103,8 @@ namespace pclomp
         Leaf () :
           nr_points (0),
           mean_ (Eigen::Vector3d::Zero ()),
+          // add 20220721 konishi
+          voxelXYZ (Eigen::Vector3d::Zero ()),
           centroid (),
           cov_ (Eigen::Matrix3d::Identity ()),
           icov_ (Eigen::Matrix3d::Zero ()),
@@ -136,6 +138,12 @@ namespace pclomp
         getMean () const
         {
           return (mean_);
+        }
+        // add at 20220721 by konishi
+        Eigen::Vector3d
+        getLeafCenter () const
+        {
+          return (voxelXYZ);
         }
 
         /** \brief Get the eigen vectors of the voxel covariance.
@@ -172,6 +180,9 @@ namespace pclomp
 
         /** \brief 3D voxel centroid */
         Eigen::Vector3d mean_;
+
+        // add at 20220721 by konishi
+        Eigen::Vector3d voxelXYZ;
 
         /** \brief Nd voxel centroid
          * \note Differs from \ref mean_ when color data is used
@@ -372,6 +383,49 @@ namespace pclomp
         else
           return NULL;
 
+      }
+      // add at 20220218 by konishi
+      inline size_t
+      getLeafIndex (const Eigen::Vector3d &p)
+      {
+         // Generate index associated with p
+        int ijk0 = static_cast<int> (floor (p[0] * inverse_leaf_size_[0]) - min_b_[0]);
+        int ijk1 = static_cast<int> (floor (p[1] * inverse_leaf_size_[1]) - min_b_[1]);
+        int ijk2 = static_cast<int> (floor (p[2] * inverse_leaf_size_[2]) - min_b_[2]);
+
+        // Compute the centroid leaf index
+        int idx = ijk0 * divb_mul_[0] + ijk1 * divb_mul_[1] + ijk2 * divb_mul_[2];
+        return idx;
+        // auto leaf_iter = leaves_.find (idx);
+        // if (leaf_iter != leaves_.end ())
+        // {
+        //   size_t index = std::distance(leaves_.begin(),leaf_iter);
+        //   return idx;
+        // }
+        // else
+        //   return 0;
+      }
+      // add at 20220721 by konishi
+      inline Eigen::Vector3d
+      // getLeafCenterの命名ほうがよい
+      getLeafCenter(const size_t index)
+      {
+        int ijk2 = index / divb_mul_[2];
+        int ijk1 = (index % divb_mul_[2]) / divb_mul_[1];
+        int ijk0 = ((index % divb_mul_[2]) % divb_mul_[1]) / divb_mul_[0];
+        // std::cerr << "ijk0:" << " " << ijk0 << " " << "ijk1" << ijk1  << " "<< "ijk2"<< ijk2 << std::endl;
+
+
+        Eigen::Vector3d p;
+        p[0] = (ijk0 + min_b_[0]) / inverse_leaf_size_[0] +1;
+        p[1] = (ijk1 + min_b_[1]) / inverse_leaf_size_[1] +1;
+        p[2] = (ijk2 + min_b_[2]) / inverse_leaf_size_[2] +1;
+
+        // std::cerr << "ijk0:" << " " << ijk0 << " " << "ijk1" << ijk1  << " "<< "ijk2"<< ijk2 << " " << std::endl;
+        // std::cerr << "inverse_leaf_size_[0]:" << " " << inverse_leaf_size_[0] << " " << "inverse_leaf_size_[1]:" << inverse_leaf_size_[1]  << " "<< "inverse_leaf_size_[2]:"<< inverse_leaf_size_[2] << " " << std::endl;
+        // std::cerr << "p_x:" << p[0] << " " << "p_y" << p[1] << " " << "p_z "<< p[2]<< " " << std::endl;
+
+        return p;
       }
 
       /** \brief Get the voxels surrounding point p, not including the voxel containing point p.
