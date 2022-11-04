@@ -65,6 +65,7 @@ namespace pclomp
 		float nearest_voxel_transformation_likelihood;
 		int iteration_num;
 		std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array;
+		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	};
 
 
@@ -298,11 +299,8 @@ namespace pclomp
 			regularization_pose_ = boost::none;
 		}
 
-		NdtResult executeScanMatching(Eigen::Matrix4f initial_pose_matrix)
+		NdtResult getResult()
 		{
-			auto output_cloud = std::make_shared<pcl::PointCloud<PointSource>>();
-			this->align(*output_cloud, initial_pose_matrix);
-
 			NdtResult ndt_result;
 			ndt_result.pose = this->getFinalTransformation();
 			ndt_result.transformation_array = getFinalTransformationArray();
