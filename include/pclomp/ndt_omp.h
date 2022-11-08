@@ -58,7 +58,7 @@ namespace pclomp
 		DIRECT1
 	};
 
-	struct NDTResult
+	struct NdtResult
 	{
 		Eigen::Matrix4f pose;
 		float transform_probability;
@@ -68,7 +68,7 @@ namespace pclomp
 		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	};
 
-	struct NDTParams
+	struct NdtParams
 	{
 		double trans_epsilon;
 		double step_size;
@@ -309,9 +309,9 @@ namespace pclomp
 			regularization_pose_ = boost::none;
 		}
 
-		NDTResult getResult()
+		NdtResult getResult()
 		{
-			NDTResult ndt_result;
+			NdtResult ndt_result;
 			ndt_result.pose = this->getFinalTransformation();
 			ndt_result.transformation_array = getFinalTransformationArray();
 			ndt_result.transform_probability = getTransformationProbability();
@@ -321,7 +321,7 @@ namespace pclomp
 			return ndt_result;
 		}
 
-		void setParams(const NDTParams & ndt_params)
+		void setParams(const NdtParams & ndt_params)
 		{
 			this->setTransformationEpsilon(ndt_params.trans_epsilon);
 			this->setStepSize(ndt_params.step_size);
@@ -332,9 +332,9 @@ namespace pclomp
 			setNumThreads(ndt_params.num_threads);
 		}
 
-		NDTParams getParams() const
+		NdtParams getParams() const
 		{
-			NDTParams ndt_params;
+			NdtParams ndt_params;
 			ndt_params.trans_epsilon = transformation_epsilon_;
 			ndt_params.step_size = getStepSize();
 			ndt_params.resolution = getResolution();
