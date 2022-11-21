@@ -119,11 +119,19 @@ namespace pclomp
 			return num_threads_;
 		}
 
+		inline void
+			setInputTarget(const PointCloudTargetConstPtr &cloud)
+		{
+			const std::string default_target_id = "default";
+			addTarget(cloud, default_target_id);
+			createVoxelKdtree();
+		}
+
 		/** \brief Provide a pointer to the input target (e.g., the point cloud that we want to align the input source to).
 		  * \param[in] cloud the input point cloud target
 		  */
 		inline void
-			setInputTarget(const PointCloudTargetConstPtr &cloud, const std::string target_id)
+			addTarget(const PointCloudTargetConstPtr &cloud, const std::string target_id)
 		{
 			RegistrationWithoutTree<PointSource, PointTarget>::setInputTarget(cloud);
 			target_cells_.setLeafSize(resolution_, resolution_, resolution_);
