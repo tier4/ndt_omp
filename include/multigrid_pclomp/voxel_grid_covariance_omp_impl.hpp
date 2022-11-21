@@ -43,9 +43,9 @@
 #include "multigrid_pclomp/voxel_grid_covariance_omp.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
-template<typename PointT> void
-pclomp::VoxelGridCovariance<PointT>::applyFilter (
-  const PointCloudPtr &input, const std::string & cloud_id, VoxelGridInfo &voxel_grid_info)
+template<typename PointT>
+void pclomp::VoxelGridCovariance<PointT>::applyFilter (
+  const PointCloudPtr &input, const std::string & cloud_id, VoxelGridInfo &voxel_grid_info) const
 {
   voxel_grid_info.leaf_indices.clear ();
 
@@ -79,23 +79,24 @@ pclomp::VoxelGridCovariance<PointT>::applyFilter (
   }
 
   // Compute the minimum and maximum bounding box values
-  min_b_[0] = static_cast<int> (floor (min_p[0] * inverse_leaf_size_[0]));
-  max_b_[0] = static_cast<int> (floor (max_p[0] * inverse_leaf_size_[0]));
-  min_b_[1] = static_cast<int> (floor (min_p[1] * inverse_leaf_size_[1]));
-  max_b_[1] = static_cast<int> (floor (max_p[1] * inverse_leaf_size_[1]));
-  min_b_[2] = static_cast<int> (floor (min_p[2] * inverse_leaf_size_[2]));
-  max_b_[2] = static_cast<int> (floor (max_p[2] * inverse_leaf_size_[2]));
+  BoundingBox bbox;
+  bbox.min[0] = static_cast<int> (floor (min_p[0] * inverse_leaf_size_[0]));
+  bbox.max[0] = static_cast<int> (floor (max_p[0] * inverse_leaf_size_[0]));
+  bbox.min[1] = static_cast<int> (floor (min_p[1] * inverse_leaf_size_[1]));
+  bbox.max[1] = static_cast<int> (floor (max_p[1] * inverse_leaf_size_[1]));
+  bbox.min[2] = static_cast<int> (floor (min_p[2] * inverse_leaf_size_[2]));
+  bbox.max[2] = static_cast<int> (floor (max_p[2] * inverse_leaf_size_[2]));
 
   // Compute the number of divisions needed along all axis
-  div_b_ = max_b_ - min_b_ + Eigen::Vector4i::Ones ();
-  div_b_[3] = 0;
+  Eigen::Vector4i div_b = bbox.max - bbox.min + Eigen::Vector4i::Ones ();
+  div_b[3] = 0;
 
   // Clear the leaves
   voxel_grid_info.leaves.clear ();
   // voxel_grid_info.leaves.reserve(8192);
 
   // Set up the division multiplier
-  divb_mul_ = Eigen::Vector4i (1, div_b_[0], div_b_[0] * div_b_[1], 0);
+  bbox.div_mul = Eigen::Vector4i (1, div_b[0], div_b[0] * div_b[1], 0);
 
   int centroid_size = 4;
 
@@ -107,16 +108,15 @@ pclomp::VoxelGridCovariance<PointT>::applyFilter (
       if (!std::isfinite (input->points[cp].x) || !std::isfinite (input->points[cp].y) || !std::isfinite (input->points[cp].z))
         continue;
 
-    LeafID leaf_idx;
-    getLeafID(cloud_id, input->points[cp], leaf_idx);
+    LeafID leaf_idx = getLeafID(cloud_id, input->points[cp], bbox);
     Leaf& leaf = voxel_grid_info.leaves[leaf_idx];
     updateLeaf(input->points[cp], centroid_size, leaf);
   }
 
   // Second pass: go over all leaves and compute centroids and covariance matrices
-  voxel_grid_info.voxel_centroids.points.reserve (voxel_grid_info.leaves.size ());
+  voxel_grid_info.voxel_centroids.points.reserve(voxel_grid_info.leaves.size ());
   if (searchable_)
-    voxel_grid_info.leaf_indices.reserve (voxel_grid_info.leaves.size ());
+    voxel_grid_info.leaf_indices.reserve(voxel_grid_info.leaves.size ());
   int cp = 0;
 
   // Eigen values and vectors calculated to prevent near singular matrices
@@ -154,9 +154,9 @@ pclomp::VoxelGridCovariance<PointT>::applyFilter (
   voxel_grid_info.voxel_centroids.width = static_cast<uint32_t> (voxel_grid_info.voxel_centroids.points.size ());
 }
 
-template<typename PointT> void
-pclomp::VoxelGridCovariance<PointT>::updateVoxelCentroids (
-  const Leaf & leaf, PointCloud & voxel_centroids)
+template<typename PointT>
+void pclomp::VoxelGridCovariance<PointT>::updateVoxelCentroids (
+  const Leaf & leaf, PointCloud & voxel_centroids) const
 {
   voxel_centroids.push_back (PointT ());
   voxel_centroids.points.back ().x = leaf.centroid[0];
@@ -164,21 +164,21 @@ pclomp::VoxelGridCovariance<PointT>::updateVoxelCentroids (
   voxel_centroids.points.back ().z = leaf.centroid[2];
 }
 
-template<typename PointT> void
-pclomp::VoxelGridCovariance<PointT>::getLeafID (
-  const std::string & cloud_id, const PointT & point, LeafID & leaf_idx)
+template<typename PointT>
+pclomp::VoxelGridCovariance<PointT>::LeafID pclomp::VoxelGridCovariance<PointT>::getLeafID (
+  const std::string & cloud_id, const PointT & point, const BoundingBox & bbox) const
 {
-  int ijk0 = static_cast<int> (floor (point.x * inverse_leaf_size_[0]) - static_cast<float> (min_b_[0]));
-  int ijk1 = static_cast<int> (floor (point.y * inverse_leaf_size_[1]) - static_cast<float> (min_b_[1]));
-  int ijk2 = static_cast<int> (floor (point.z * inverse_leaf_size_[2]) - static_cast<float> (min_b_[2]));
-  int idx = ijk0 * divb_mul_[0] + ijk1 * divb_mul_[1] + ijk2 * divb_mul_[2];
+  int ijk0 = static_cast<int> (floor (point.x * inverse_leaf_size_[0]) - static_cast<float> (bbox.min[0]));
+  int ijk1 = static_cast<int> (floor (point.y * inverse_leaf_size_[1]) - static_cast<float> (bbox.min[1]));
+  int ijk2 = static_cast<int> (floor (point.z * inverse_leaf_size_[2]) - static_cast<float> (bbox.min[2]));
+  int idx = ijk0 * bbox.div_mul[0] + ijk1 * bbox.div_mul[1] + ijk2 * bbox.div_mul[2];
   leaf_idx.voxel_id = cloud_id;
   leaf_idx.leaf_id = idx;
 }
 
-template<typename PointT> void
-pclomp::VoxelGridCovariance<PointT>::updateLeaf (
-  const PointT & point, const int & centroid_size, Leaf & leaf)
+template<typename PointT>
+void pclomp::VoxelGridCovariance<PointT>::updateLeaf (
+  const PointT & point, const int & centroid_size, Leaf & leaf) const
 {
   if (leaf.nr_points == 0)
   {
@@ -197,11 +197,11 @@ pclomp::VoxelGridCovariance<PointT>::updateLeaf (
   ++leaf.nr_points;
 }
 
-template<typename PointT> void
-pclomp::VoxelGridCovariance<PointT>::computeLeafParams (
+template<typename PointT>
+void pclomp::VoxelGridCovariance<PointT>::computeLeafParams (
   const Eigen::Vector3d & pt_sum,
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> & eigensolver,
-  Leaf & leaf)
+  Leaf & leaf) const
 {
   // Single pass covariance calculation
   leaf.cov_ = (leaf.cov_ - 2 * (pt_sum * leaf.mean_.transpose ())) / 

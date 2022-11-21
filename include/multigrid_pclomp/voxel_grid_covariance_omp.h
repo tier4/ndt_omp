@@ -212,7 +212,6 @@ namespace pclomp
         }
       };
 
-
       /** \brief Pointer to VoxelGridCovariance leaf structure */
       typedef Leaf* LeafPtr;
 
@@ -230,6 +229,13 @@ namespace pclomp
           leaves.clear();
           leaf_indices.clear();
         }
+      };
+
+      struct BoundingBox
+      {
+        Eigen::Vector4i max;
+        Eigen::Vector4i min;
+        Eigen::Vector4i div_mul;
       };
 
     public:
@@ -381,17 +387,17 @@ namespace pclomp
       /** \brief Filter cloud and initializes voxel structure.
        * \param[out] output cloud containing centroids of voxels containing a sufficient number of points
        */
-      void applyFilter (const PointCloudPtr &input, const std::string & cloud_id, VoxelGridInfo &voxel_grid_info);
+      void applyFilter (const PointCloudPtr &input, const std::string & cloud_id, VoxelGridInfo &voxel_grid_info) const;
 
-      void updateVoxelCentroids (const Leaf & leaf, PointCloud & voxel_centroids);
+      void updateVoxelCentroids (const Leaf & leaf, PointCloud & voxel_centroids) const;
 
-      void updateLeaf (const PointT & point, const int & centroid_size, Leaf & leaf);
+      void updateLeaf (const PointT & point, const int & centroid_size, Leaf & leaf) const;
 
       void computeLeafParams (const Eigen::Vector3d & pt_sum,
         Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> & eigensolver,
-        Leaf & leaf);
+        Leaf & leaf) const;
 
-      void getLeafID (const std::string & cloud_id, const PointT & point, LeafID & leaf_idx);
+      LeafID getLeafID (const std::string & cloud_id, const PointT & point, const BoundingBox & bbox) const;
 
       /** \brief Flag to determine if voxel structure is searchable. */
       bool searchable_;

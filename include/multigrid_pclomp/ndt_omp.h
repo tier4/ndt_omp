@@ -51,13 +51,6 @@
 
 namespace pclomp
 {
-	// enum NeighborSearchMethod {
-	// 	KDTREE,
-	// 	DIRECT26,
-	// 	DIRECT7,
-	// 	DIRECT1
-	// };
-
 	/** \brief A 3D Normal Distribution Transform registration implementation for point cloud data.
 	  * \note For more information please see
 	  * <b>Magnusson, M. (2009). The Three-Dimensional Normal-Distributions Transform —
@@ -134,9 +127,6 @@ namespace pclomp
 		{
 			RegistrationWithoutTree<PointSource, PointTarget>::setInputTarget(cloud);
 			target_cells_.setLeafSize(resolution_, resolution_, resolution_);
-			// target_cells_.setInputCloud(cloud);
-			// // Initiate voxel structure.
-			// target_cells_.filter(target_id, true);
 			target_cells_.setInputCloudAndFilter(cloud, target_id, true);
 		}
 
@@ -369,10 +359,6 @@ namespace pclomp
 		void inline
 			init()
 		{
-			// target_cells_.setLeafSize(resolution_, resolution_, resolution_);
-			// target_cells_.setInputCloud(target_);
-			// // Initiate voxel structure.
-			// target_cells_.filter(true);
 		}
 
 		/** \brief Compute derivatives of probability function w.r.t. the transformation vector.
