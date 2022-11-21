@@ -51,6 +51,27 @@
 
 namespace pclomp
 {
+	struct NdtResult
+	{
+		Eigen::Matrix4f pose;
+		float transform_probability;
+		float nearest_voxel_transformation_likelihood;
+		int iteration_num;
+		std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array;
+		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+	};
+
+	struct NdtParams
+	{
+		double trans_epsilon;
+		double step_size;
+		double resolution;
+		int max_iterations;
+		// pclomp::NeighborSearchMethod search_method;
+		int num_threads;
+		float regularization_scale_factor;
+	};
+
 	/** \brief A 3D Normal Distribution Transform registration implementation for point cloud data.
 	  * \note For more information please see
 	  * <b>Magnusson, M. (2009). The Three-Dimensional Normal-Distributions Transform —
@@ -318,6 +339,42 @@ namespace pclomp
 			regularization_pose_ = boost::none;
 		}
 
+		NdtResult getResult()
+		{
+			NdtResult ndt_result;
+			ndt_result.pose = this->getFinalTransformation();
+			ndt_result.transformation_array = getFinalTransformationArray();
+			ndt_result.transform_probability = getTransformationProbability();
+			ndt_result.nearest_voxel_transformation_likelihood =
+				getNearestVoxelTransformationLikelihood();
+			ndt_result.iteration_num = getFinalNumIteration();
+			return ndt_result;
+		}
+
+		void setParams(const NdtParams & ndt_params)
+		{
+			this->setTransformationEpsilon(ndt_params.trans_epsilon);
+			this->setStepSize(ndt_params.step_size);
+			this->setResolution(ndt_params.resolution);
+			this->setMaximumIterations(ndt_params.max_iterations);
+			setRegularizationScaleFactor(ndt_params.regularization_scale_factor);
+			// setNeighborhoodSearchMethod(ndt_params.search_method);
+			setNumThreads(ndt_params.num_threads);
+		}
+
+		NdtParams getParams() const
+		{
+			NdtParams ndt_params;
+			ndt_params.trans_epsilon = transformation_epsilon_;
+			ndt_params.step_size = getStepSize();
+			ndt_params.resolution = getResolution();
+			ndt_params.max_iterations = max_iterations_;
+			ndt_params.regularization_scale_factor = regularization_scale_factor_;
+			// ndt_params.search_method = getNeighborhoodSearchMethod();
+			ndt_params.num_threads = num_threads_;
+			return ndt_params;
+		}
+
 		pcl::PointCloud<PointTarget> getVoxelPCD() const
 		{
 			return target_cells_.getVoxelPCD();
@@ -327,6 +384,8 @@ namespace pclomp
 		{
 			return target_cells_.getCurrentMapIDs();
 		}
+
+		
 
 	protected:
 
