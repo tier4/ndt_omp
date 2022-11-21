@@ -38,8 +38,8 @@
  *
  */
 
-#ifndef PCL_REGISTRATION_NDT_OMP_H_
-#define PCL_REGISTRATION_NDT_OMP_H_
+#ifndef PCLOMP__NDT_OMP_H_
+#define PCLOMP__NDT_OMP_H_
 
 #include "boost/optional.hpp"
 
@@ -619,4 +619,4 @@ namespace pclomp
 
 }
 
-#endif // PCL_REGISTRATION_NDT_H_
+#endif  // PCLOMP__NDT_OMP_H_

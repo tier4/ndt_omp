@@ -38,8 +38,8 @@
  *
  */
 
-#ifndef PCL_GICP_OMP_H_
-#define PCL_GICP_OMP_H_
+#ifndef PCLOMP__GICP_OMP_H_
+#define PCLOMP__GICP_OMP_H_
 
 #include <pcl/registration/icp.h>
 #include <pcl/registration/bfgs.h>
@@ -377,4 +377,4 @@ namespace pclomp
   };
 }
 
-#endif  //#ifndef PCL_GICP_H_
+#endif  // PCLOMP__GICP_OMP_H_

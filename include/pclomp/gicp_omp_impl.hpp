@@ -37,8 +37,8 @@
  * $Id$
  *
  */
-#ifndef PCL_REGISTRATION_IMPL_GICP_OMP_HPP_
-#define PCL_REGISTRATION_IMPL_GICP_OMP_HPP_
+#ifndef PCLOMP__GICP_OMP_IMPL_HPP_
+#define PCLOMP__GICP_OMP_IMPL_HPP_
 
 #include <atomic>
 #include <pcl/registration/boost.h>
@@ -528,4 +528,4 @@ pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::applyState(E
   t.col (3) += T;
 }
 
-#endif //PCL_REGISTRATION_IMPL_GICP_HPP_
+#endif  // PCLOMP__GICP_OMP_IMPL_HPP_
