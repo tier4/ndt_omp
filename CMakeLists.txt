@@ -59,12 +59,11 @@ include_directories(
 )
 
 add_library(ndt_omp
-  src/pclomp/voxel_grid_covariance_omp.cpp
-  src/pclomp/ndt_omp.cpp
-  src/pclomp/gicp_omp.cpp
+  # src/pclomp/voxel_grid_covariance_omp.cpp
+  # src/pclomp/ndt_omp.cpp
+  # src/pclomp/gicp_omp.cpp
   src/multigrid_pclomp/voxel_grid_covariance_omp.cpp
   src/multigrid_pclomp/ndt_omp.cpp
-  src/multigrid_pclomp/registration_without_pclomp.cpp
 )
 
 add_executable(align
@@ -115,9 +114,9 @@ find_package(OpenMP)
 ###########
 
 ament_auto_add_library(ndt_omp SHARED
-  src/pclomp/voxel_grid_covariance_omp.cpp
-  src/pclomp/ndt_omp.cpp
-  src/pclomp/gicp_omp.cpp
+  # src/pclomp/voxel_grid_covariance_omp.cpp
+  # src/pclomp/ndt_omp.cpp
+  # src/pclomp/gicp_omp.cpp
   src/multigrid_pclomp/voxel_grid_covariance_omp.cpp
   src/multigrid_pclomp/ndt_omp.cpp
 )
