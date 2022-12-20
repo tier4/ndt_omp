@@ -1,10 +1,11 @@
 # ndt_omp
 This package provides an OpenMP-boosted Normal Distributions Transform (and GICP) algorithm derived from pcl. The NDT algorithm is modified to be SSE-friendly and multi-threaded. It can run up to 10 times faster than its original version in pcl.
 
-### Note from Autoware Foundation
-This ndt_omp implementation some original interfaces for Autoware. These interface works with Autoware configuration, but does not guarantee that it works as well with other parameters.
-
-For example, current Autoware only uses `RadiusSearch`, and thus we did not confirm that the new interface works as well in `getNeighborhoodAtPointX`.
+# multigrid ndt_omp
+TIER IV have developed an extended version of ndt_omp for dynamic map loading functionality.
+The difference from the `ndt_omp` is as follows:
+- Instead of `setInputTarget` interface, `multigrid_ndt_omp` provides `addTarget` and `removeTarget` for more flexible target inputs.
+- Only `RadiusSearch` is supported as a search method (`getNeighborhoodAtPointX` methods are disabled).
 
 [![Build](https://github.com/koide3/ndt_omp/actions/workflows/build.yml/badge.svg)](https://github.com/koide3/ndt_omp/actions/workflows/build.yml)
 
