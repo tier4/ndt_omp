@@ -59,11 +59,9 @@ include_directories(
 )
 
 add_library(ndt_omp
-  # src/pclomp/voxel_grid_covariance_omp.cpp
-  # src/pclomp/ndt_omp.cpp
-  # src/pclomp/gicp_omp.cpp
-  src/multigrid_pclomp/voxel_grid_covariance_omp.cpp
-  src/multigrid_pclomp/ndt_omp.cpp
+  src/pclomp/voxel_grid_covariance_omp.cpp
+  src/pclomp/ndt_omp.cpp
+  src/pclomp/gicp_omp.cpp
 )
 
 add_executable(align
@@ -117,8 +115,6 @@ ament_auto_add_library(ndt_omp SHARED
   src/pclomp/voxel_grid_covariance_omp.cpp
   src/pclomp/ndt_omp.cpp
   src/pclomp/gicp_omp.cpp
-  # src/multigrid_pclomp/voxel_grid_covariance_omp.cpp
-  # src/multigrid_pclomp/ndt_omp.cpp
 )
 
 target_link_libraries(ndt_omp ${PCL_LIBRARIES})
@@ -133,8 +129,8 @@ endif()
 ## ROS 2 multigrid ndt_omp ##
 #############################
 ament_auto_add_library(multigrid_ndt_omp SHARED
-  src/multigrid_pclomp/voxel_grid_covariance_omp.cpp
-  src/multigrid_pclomp/ndt_omp.cpp
+  src/multigrid_pclomp/multi_voxel_grid_covariance_omp.cpp
+  src/multigrid_pclomp/multigrid_ndt_omp.cpp
 )
 target_link_libraries(multigrid_ndt_omp ${PCL_LIBRARIES})
 if(OpenMP_CXX_FOUND)

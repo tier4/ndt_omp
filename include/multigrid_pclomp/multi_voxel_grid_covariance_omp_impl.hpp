@@ -40,11 +40,11 @@
 
 #include <pcl/common/common.h>
 #include <pcl/filters/boost.h>
-#include "multigrid_pclomp/voxel_grid_covariance_omp.h"
+#include "multigrid_pclomp/multi_voxel_grid_covariance_omp.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT>
-void pclomp::VoxelGridCovariance<PointT>::applyFilter (
+void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
   const PointCloudPtr &input, const std::string & cloud_id, VoxelGridInfo &voxel_grid_info) const
 {
   voxel_grid_info.leaf_indices.clear ();
@@ -155,7 +155,7 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter (
 }
 
 template<typename PointT>
-void pclomp::VoxelGridCovariance<PointT>::updateVoxelCentroids (
+void pclomp::MultiVoxelGridCovariance<PointT>::updateVoxelCentroids (
   const Leaf & leaf, PointCloud & voxel_centroids) const
 {
   voxel_centroids.push_back (PointT ());
@@ -165,7 +165,7 @@ void pclomp::VoxelGridCovariance<PointT>::updateVoxelCentroids (
 }
 
 template<typename PointT>
-typename pclomp::VoxelGridCovariance<PointT>::LeafID pclomp::VoxelGridCovariance<PointT>::getLeafID (
+typename pclomp::MultiVoxelGridCovariance<PointT>::LeafID pclomp::MultiVoxelGridCovariance<PointT>::getLeafID (
   const std::string & cloud_id, const PointT & point, const BoundingBox & bbox) const
 {
   int ijk0 = static_cast<int> (floor (point.x * inverse_leaf_size_[0]) - static_cast<float> (bbox.min[0]));
@@ -179,7 +179,7 @@ typename pclomp::VoxelGridCovariance<PointT>::LeafID pclomp::VoxelGridCovariance
 }
 
 template<typename PointT>
-void pclomp::VoxelGridCovariance<PointT>::updateLeaf (
+void pclomp::MultiVoxelGridCovariance<PointT>::updateLeaf (
   const PointT & point, const int & centroid_size, Leaf & leaf) const
 {
   if (leaf.nr_points == 0)
@@ -200,7 +200,7 @@ void pclomp::VoxelGridCovariance<PointT>::updateLeaf (
 }
 
 template<typename PointT>
-void pclomp::VoxelGridCovariance<PointT>::computeLeafParams (
+void pclomp::MultiVoxelGridCovariance<PointT>::computeLeafParams (
   const Eigen::Vector3d & pt_sum,
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> & eigensolver,
   Leaf & leaf) const

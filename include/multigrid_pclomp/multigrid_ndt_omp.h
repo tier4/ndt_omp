@@ -45,7 +45,7 @@
 
 #include <pcl/search/impl/search.hpp>
 #include <pcl/registration/registration.h>
-#include "multigrid_pclomp/voxel_grid_covariance_omp.h"
+#include "multigrid_pclomp/multi_voxel_grid_covariance_omp.h"
 
 #include <unsupported/Eigen/NonLinearOptimization>
 
@@ -84,7 +84,7 @@ namespace pclomp
 	  * \author Brian Okorn (Space and Naval Warfare Systems Center Pacific)
 	  */
 	template<typename PointSource, typename PointTarget>
-	class NormalDistributionsTransform : public pcl::Registration<PointSource, PointTarget>
+	class MultiGridNormalDistributionsTransform : public pcl::Registration<PointSource, PointTarget>
 	{
 	protected:
 
@@ -102,7 +102,7 @@ namespace pclomp
 		typedef pcl::PointIndices::ConstPtr PointIndicesConstPtr;
 
 		/** \brief Typename of searchable voxel grid containing mean and covariance. */
-		typedef pclomp::VoxelGridCovariance<PointTarget> TargetGrid;
+		typedef pclomp::MultiVoxelGridCovariance<PointTarget> TargetGrid;
 		/** \brief Typename of pointer to searchable voxel grid. */
 		typedef TargetGrid* TargetGridPtr;
 		/** \brief Typename of const pointer to searchable voxel grid. */
@@ -114,21 +114,21 @@ namespace pclomp
 	public:
 
 #if PCL_VERSION >= PCL_VERSION_CALC(1, 10, 0)
-		typedef pcl::shared_ptr< NormalDistributionsTransform<PointSource, PointTarget> > Ptr;
-		typedef pcl::shared_ptr< const NormalDistributionsTransform<PointSource, PointTarget> > ConstPtr;
+		typedef pcl::shared_ptr< MultiGridNormalDistributionsTransform<PointSource, PointTarget> > Ptr;
+		typedef pcl::shared_ptr< const MultiGridNormalDistributionsTransform<PointSource, PointTarget> > ConstPtr;
 #else
-		typedef boost::shared_ptr< NormalDistributionsTransform<PointSource, PointTarget> > Ptr;
-		typedef boost::shared_ptr< const NormalDistributionsTransform<PointSource, PointTarget> > ConstPtr;
+		typedef boost::shared_ptr< MultiGridNormalDistributionsTransform<PointSource, PointTarget> > Ptr;
+		typedef boost::shared_ptr< const MultiGridNormalDistributionsTransform<PointSource, PointTarget> > ConstPtr;
 #endif
 
 
 		/** \brief Constructor.
 		  * Sets \ref outlier_ratio_ to 0.35, \ref step_size_ to 0.05 and \ref resolution_ to 1.0
 		  */
-		NormalDistributionsTransform();
+		MultiGridNormalDistributionsTransform();
 
 		/** \brief Empty destructor */
-		virtual ~NormalDistributionsTransform() {}
+		virtual ~MultiGridNormalDistributionsTransform() {}
 
 		void setNumThreads(int n)
 		{

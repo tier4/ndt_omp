@@ -58,7 +58,7 @@ namespace pclomp
     * \author Brian Okorn (Space and Naval Warfare Systems Center Pacific)
     */
   template<typename PointT>
-  class VoxelGridCovariance : public pcl::VoxelGrid<PointT>
+  class MultiVoxelGridCovariance : public pcl::VoxelGrid<PointT>
   {
     protected:
       using pcl::VoxelGrid<PointT>::filter_name_;
@@ -212,10 +212,10 @@ namespace pclomp
         }
       };
 
-      /** \brief Pointer to VoxelGridCovariance leaf structure */
+      /** \brief Pointer to MultiVoxelGridCovariance leaf structure */
       typedef Leaf* LeafPtr;
 
-      /** \brief Const pointer to VoxelGridCovariance leaf structure */
+      /** \brief Const pointer to MultiVoxelGridCovariance leaf structure */
       typedef const Leaf* LeafConstPtr;
 
       typedef std::map<LeafID, Leaf> Map;
@@ -243,7 +243,7 @@ namespace pclomp
       /** \brief Constructor.
        * Sets \ref leaf_size_ to 0 and \ref searchable_ to false.
        */
-      VoxelGridCovariance () :
+      MultiVoxelGridCovariance () :
         searchable_ (true),
         min_points_per_voxel_ (6),
         min_covar_eigvalue_mult_ (0.01),
@@ -258,7 +258,7 @@ namespace pclomp
         leaf_size_.setZero ();
         min_b_.setZero ();
         max_b_.setZero ();
-        filter_name_ = "VoxelGridCovariance";
+        filter_name_ = "MultiVoxelGridCovariance";
       }
 
       /** \brief Initializes voxel structure.
