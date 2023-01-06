@@ -269,7 +269,7 @@ namespace pclomp
       {
         searchable_ = searchable;
         VoxelGridInfo voxel_grid_info;
-        applyFilter ((*cloud).makeShared(), cloud_id, voxel_grid_info); // TODO koji: yabai
+        applyFilter (cloud, cloud_id, voxel_grid_info);
 
         voxel_grid_info_dict_[cloud_id] = voxel_grid_info;
       }
@@ -387,7 +387,7 @@ namespace pclomp
       /** \brief Filter cloud and initializes voxel structure.
        * \param[out] output cloud containing centroids of voxels containing a sufficient number of points
        */
-      void applyFilter (const PointCloudPtr &input, const std::string & cloud_id, VoxelGridInfo &voxel_grid_info) const;
+      void applyFilter (const PointCloudConstPtr &input, const std::string & cloud_id, VoxelGridInfo &voxel_grid_info) const;
 
       void updateVoxelCentroids (const Leaf & leaf, PointCloud & voxel_centroids) const;
 

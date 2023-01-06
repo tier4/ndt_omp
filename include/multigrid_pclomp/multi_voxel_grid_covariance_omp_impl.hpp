@@ -45,7 +45,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT>
 void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
-  const PointCloudPtr &input, const std::string & cloud_id, VoxelGridInfo &voxel_grid_info) const
+  const PointCloudConstPtr &input, const std::string & cloud_id, VoxelGridInfo &voxel_grid_info) const
 {
   voxel_grid_info.leaf_indices.clear ();
 
