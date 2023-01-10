@@ -67,7 +67,6 @@ namespace pclomp
 		double step_size;
 		double resolution;
 		int max_iterations;
-		// pclomp::NeighborSearchMethod search_method;
 		int num_threads;
 		float regularization_scale_factor;
 	};
@@ -87,8 +86,6 @@ namespace pclomp
 	class MultiGridNormalDistributionsTransform : public pcl::Registration<PointSource, PointTarget>
 	{
 	protected:
-
-		typedef pcl::Registration<PointSource, PointTarget> super;
 
 		typedef typename pcl::Registration<PointSource, PointTarget>::PointCloudSource PointCloudSource;
 		typedef typename PointCloudSource::Ptr PointCloudSourcePtr;
@@ -270,24 +267,6 @@ namespace pclomp
 			return transformation_array_;
 		}
 
-		/** \brief Get the transformation epsilon.
-		  * \return transformation epsilon
-		  */
-		inline double
-			getTransformationEpsilonConst() const
-		{
-			return (transformation_epsilon_);
-		}
-
-		/** \brief Get the transformation epsilon.
-		  * \return transformation epsilon
-		  */
-		inline int
-			getMaximumIterationsConst() const
-		{
-			return (max_iterations_);
-		}
-
 		/** \brief Convert 6 element transformation vector to affine transformation.
 		  * \param[in] x transformation vector of the form [x, y, z, roll, pitch, yaw]
 		  * \param[out] trans affine transform corresponding to given transformation vector
@@ -324,11 +303,6 @@ namespace pclomp
 			regularization_scale_factor_ = regularization_scale_factor;
 		}
 
-		inline float getRegularizationScaleFactor() const
-		{
-			return regularization_scale_factor_;
-		}
-
 		inline void setRegularizationPose(Eigen::Matrix4f regularization_pose)
 		{
 			regularization_pose_ = regularization_pose;
@@ -358,7 +332,6 @@ namespace pclomp
 			this->setResolution(ndt_params.resolution);
 			this->setMaximumIterations(ndt_params.max_iterations);
 			setRegularizationScaleFactor(ndt_params.regularization_scale_factor);
-			// setNeighborhoodSearchMethod(ndt_params.search_method);
 			setNumThreads(ndt_params.num_threads);
 		}
 
@@ -370,7 +343,6 @@ namespace pclomp
 			ndt_params.resolution = getResolution();
 			ndt_params.max_iterations = max_iterations_;
 			ndt_params.regularization_scale_factor = regularization_scale_factor_;
-			// ndt_params.search_method = getNeighborhoodSearchMethod();
 			ndt_params.num_threads = num_threads_;
 			return ndt_params;
 		}
@@ -650,8 +622,6 @@ namespace pclomp
 	Eigen::Vector3f regularization_pose_translation_;
 
 	public:
-		// NeighborSearchMethod search_method;
-
 		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	};
 

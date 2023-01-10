@@ -49,7 +49,6 @@
 #include <Eigen/Cholesky>
 namespace pclomp
 {
-
   /** \brief A searchable voxel structure containing the mean and covariance of the data.
     * \note For more information please see
     * <b>Magnusson, M. (2009). The Three-Dimensional Normal-Distributions Transform —
@@ -166,7 +165,6 @@ namespace pclomp
           return (nr_points);
         }
 
-
         /** \brief Number of points contained by voxel */
         int nr_points;
 
@@ -253,8 +251,6 @@ namespace pclomp
         kdtree_ (),
         voxel_grid_info_all_ ()
       {
-        // downsample_all_data_ = false;
-        // save_leaf_layout_ = false;
         leaf_size_.setZero ();
         min_b_.setZero ();
         max_b_.setZero ();

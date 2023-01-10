@@ -72,7 +72,6 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGr
   transformation_epsilon_ = 0.1;
   max_iterations_ = 35;
 
-  // search_method = DIRECT7;
   num_threads_ = omp_get_max_threads();
 }
 
@@ -143,7 +142,6 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::compute
 
     if (delta_p_norm == 0 || delta_p_norm != delta_p_norm)
     {
-
       if (input_->points.empty()) {
         trans_probability_ = 0.0f;
       }
@@ -236,7 +234,7 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::compute
   std::vector<std::vector<TargetGridLeafConstPtr>> neighborhoods(num_threads_);
   std::vector<std::vector<float>> distancess(num_threads_);
 
-// 	// Update gradient and hessian for each point, line 17 in Algorithm 2 [Magnusson 2009]
+  // Update gradient and hessian for each point, line 17 in Algorithm 2 [Magnusson 2009]
 #pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
 	for (std::size_t idx = 0; idx < input_->points.size(); idx++)
 	{
