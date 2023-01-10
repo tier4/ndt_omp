@@ -191,19 +191,19 @@ namespace pclomp
       };
 
       struct LeafID {
-        std::string voxel_id;
-        int leaf_id;
+        std::string parent_grid_id;
+        int leaf_index;
         bool operator < (const LeafID& rhs) const {
-          if (voxel_id < rhs.voxel_id) {
+          if (parent_grid_id < rhs.parent_grid_id) {
             return true;
           }
-          if (voxel_id > rhs.voxel_id) {
+          if (parent_grid_id > rhs.parent_grid_id) {
             return false;
           }
-          if (leaf_id < rhs.leaf_id) {
+          if (leaf_index < rhs.leaf_index) {
             return true;
           }
-          if (leaf_id > rhs.leaf_id) {
+          if (leaf_index > rhs.leaf_index) {
             return false;
           }
           return false;
