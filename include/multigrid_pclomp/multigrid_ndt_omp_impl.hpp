@@ -264,22 +264,6 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::compute
 		auto& distances = distancess[thread_n];
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-		// // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
-		// switch (search_method) {
-		// case KDTREE:
-		// 	target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
-		// 	break;
-		// case DIRECT26:
-		// 	target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
-		// 	break;
-		// default:
-		// case DIRECT7:
-		// 	target_cells_.getNeighborhoodAtPoint7(x_trans_pt, neighborhood);
-		// 	break;
-		// case DIRECT1:
-		// 	target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
-		// 	break;
-		// }
     target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
 
 		double sum_score_pt = 0;
@@ -656,21 +640,6 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::compute
     std::vector<float> distances;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-		// switch (search_method) {
-		// case KDTREE:
-		// 	target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
-		// 	break;
-		// case DIRECT26:
-		// 	target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
-		// 	break;
-		// default:
-		// case DIRECT7:
-		// 	target_cells_.getNeighborhoodAtPoint7(x_trans_pt, neighborhood);
-		// 	break;
-		// case DIRECT1:
-		// 	target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
-		// 	break;
-		// }
     target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
 
     for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin (); neighborhood_it != neighborhood.end (); neighborhood_it++)
@@ -1033,21 +1002,6 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 		std::vector<float> distances;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-		// switch (search_method) {
-		// case KDTREE:
-		// 	target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
-		// 	break;
-		// case DIRECT26:
-		// 	target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
-		// 	break;
-		// default:
-		// case DIRECT7:
-		// 	target_cells_.getNeighborhoodAtPoint7(x_trans_pt, neighborhood);
-		// 	break;
-		// case DIRECT1:
-		// 	target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
-		// 	break;
-		// }
     target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
 
 		for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++)
@@ -1091,21 +1045,6 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 		std::vector<float> distances;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-		// switch (search_method) {
-		// case KDTREE:
-		// 	target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
-		// 	break;
-		// case DIRECT26:
-		// 	target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
-		// 	break;
-		// default:
-		// case DIRECT7:
-		// 	target_cells_.getNeighborhoodAtPoint7(x_trans_pt, neighborhood);
-		// 	break;
-		// case DIRECT1:
-		// 	target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
-		// 	break;
-		// }
     target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
 
 		for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++)
@@ -1151,21 +1090,6 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 		std::vector<float> distances;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-		// switch (search_method) {
-		// case KDTREE:
-		// 	target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
-		// 	break;
-		// case DIRECT26:
-		// 	target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
-		// 	break;
-		// default:
-		// case DIRECT7:
-		// 	target_cells_.getNeighborhoodAtPoint7(x_trans_pt, neighborhood);
-		// 	break;
-		// case DIRECT1:
-		// 	target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
-		// 	break;
-		// }
     target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
 
 		for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++)
