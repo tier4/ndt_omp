@@ -263,6 +263,7 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::compute
 		auto& neighborhood = neighborhoods[thread_n];
 		auto& distances = distancess[thread_n];
 
+    // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
 		// // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
 		// switch (search_method) {
 		// case KDTREE:
@@ -653,6 +654,8 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::compute
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
     std::vector<TargetGridLeafConstPtr> neighborhood;
     std::vector<float> distances;
+
+    // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
 		// switch (search_method) {
 		// case KDTREE:
 		// 	target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
@@ -1028,6 +1031,8 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 		// Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
 		std::vector<TargetGridLeafConstPtr> neighborhood;
 		std::vector<float> distances;
+
+    // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
 		// switch (search_method) {
 		// case KDTREE:
 		// 	target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
@@ -1084,6 +1089,8 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 		// Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
 		std::vector<TargetGridLeafConstPtr> neighborhood;
 		std::vector<float> distances;
+
+    // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
 		// switch (search_method) {
 		// case KDTREE:
 		// 	target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
@@ -1142,6 +1149,8 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 		// Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
 		std::vector<TargetGridLeafConstPtr> neighborhood;
 		std::vector<float> distances;
+
+    // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
 		// switch (search_method) {
 		// case KDTREE:
 		// 	target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);

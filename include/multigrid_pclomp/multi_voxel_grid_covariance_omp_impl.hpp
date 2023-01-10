@@ -45,7 +45,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT>
 void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
-  const PointCloudConstPtr &input, const std::string & cloud_id, VoxelGridInfo &voxel_grid_info) const
+  const PointCloudConstPtr &input, const std::string &cloud_id, VoxelGridInfo &voxel_grid_info) const
 {
   voxel_grid_info.leaf_indices.clear ();
 
@@ -117,11 +117,9 @@ void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
   voxel_grid_info.voxel_centroids.points.reserve(voxel_grid_info.leaves.size ());
   if (searchable_)
     voxel_grid_info.leaf_indices.reserve(voxel_grid_info.leaves.size ());
-  int cp = 0;
 
   // Eigen values and vectors calculated to prevent near singular matrices
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver;
-  Eigen::Matrix3d eigen_val;
   Eigen::Vector3d pt_sum;
 
   // Eigen values less than a threshold of max eigen value are inflated to a set fraction of the max eigen value.
@@ -156,7 +154,7 @@ void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
 
 template<typename PointT>
 void pclomp::MultiVoxelGridCovariance<PointT>::updateVoxelCentroids (
-  const Leaf & leaf, PointCloud & voxel_centroids) const
+  const Leaf &leaf, PointCloud &voxel_centroids) const
 {
   voxel_centroids.push_back (PointT ());
   voxel_centroids.points.back ().x = leaf.centroid[0];
@@ -166,7 +164,7 @@ void pclomp::MultiVoxelGridCovariance<PointT>::updateVoxelCentroids (
 
 template<typename PointT>
 typename pclomp::MultiVoxelGridCovariance<PointT>::LeafID pclomp::MultiVoxelGridCovariance<PointT>::getLeafID (
-  const std::string & cloud_id, const PointT & point, const BoundingBox & bbox) const
+  const std::string &cloud_id, const PointT &point, const BoundingBox &bbox) const
 {
   int ijk0 = static_cast<int> (floor (point.x * inverse_leaf_size_[0]) - static_cast<float> (bbox.min[0]));
   int ijk1 = static_cast<int> (floor (point.y * inverse_leaf_size_[1]) - static_cast<float> (bbox.min[1]));
@@ -180,7 +178,7 @@ typename pclomp::MultiVoxelGridCovariance<PointT>::LeafID pclomp::MultiVoxelGrid
 
 template<typename PointT>
 void pclomp::MultiVoxelGridCovariance<PointT>::updateLeaf (
-  const PointT & point, const int & centroid_size, Leaf & leaf) const
+  const PointT &point, const int &centroid_size, Leaf &leaf) const
 {
   if (leaf.nr_points == 0)
   {
@@ -201,9 +199,9 @@ void pclomp::MultiVoxelGridCovariance<PointT>::updateLeaf (
 
 template<typename PointT>
 void pclomp::MultiVoxelGridCovariance<PointT>::computeLeafParams (
-  const Eigen::Vector3d & pt_sum,
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> & eigensolver,
-  Leaf & leaf) const
+  const Eigen::Vector3d &pt_sum,
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> &eigensolver,
+  Leaf &leaf) const
 {
   // Single pass covariance calculation
   leaf.cov_ = (leaf.cov_ - 2 * (pt_sum * leaf.mean_.transpose ())) / 

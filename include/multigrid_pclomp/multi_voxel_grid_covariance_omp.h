@@ -265,7 +265,7 @@ namespace pclomp
        * \param[in] searchable flag if voxel structure is searchable, if true then kdtree is built
        */
       inline void
-      setInputCloudAndFilter (const PointCloudConstPtr &cloud, const std::string cloud_id, bool searchable = false)
+      setInputCloudAndFilter (const PointCloudConstPtr &cloud, const std::string &cloud_id, bool searchable = false)
       {
         searchable_ = searchable;
         VoxelGridInfo voxel_grid_info;
@@ -275,16 +275,16 @@ namespace pclomp
       }
 
       inline void 
-      removeCloud (const std::string cloud_id)
+      removeCloud (const std::string &cloud_id)
       {
         voxel_grid_info_dict_.erase(cloud_id);
       }
 
       inline VoxelGridInfo
-      concatVoxelGridInfoDict(std::map<std::string, VoxelGridInfo> & input) const
+      concatVoxelGridInfoDict(std::map<std::string, VoxelGridInfo> &input) const
       {
         VoxelGridInfo output;
-        for (const auto & kv: input)
+        for (const auto &kv: input)
         {
           output.voxel_centroids += kv.second.voxel_centroids;
           output.leaves.insert(kv.second.leaves.begin(), kv.second.leaves.end());
@@ -376,7 +376,7 @@ namespace pclomp
   		std::vector<std::string> getCurrentMapIDs() const
       {
         std::vector<std::string> output{};
-        for (const auto & element: voxel_grid_info_dict_) {
+        for (const auto &element: voxel_grid_info_dict_) {
           output.push_back(element.first);
         }
         return output;
@@ -387,17 +387,17 @@ namespace pclomp
       /** \brief Filter cloud and initializes voxel structure.
        * \param[out] output cloud containing centroids of voxels containing a sufficient number of points
        */
-      void applyFilter (const PointCloudConstPtr &input, const std::string & cloud_id, VoxelGridInfo &voxel_grid_info) const;
+      void applyFilter (const PointCloudConstPtr &input, const std::string &cloud_id, VoxelGridInfo &voxel_grid_info) const;
 
-      void updateVoxelCentroids (const Leaf & leaf, PointCloud & voxel_centroids) const;
+      void updateVoxelCentroids (const Leaf &leaf, PointCloud &voxel_centroids) const;
 
-      void updateLeaf (const PointT & point, const int & centroid_size, Leaf & leaf) const;
+      void updateLeaf (const PointT &point, const int &centroid_size, Leaf &leaf) const;
 
-      void computeLeafParams (const Eigen::Vector3d & pt_sum,
-        Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> & eigensolver,
-        Leaf & leaf) const;
+      void computeLeafParams (const Eigen::Vector3d &pt_sum,
+        Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> &eigensolver,
+        Leaf &leaf) const;
 
-      LeafID getLeafID (const std::string & cloud_id, const PointT & point, const BoundingBox & bbox) const;
+      LeafID getLeafID (const std::string &cloud_id, const PointT &point, const BoundingBox &bbox) const;
 
       /** \brief Flag to determine if voxel structure is searchable. */
       bool searchable_;
