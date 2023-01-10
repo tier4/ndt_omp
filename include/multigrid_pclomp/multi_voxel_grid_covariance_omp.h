@@ -219,13 +219,11 @@ namespace pclomp
       typedef std::map<LeafID, Leaf> Map;
 
       struct VoxelGridInfo {
+        Map leaves; // leaves 
         PointCloud voxel_centroids;
-        Map leaves;
-        std::vector<LeafID> leaf_indices;
         void clear(){
           voxel_centroids.clear();
           leaves.clear();
-          leaf_indices.clear();
         }
       };
 
@@ -284,7 +282,6 @@ namespace pclomp
         {
           output.voxel_centroids += kv.second.voxel_centroids;
           output.leaves.insert(kv.second.leaves.begin(), kv.second.leaves.end());
-          output.leaf_indices.insert(output.leaf_indices.end(), kv.second.leaf_indices.begin(), kv.second.leaf_indices.end());
         }
         return output;
       }
@@ -296,7 +293,10 @@ namespace pclomp
         voxel_grid_info_all_ = concatVoxelGridInfoDict(voxel_grid_info_dict_);
 
         leaves_ = voxel_grid_info_all_.leaves;
-        voxel_centroids_leaf_indices_ = voxel_grid_info_all_.leaf_indices;
+        voxel_centroids_leaf_indices_.clear();
+        for (const auto & element: leaves_) {
+          voxel_centroids_leaf_indices_.push_back(element.first);
+        }
 
         if (voxel_grid_info_all_.voxel_centroids.size() > 0)
         {

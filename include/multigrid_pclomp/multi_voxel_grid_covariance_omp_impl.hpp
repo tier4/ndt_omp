@@ -47,8 +47,6 @@ template<typename PointT>
 void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
   const PointCloudConstPtr &input, const std::string &grid_id, VoxelGridInfo &voxel_grid_info) const
 {
-  voxel_grid_info.leaf_indices.clear ();
-
   // Has the input dataset been set already?
   if (!input)
   {
@@ -115,8 +113,6 @@ void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
 
   // Second pass: go over all leaves and compute centroids and covariance matrices
   voxel_grid_info.voxel_centroids.points.reserve(voxel_grid_info.leaves.size ());
-  if (searchable_)
-    voxel_grid_info.leaf_indices.reserve(voxel_grid_info.leaves.size ());
 
   // Eigen values and vectors calculated to prevent near singular matrices
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver;
@@ -124,6 +120,7 @@ void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
 
   // Eigen values less than a threshold of max eigen value are inflated to a set fraction of the max eigen value.
   double min_covar_eigvalue;
+  std::vector<LeafID> leaf_ids_to_remove;
   for (auto it = voxel_grid_info.leaves.begin (); it != voxel_grid_info.leaves.end (); ++it)
   {
     // Normalize the centroid
@@ -141,14 +138,20 @@ void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
     if (leaf.nr_points >= min_points_per_voxel_)
     {
       updateVoxelCentroids(leaf, voxel_grid_info.voxel_centroids);
-
-      // Stores the voxel indices for fast access searching
-      if (searchable_)
-        voxel_grid_info.leaf_indices.push_back (it->first);
-
       computeLeafParams (pt_sum, eigensolver, leaf);
     }
+    else
+    {
+      leaf_ids_to_remove.push_back(it->first);
+    }
   }
+
+  // Remove leaves that do not have sufficient points
+  for (const LeafID & leaf_id: leaf_ids_to_remove)
+  {
+    voxel_grid_info.leaves.erase(leaf_id);
+  }
+
   voxel_grid_info.voxel_centroids.width = static_cast<uint32_t> (voxel_grid_info.voxel_centroids.points.size ());
 }
 
