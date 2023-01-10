@@ -216,16 +216,16 @@ namespace pclomp
       /** \brief Const pointer to MultiVoxelGridCovariance leaf structure */
       typedef const Leaf* LeafConstPtr;
 
-      typedef std::map<LeafID, Leaf> Map;
+      typedef std::map<LeafID, Leaf> LeafDict;
 
-      struct VoxelGridInfo {
-        Map leaves; // leaves 
-        PointCloud voxel_centroids;
-        void clear(){
-          voxel_centroids.clear();
-          leaves.clear();
-        }
-      };
+      // struct VoxelGridInfo {
+      //   LeafDict leaves; // leaves 
+      //   PointCloud voxel_centroids;
+      //   void clear(){
+      //     voxel_centroids.clear();
+      //     leaves.clear();
+      //   }
+      // };
 
       struct BoundingBox
       {
@@ -244,10 +244,9 @@ namespace pclomp
         min_points_per_voxel_ (6),
         min_covar_eigvalue_mult_ (0.01),
         leaves_ (),
-        voxel_grid_info_dict_ (),
-        voxel_centroids_leaf_indices_ (),
-        kdtree_ (),
-        voxel_grid_info_all_ ()
+        grid_leaves_ (),
+        leaf_indices_ (),
+        kdtree_ ()
       {
         leaf_size_.setZero ();
         min_b_.setZero ();
@@ -262,45 +261,45 @@ namespace pclomp
       setInputCloudAndFilter (const PointCloudConstPtr &cloud, const std::string &grid_id, bool searchable = false)
       {
         searchable_ = searchable;
-        VoxelGridInfo voxel_grid_info;
+        LeafDict voxel_grid_info;
         applyFilter (cloud, grid_id, voxel_grid_info);
 
-        voxel_grid_info_dict_[grid_id] = voxel_grid_info;
+        grid_leaves_[grid_id] = voxel_grid_info;
       }
 
       inline void 
       removeCloud (const std::string &grid_id)
       {
-        voxel_grid_info_dict_.erase(grid_id);
-      }
-
-      inline VoxelGridInfo
-      concatVoxelGridInfoDict(std::map<std::string, VoxelGridInfo> &input) const
-      {
-        VoxelGridInfo output;
-        for (const auto &kv: input)
-        {
-          output.voxel_centroids += kv.second.voxel_centroids;
-          output.leaves.insert(kv.second.leaves.begin(), kv.second.leaves.end());
-        }
-        return output;
+        grid_leaves_.erase(grid_id);
       }
 
       inline void 
       createKdtree ()
       {
-        voxel_grid_info_all_.clear();
-        voxel_grid_info_all_ = concatVoxelGridInfoDict(voxel_grid_info_dict_);
-
-        leaves_ = voxel_grid_info_all_.leaves;
-        voxel_centroids_leaf_indices_.clear();
-        for (const auto & element: leaves_) {
-          voxel_centroids_leaf_indices_.push_back(element.first);
+        leaves_.clear();
+        for (const auto &kv: grid_leaves_)
+        {
+          leaves_.insert(kv.second.begin(), kv.second.end());
         }
 
-        if (voxel_grid_info_all_.voxel_centroids.size() > 0)
+        leaf_indices_.clear();
+        voxel_centroids_ptr_->height = 1;
+        voxel_centroids_ptr_->is_dense = true;
+        voxel_centroids_ptr_->points.clear();
+        voxel_centroids_ptr_->points.reserve(leaves_.size ());
+        for (const auto & element: leaves_)
         {
-          kdtree_.setInputCloud (voxel_grid_info_all_.voxel_centroids.makeShared());
+          leaf_indices_.push_back(element.first);
+          voxel_centroids_ptr_->push_back (PointT ());
+          voxel_centroids_ptr_->points.back ().x = element.second.centroid[0];
+          voxel_centroids_ptr_->points.back ().y = element.second.centroid[1];
+          voxel_centroids_ptr_->points.back ().z = element.second.centroid[2];
+        }
+        voxel_centroids_ptr_->width = static_cast<uint32_t> (voxel_centroids_ptr_->points.size ());
+
+        if (voxel_centroids_ptr_->size() > 0)
+        {
+          kdtree_.setInputCloud (voxel_centroids_ptr_);
         }
       }
 
@@ -334,7 +333,7 @@ namespace pclomp
         k_leaves.reserve (k);
         for (std::vector<int>::iterator iter = k_indices.begin (); iter != k_indices.end (); iter++)
         {
-          auto leaf = leaves_.find(voxel_centroids_leaf_indices_[*iter]);
+          auto leaf = leaves_.find(leaf_indices_[*iter]);
           if (leaf == leaves_.end()) {
             std::cerr << "error : could not find the leaf corresponding to the voxel" << std::endl;
             std::cin.ignore(1);
@@ -366,13 +365,13 @@ namespace pclomp
 
       PointCloud getVoxelPCD () const
       {
-        return voxel_grid_info_all_.voxel_centroids;
+        return *voxel_centroids_ptr_;
       }
 
   		std::vector<std::string> getCurrentMapIDs() const
       {
         std::vector<std::string> output{};
-        for (const auto &element: voxel_grid_info_dict_) {
+        for (const auto &element: grid_leaves_) {
           output.push_back(element.first);
         }
         return output;
@@ -383,7 +382,7 @@ namespace pclomp
       /** \brief Filter cloud and initializes voxel structure.
        * \param[out] output cloud containing centroids of voxels containing a sufficient number of points
        */
-      void applyFilter (const PointCloudConstPtr &input, const std::string &grid_id, VoxelGridInfo &voxel_grid_info) const;
+      void applyFilter (const PointCloudConstPtr &input, const std::string &grid_id, LeafDict &leaves) const;
 
       void updateVoxelCentroids (const Leaf &leaf, PointCloud &voxel_centroids) const;
 
@@ -405,18 +404,18 @@ namespace pclomp
       double min_covar_eigvalue_mult_;
 
       /** \brief Voxel structure containing all leaf nodes (includes voxels with less than a sufficient number of points). */
-	    Map leaves_;
+	    LeafDict leaves_;
 
       /** \brief Point cloud containing centroids of voxels containing at least minimum number of points. */
-      std::map<std::string, VoxelGridInfo> voxel_grid_info_dict_;
+      std::map<std::string, LeafDict> grid_leaves_;
 
       /** \brief Indices of leaf structures associated with each point in \ref voxel_centroids_ (used for searching). */
-      std::vector<LeafID> voxel_centroids_leaf_indices_;
+      std::vector<LeafID> leaf_indices_;
 
       /** \brief KdTree generated using \ref voxel_centroids_ (used for searching). */
       pcl::KdTreeFLANN<PointT> kdtree_;
 
-      VoxelGridInfo voxel_grid_info_all_;
+      PointCloudPtr voxel_centroids_ptr_;
   };
 }
 

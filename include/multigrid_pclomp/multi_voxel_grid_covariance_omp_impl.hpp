@@ -45,21 +45,19 @@
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT>
 void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
-  const PointCloudConstPtr &input, const std::string &grid_id, VoxelGridInfo &voxel_grid_info) const
+  const PointCloudConstPtr &input, const std::string &grid_id, LeafDict &leaves) const
 {
   // Has the input dataset been set already?
   if (!input)
   {
     PCL_WARN ("[pcl::%s::applyFilter] No input dataset given!\n", getClassName ().c_str ());
-    voxel_grid_info.voxel_centroids.width = voxel_grid_info.voxel_centroids.height = 0;
-    voxel_grid_info.voxel_centroids.points.clear ();
     return;
   }
 
-  // Copy the header (and thus the frame_id) + allocate enough space for points
-  voxel_grid_info.voxel_centroids.height = 1;                          // downsampling breaks the organized structure
-  voxel_grid_info.voxel_centroids.is_dense = true;                     // we filter out invalid points
-  voxel_grid_info.voxel_centroids.points.clear ();
+  // // Copy the header (and thus the frame_id) + allocate enough space for points
+  // voxel_grid_info.voxel_centroids.height = 1;                          // downsampling breaks the organized structure
+  // voxel_grid_info.voxel_centroids.is_dense = true;                     // we filter out invalid points
+  // voxel_grid_info.voxel_centroids.points.clear ();
 
   Eigen::Vector4f min_p, max_p;
   pcl::getMinMax3D<PointT> (*input, min_p, max_p);
@@ -72,7 +70,6 @@ void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
   if((dx*dy*dz) > std::numeric_limits<int32_t>::max())
   {
     PCL_WARN("[pcl::%s::applyFilter] Leaf size is too small for the input dataset. Integer indices would overflow.", getClassName().c_str());
-    voxel_grid_info.voxel_centroids.clear();
     return;
   }
 
@@ -90,8 +87,8 @@ void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
   div_b[3] = 0;
 
   // Clear the leaves
-  voxel_grid_info.leaves.clear ();
-  // voxel_grid_info.leaves.reserve(8192);
+  leaves.clear ();
+  // leaves.reserve(8192);
 
   // Set up the division multiplier
   bbox.div_mul = Eigen::Vector4i (1, div_b[0], div_b[0] * div_b[1], 0);
@@ -107,12 +104,11 @@ void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
         continue;
 
     LeafID leaf_id = getLeafID(grid_id, input->points[cp], bbox);
-    Leaf& leaf = voxel_grid_info.leaves[leaf_id];
+    Leaf& leaf = leaves[leaf_id];
     updateLeaf(input->points[cp], centroid_size, leaf);
   }
 
   // Second pass: go over all leaves and compute centroids and covariance matrices
-  voxel_grid_info.voxel_centroids.points.reserve(voxel_grid_info.leaves.size ());
 
   // Eigen values and vectors calculated to prevent near singular matrices
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver;
@@ -121,7 +117,7 @@ void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
   // Eigen values less than a threshold of max eigen value are inflated to a set fraction of the max eigen value.
   double min_covar_eigvalue;
   std::vector<LeafID> leaf_ids_to_remove;
-  for (auto it = voxel_grid_info.leaves.begin (); it != voxel_grid_info.leaves.end (); ++it)
+  for (auto it = leaves.begin (); it != leaves.end (); ++it)
   {
     // Normalize the centroid
     Leaf& leaf = it->second;
@@ -137,7 +133,6 @@ void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
     // Points with less than the minimum points will have a can not be accurately approximated using a normal distribution.
     if (leaf.nr_points >= min_points_per_voxel_)
     {
-      updateVoxelCentroids(leaf, voxel_grid_info.voxel_centroids);
       computeLeafParams (pt_sum, eigensolver, leaf);
     }
     else
@@ -149,10 +144,8 @@ void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
   // Remove leaves that do not have sufficient points
   for (const LeafID & leaf_id: leaf_ids_to_remove)
   {
-    voxel_grid_info.leaves.erase(leaf_id);
+    leaves.erase(leaf_id);
   }
-
-  voxel_grid_info.voxel_centroids.width = static_cast<uint32_t> (voxel_grid_info.voxel_centroids.points.size ());
 }
 
 template<typename PointT>
