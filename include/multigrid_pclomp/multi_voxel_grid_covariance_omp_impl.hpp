@@ -45,7 +45,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT>
 void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
-  const PointCloudConstPtr &input, const std::string &cloud_id, VoxelGridInfo &voxel_grid_info) const
+  const PointCloudConstPtr &input, const std::string &grid_id, VoxelGridInfo &voxel_grid_info) const
 {
   voxel_grid_info.leaf_indices.clear ();
 
@@ -108,7 +108,7 @@ void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
       if (!std::isfinite (input->points[cp].x) || !std::isfinite (input->points[cp].y) || !std::isfinite (input->points[cp].z))
         continue;
 
-    LeafID leaf_id = getLeafID(cloud_id, input->points[cp], bbox);
+    LeafID leaf_id = getLeafID(grid_id, input->points[cp], bbox);
     Leaf& leaf = voxel_grid_info.leaves[leaf_id];
     updateLeaf(input->points[cp], centroid_size, leaf);
   }
@@ -164,14 +164,14 @@ void pclomp::MultiVoxelGridCovariance<PointT>::updateVoxelCentroids (
 
 template<typename PointT>
 typename pclomp::MultiVoxelGridCovariance<PointT>::LeafID pclomp::MultiVoxelGridCovariance<PointT>::getLeafID (
-  const std::string &cloud_id, const PointT &point, const BoundingBox &bbox) const
+  const std::string &grid_id, const PointT &point, const BoundingBox &bbox) const
 {
   int ijk0 = static_cast<int> (floor (point.x * inverse_leaf_size_[0]) - static_cast<float> (bbox.min[0]));
   int ijk1 = static_cast<int> (floor (point.y * inverse_leaf_size_[1]) - static_cast<float> (bbox.min[1]));
   int ijk2 = static_cast<int> (floor (point.z * inverse_leaf_size_[2]) - static_cast<float> (bbox.min[2]));
   int idx = ijk0 * bbox.div_mul[0] + ijk1 * bbox.div_mul[1] + ijk2 * bbox.div_mul[2];
   LeafID leaf_id;
-  leaf_id.parent_grid_id = cloud_id;
+  leaf_id.parent_grid_id = grid_id;
   leaf_id.leaf_index = idx;
   return leaf_id;
 }

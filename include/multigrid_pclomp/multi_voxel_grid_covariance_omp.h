@@ -261,19 +261,19 @@ namespace pclomp
        * \param[in] searchable flag if voxel structure is searchable, if true then kdtree is built
        */
       inline void
-      setInputCloudAndFilter (const PointCloudConstPtr &cloud, const std::string &cloud_id, bool searchable = false)
+      setInputCloudAndFilter (const PointCloudConstPtr &cloud, const std::string &grid_id, bool searchable = false)
       {
         searchable_ = searchable;
         VoxelGridInfo voxel_grid_info;
-        applyFilter (cloud, cloud_id, voxel_grid_info);
+        applyFilter (cloud, grid_id, voxel_grid_info);
 
-        voxel_grid_info_dict_[cloud_id] = voxel_grid_info;
+        voxel_grid_info_dict_[grid_id] = voxel_grid_info;
       }
 
       inline void 
-      removeCloud (const std::string &cloud_id)
+      removeCloud (const std::string &grid_id)
       {
-        voxel_grid_info_dict_.erase(cloud_id);
+        voxel_grid_info_dict_.erase(grid_id);
       }
 
       inline VoxelGridInfo
@@ -383,7 +383,7 @@ namespace pclomp
       /** \brief Filter cloud and initializes voxel structure.
        * \param[out] output cloud containing centroids of voxels containing a sufficient number of points
        */
-      void applyFilter (const PointCloudConstPtr &input, const std::string &cloud_id, VoxelGridInfo &voxel_grid_info) const;
+      void applyFilter (const PointCloudConstPtr &input, const std::string &grid_id, VoxelGridInfo &voxel_grid_info) const;
 
       void updateVoxelCentroids (const Leaf &leaf, PointCloud &voxel_centroids) const;
 
@@ -393,7 +393,7 @@ namespace pclomp
         Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> &eigensolver,
         Leaf &leaf) const;
 
-      LeafID getLeafID (const std::string &cloud_id, const PointT &point, const BoundingBox &bbox) const;
+      LeafID getLeafID (const std::string &grid_id, const PointT &point, const BoundingBox &bbox) const;
 
       /** \brief Flag to determine if voxel structure is searchable. */
       bool searchable_;
