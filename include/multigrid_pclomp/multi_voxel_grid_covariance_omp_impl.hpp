@@ -54,11 +54,6 @@ void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
     return;
   }
 
-  // // Copy the header (and thus the frame_id) + allocate enough space for points
-  // voxel_grid_info.voxel_centroids.height = 1;                          // downsampling breaks the organized structure
-  // voxel_grid_info.voxel_centroids.is_dense = true;                     // we filter out invalid points
-  // voxel_grid_info.voxel_centroids.points.clear ();
-
   Eigen::Vector4f min_p, max_p;
   pcl::getMinMax3D<PointT> (*input, min_p, max_p);
 
