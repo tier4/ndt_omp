@@ -228,10 +228,9 @@ namespace pclomp
     public:
 
       /** \brief Constructor.
-       * Sets \ref leaf_size_ to 0 and \ref searchable_ to false.
+       * Sets \ref leaf_size_ to 0
        */
       MultiVoxelGridCovariance () :
-        searchable_ (true),
         min_points_per_voxel_ (6),
         min_covar_eigvalue_mult_ (0.01),
         leaves_ (),
@@ -246,12 +245,10 @@ namespace pclomp
       }
 
       /** \brief Initializes voxel structure.
-       * \param[in] searchable flag if voxel structure is searchable, if true then kdtree is built
        */
       inline void
-      setInputCloudAndFilter (const PointCloudConstPtr &cloud, const std::string &grid_id, bool searchable = false)
+      setInputCloudAndFilter (const PointCloudConstPtr &cloud, const std::string &grid_id)
       {
-        searchable_ = searchable;
         LeafDict leaves;
         applyFilter (cloud, grid_id, leaves);
 
@@ -309,13 +306,6 @@ namespace pclomp
                     std::vector<float> &k_sqr_distances, unsigned int max_nn = 0) const
       {
         k_leaves.clear ();
-
-        // Check if kdtree has been built
-        if (!searchable_)
-        {
-          PCL_WARN ("%s: Not Searchable", this->getClassName ().c_str ());
-          return 0;
-        }
 
         // Find neighbors within radius in the occupied voxel centroid cloud
         std::vector<int> k_indices;
@@ -385,9 +375,6 @@ namespace pclomp
         Leaf &leaf) const;
 
       LeafID getLeafID (const std::string &grid_id, const PointT &point, const BoundingBox &bbox) const;
-
-      /** \brief Flag to determine if voxel structure is searchable. */
-      bool searchable_;
 
       /** \brief Minimum points contained with in a voxel to allow it to be usable. */
       int min_points_per_voxel_;

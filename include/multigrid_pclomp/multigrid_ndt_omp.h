@@ -153,7 +153,7 @@ namespace pclomp
 		{
 			pcl::Registration<PointSource, PointTarget>::setInputTarget(cloud);
 			target_cells_.setLeafSize(resolution_, resolution_, resolution_);
-			target_cells_.setInputCloudAndFilter(cloud, target_id, true);
+			target_cells_.setInputCloudAndFilter(cloud, target_id);
 		}
 
 		inline void
