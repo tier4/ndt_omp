@@ -115,7 +115,6 @@ void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter (
   Eigen::Vector3d pt_sum;
 
   // Eigen values less than a threshold of max eigen value are inflated to a set fraction of the max eigen value.
-  double min_covar_eigvalue;
   std::vector<LeafID> leaf_ids_to_remove;
   for (auto it = leaves.begin (); it != leaves.end (); ++it)
   {

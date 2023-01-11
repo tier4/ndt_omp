@@ -218,15 +218,6 @@ namespace pclomp
 
       typedef std::map<LeafID, Leaf> LeafDict;
 
-      // struct VoxelGridInfo {
-      //   LeafDict leaves; // leaves 
-      //   PointCloud voxel_centroids;
-      //   void clear(){
-      //     voxel_centroids.clear();
-      //     leaves.clear();
-      //   }
-      // };
-
       struct BoundingBox
       {
         Eigen::Vector4i max;
@@ -261,10 +252,10 @@ namespace pclomp
       setInputCloudAndFilter (const PointCloudConstPtr &cloud, const std::string &grid_id, bool searchable = false)
       {
         searchable_ = searchable;
-        LeafDict voxel_grid_info;
-        applyFilter (cloud, grid_id, voxel_grid_info);
+        LeafDict leaves;
+        applyFilter (cloud, grid_id, leaves);
 
-        grid_leaves_[grid_id] = voxel_grid_info;
+        grid_leaves_[grid_id] = leaves;
       }
 
       inline void 
@@ -283,6 +274,7 @@ namespace pclomp
         }
 
         leaf_indices_.clear();
+        voxel_centroids_ptr_.reset(new PointCloud);
         voxel_centroids_ptr_->height = 1;
         voxel_centroids_ptr_->is_dense = true;
         voxel_centroids_ptr_->points.clear();
