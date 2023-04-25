@@ -905,91 +905,100 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::compute
   // initial step suggestion and recalculation the reusable portions of the hessian would intail more computation time.
   score = computeDerivatives (score_gradient, hessian, trans_cloud, x_t, true);
 
-  // Calculate phi(alpha_t)
-  double phi_t = -score;
-  // Calculate phi'(alpha_t)
-  double d_phi_t = -(score_gradient.dot (step_dir));
+  // --------------------------------------------------------------------------------------------------------------------------------
+  // FIXME(YamatoAndo):
+  // Currently, using LineSearch causes the following problems:
+  // It may converge to a local solution.
+  // There are cases where a loop process is executed without changing the variable values, resulting in unnecessary processing time.
+  // As better convergence results are obtained without using LineSearch, we have decided to disable this feature.
+  // If you have any suggestions on how to solve these issues, we would appreciate it if you could contribute.
+  // --------------------------------------------------------------------------------------------------------------------------------
 
-  // Calculate psi(alpha_t)
-  double psi_t = auxiliaryFunction_PsiMT (a_t, phi_t, phi_0, d_phi_0, mu);
-  // Calculate psi'(alpha_t)
-  double d_psi_t = auxiliaryFunction_dPsiMT (d_phi_t, d_phi_0, mu);
+  // // Calculate phi(alpha_t)
+  // double phi_t = -score;
+  // // Calculate phi'(alpha_t)
+  // double d_phi_t = -(score_gradient.dot (step_dir));
 
-  // Iterate until max number of iterations, interval convergence or a value satisfies the sufficient decrease, Equation 1.1, and curvature condition, Equation 1.2 [More, Thuente 1994]
-  while (!interval_converged && step_iterations < max_step_iterations && !(psi_t <= 0 /*Sufficient Decrease*/ && d_phi_t <= -nu * d_phi_0 /*Curvature Condition*/))
-  {
-    // Use auxiliary function if interval I is not closed
-    if (open_interval)
-    {
-      a_t = trialValueSelectionMT (a_l, f_l, g_l,
-                                   a_u, f_u, g_u,
-                                   a_t, psi_t, d_psi_t);
-    }
-    else
-    {
-      a_t = trialValueSelectionMT (a_l, f_l, g_l,
-                                   a_u, f_u, g_u,
-                                   a_t, phi_t, d_phi_t);
-    }
+  // // Calculate psi(alpha_t)
+  // double psi_t = auxiliaryFunction_PsiMT (a_t, phi_t, phi_0, d_phi_0, mu);
+  // // Calculate psi'(alpha_t)
+  // double d_psi_t = auxiliaryFunction_dPsiMT (d_phi_t, d_phi_0, mu);
 
-    a_t = std::min (a_t, step_max);
-    a_t = std::max (a_t, step_min);
+  // // Iterate until max number of iterations, interval convergence or a value satisfies the sufficient decrease, Equation 1.1, and curvature condition, Equation 1.2 [More, Thuente 1994]
+  // while (!interval_converged && step_iterations < max_step_iterations && !(psi_t <= 0 /*Sufficient Decrease*/ && d_phi_t <= -nu * d_phi_0 /*Curvature Condition*/))
+  // {
+  //   // Use auxiliary function if interval I is not closed
+  //   if (open_interval)
+  //   {
+  //     a_t = trialValueSelectionMT (a_l, f_l, g_l,
+  //                                  a_u, f_u, g_u,
+  //                                  a_t, psi_t, d_psi_t);
+  //   }
+  //   else
+  //   {
+  //     a_t = trialValueSelectionMT (a_l, f_l, g_l,
+  //                                  a_u, f_u, g_u,
+  //                                  a_t, phi_t, d_phi_t);
+  //   }
 
-    x_t = x + step_dir * a_t;
+  //   a_t = std::min (a_t, step_max);
+  //   a_t = std::max (a_t, step_min);
 
-    final_transformation_ = (Eigen::Translation<float, 3> (static_cast<float> (x_t (0)), static_cast<float> (x_t (1)), static_cast<float> (x_t (2))) *
-                             Eigen::AngleAxis<float> (static_cast<float> (x_t (3)), Eigen::Vector3f::UnitX ()) *
-                             Eigen::AngleAxis<float> (static_cast<float> (x_t (4)), Eigen::Vector3f::UnitY ()) *
-                             Eigen::AngleAxis<float> (static_cast<float> (x_t (5)), Eigen::Vector3f::UnitZ ())).matrix ();
+  //   x_t = x + step_dir * a_t;
 
-    // New transformed point cloud
-    // Done on final cloud to prevent wasted computation
-    transformPointCloud (*input_, trans_cloud, final_transformation_);
+  //   final_transformation_ = (Eigen::Translation<float, 3> (static_cast<float> (x_t (0)), static_cast<float> (x_t (1)), static_cast<float> (x_t (2))) *
+  //                            Eigen::AngleAxis<float> (static_cast<float> (x_t (3)), Eigen::Vector3f::UnitX ()) *
+  //                            Eigen::AngleAxis<float> (static_cast<float> (x_t (4)), Eigen::Vector3f::UnitY ()) *
+  //                            Eigen::AngleAxis<float> (static_cast<float> (x_t (5)), Eigen::Vector3f::UnitZ ())).matrix ();
 
-    // Updates score, gradient. Values stored to prevent wasted computation.
-    score = computeDerivatives (score_gradient, hessian, trans_cloud, x_t, false);
+  //   // New transformed point cloud
+  //   // Done on final cloud to prevent wasted computation
+  //   transformPointCloud (*input_, trans_cloud, final_transformation_);
 
-    // Calculate phi(alpha_t+)
-    phi_t = -score;
-    // Calculate phi'(alpha_t+)
-    d_phi_t = -(score_gradient.dot (step_dir));
+  //   // Updates score, gradient. Values stored to prevent wasted computation.
+  //   score = computeDerivatives (score_gradient, hessian, trans_cloud, x_t, false);
 
-    // Calculate psi(alpha_t+)
-    psi_t = auxiliaryFunction_PsiMT (a_t, phi_t, phi_0, d_phi_0, mu);
-    // Calculate psi'(alpha_t+)
-    d_psi_t = auxiliaryFunction_dPsiMT (d_phi_t, d_phi_0, mu);
+  //   // Calculate phi(alpha_t+)
+  //   phi_t = -score;
+  //   // Calculate phi'(alpha_t+)
+  //   d_phi_t = -(score_gradient.dot (step_dir));
 
-    // Check if I is now a closed interval
-    if (open_interval && (psi_t <= 0 && d_psi_t >= 0))
-    {
-      open_interval = false;
+  //   // Calculate psi(alpha_t+)
+  //   psi_t = auxiliaryFunction_PsiMT (a_t, phi_t, phi_0, d_phi_0, mu);
+  //   // Calculate psi'(alpha_t+)
+  //   d_psi_t = auxiliaryFunction_dPsiMT (d_phi_t, d_phi_0, mu);
 
-      // Converts f_l and g_l from psi to phi
-      f_l = f_l + phi_0 - mu * d_phi_0 * a_l;
-      g_l = g_l + mu * d_phi_0;
+  //   // Check if I is now a closed interval
+  //   if (open_interval && (psi_t <= 0 && d_psi_t >= 0))
+  //   {
+  //     open_interval = false;
 
-      // Converts f_u and g_u from psi to phi
-      f_u = f_u + phi_0 - mu * d_phi_0 * a_u;
-      g_u = g_u + mu * d_phi_0;
-    }
+  //     // Converts f_l and g_l from psi to phi
+  //     f_l = f_l + phi_0 - mu * d_phi_0 * a_l;
+  //     g_l = g_l + mu * d_phi_0;
 
-    if (open_interval)
-    {
-      // Update interval end points using Updating Algorithm [More, Thuente 1994]
-      interval_converged = updateIntervalMT (a_l, f_l, g_l,
-                                             a_u, f_u, g_u,
-                                             a_t, psi_t, d_psi_t);
-    }
-    else
-    {
-      // Update interval end points using Modified Updating Algorithm [More, Thuente 1994]
-      interval_converged = updateIntervalMT (a_l, f_l, g_l,
-                                             a_u, f_u, g_u,
-                                             a_t, phi_t, d_phi_t);
-    }
+  //     // Converts f_u and g_u from psi to phi
+  //     f_u = f_u + phi_0 - mu * d_phi_0 * a_u;
+  //     g_u = g_u + mu * d_phi_0;
+  //   }
 
-    step_iterations++;
-  }
+  //   if (open_interval)
+  //   {
+  //     // Update interval end points using Updating Algorithm [More, Thuente 1994]
+  //     interval_converged = updateIntervalMT (a_l, f_l, g_l,
+  //                                            a_u, f_u, g_u,
+  //                                            a_t, psi_t, d_psi_t);
+  //   }
+  //   else
+  //   {
+  //     // Update interval end points using Modified Updating Algorithm [More, Thuente 1994]
+  //     interval_converged = updateIntervalMT (a_l, f_l, g_l,
+  //                                            a_u, f_u, g_u,
+  //                                            a_t, phi_t, d_phi_t);
+  //   }
+
+  //   step_iterations++;
+  // }
 
   // If inner loop was run then hessian needs to be calculated.
   // Hessian is unnecessary for step length determination but gradients are required
