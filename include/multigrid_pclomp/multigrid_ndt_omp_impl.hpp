@@ -1,4 +1,18 @@
-#include "ndt_omp.h"
+#include "multigrid_pclomp/multigrid_ndt_omp.h"
+// Copyright 2022 TIER IV, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 /*
  * Software License Agreement (BSD License)
  *
@@ -39,12 +53,12 @@
  *
  */
 
-#ifndef PCL_REGISTRATION_NDT_OMP_IMPL_H_
-#define PCL_REGISTRATION_NDT_OMP_IMPL_H_
+#ifndef PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
+#define PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-pclomp::NormalDistributionsTransform<PointSource, PointTarget>::NormalDistributionsTransform ()
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform ()
   : target_cells_ ()
   , resolution_ (1.0f)
   , step_size_ (0.1)
@@ -58,7 +72,7 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::NormalDistributi
   , h_ang_a2_ (), h_ang_a3_ (), h_ang_b2_ (), h_ang_b3_ (), h_ang_c2_ (), h_ang_c3_ (), h_ang_d1_ (), h_ang_d2_ ()
   , h_ang_d3_ (), h_ang_e1_ (), h_ang_e2_ (), h_ang_e3_ (), h_ang_f1_ (), h_ang_f2_ (), h_ang_f3_ ()
 {
-  reg_name_ = "NormalDistributionsTransform";
+  reg_name_ = "MultiGridNormalDistributionsTransform";
 
   double gauss_c1, gauss_c2;
 
@@ -72,14 +86,13 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::NormalDistributi
   transformation_epsilon_ = 0.1;
   max_iterations_ = 35;
 
-  search_method = DIRECT7;
   num_threads_ = omp_get_max_threads();
 }
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget> void
-pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeTransformation (PointCloudSource &output, const Eigen::Matrix4f &guess)
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTransformation (PointCloudSource &output, const Eigen::Matrix4f &guess)
 {
   nr_iterations_ = 0;
   converged_ = false;
@@ -201,7 +214,7 @@ int omp_get_thread_num() { return 0; }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget> double
-pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient,
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient,
 	Eigen::Matrix<double, 6, 6> &hessian,
 	PointCloudSource &trans_cloud,
 	Eigen::Matrix<double, 6, 1> &p,
@@ -235,7 +248,7 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeDerivativ
   std::vector<std::vector<TargetGridLeafConstPtr>> neighborhoods(num_threads_);
   std::vector<std::vector<float>> distancess(num_threads_);
 
-	// Update gradient and hessian for each point, line 17 in Algorithm 2 [Magnusson 2009]
+  // Update gradient and hessian for each point, line 17 in Algorithm 2 [Magnusson 2009]
 #pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
 	for (std::size_t idx = 0; idx < input_->points.size(); idx++)
 	{
@@ -262,22 +275,8 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeDerivativ
 		auto& neighborhood = neighborhoods[thread_n];
 		auto& distances = distancess[thread_n];
 
-		// Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
-		switch (search_method) {
-		case KDTREE:
-			target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
-			break;
-		case DIRECT26:
-			target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
-			break;
-		default:
-		case DIRECT7:
-			target_cells_.getNeighborhoodAtPoint7(x_trans_pt, neighborhood);
-			break;
-		case DIRECT1:
-			target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
-			break;
-		}
+    // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
+    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
 
 		double sum_score_pt = 0;
     double nearest_voxel_score_pt = 0;
@@ -369,7 +368,7 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeDerivativ
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget> void
-pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeAngleDerivatives(Eigen::Matrix<double, 6, 1> &p, bool compute_hessian)
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeAngleDerivatives(Eigen::Matrix<double, 6, 1> &p, bool compute_hessian)
 {
 	// Simplified math for near 0 angles
 	double cx, cy, cz, sx, sy, sz;
@@ -478,7 +477,7 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeAngleDeri
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget> void
-pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<float, 4, 6>& point_gradient_, Eigen::Matrix<float, 24, 6>& point_hessian_, bool compute_hessian) const
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<float, 4, 6>& point_gradient_, Eigen::Matrix<float, 24, 6>& point_hessian_, bool compute_hessian) const
 {
 	Eigen::Vector4f x4(x[0], x[1], x[2], 0.0f);
 
@@ -523,7 +522,7 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computePointDeri
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget> void
-pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<double, 3, 6>& point_gradient_, Eigen::Matrix<double, 18, 6>& point_hessian_, bool compute_hessian) const
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<double, 3, 6>& point_gradient_, Eigen::Matrix<double, 18, 6>& point_hessian_, bool compute_hessian) const
 {
 	// Calculate first derivative of Transformation Equation 6.17 w.r.t. transform vector p.
 	// Derivative w.r.t. ith element of transform vector corresponds to column i, Equation 6.18 and 6.19 [Magnusson 2009]
@@ -564,7 +563,7 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computePointDeri
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget> double
-pclomp::NormalDistributionsTransform<PointSource, PointTarget>::updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient,
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient,
 	Eigen::Matrix<double, 6, 6> &hessian,
 	const Eigen::Matrix<float, 4, 6> &point_gradient4,
 	const Eigen::Matrix<float, 24, 6> &point_hessian_,
@@ -620,7 +619,7 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::updateDerivative
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget> void
-pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeHessian (Eigen::Matrix<double, 6, 6> &hessian,
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHessian (Eigen::Matrix<double, 6, 6> &hessian,
                                                                              PointCloudSource &trans_cloud, Eigen::Matrix<double, 6, 1> &)
 {
   // Original Point and Transformed Point
@@ -651,21 +650,9 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeHessian (
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
     std::vector<TargetGridLeafConstPtr> neighborhood;
     std::vector<float> distances;
-		switch (search_method) {
-		case KDTREE:
-			target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
-			break;
-		case DIRECT26:
-			target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
-			break;
-		default:
-		case DIRECT7:
-			target_cells_.getNeighborhoodAtPoint7(x_trans_pt, neighborhood);
-			break;
-		case DIRECT1:
-			target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
-			break;
-		}
+
+    // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
+    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
 
     for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin (); neighborhood_it != neighborhood.end (); neighborhood_it++)
     {
@@ -693,7 +680,7 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeHessian (
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget> void
-pclomp::NormalDistributionsTransform<PointSource, PointTarget>::updateHessian (Eigen::Matrix<double, 6, 6> &hessian,
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateHessian (Eigen::Matrix<double, 6, 6> &hessian,
 	const Eigen::Matrix<double, 3, 6> &point_gradient_,
 	const Eigen::Matrix<double, 18, 6> &point_hessian_,
 	const Eigen::Vector3d &x_trans,
@@ -728,7 +715,7 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::updateHessian (E
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget> bool
-pclomp::NormalDistributionsTransform<PointSource, PointTarget>::updateIntervalMT (double &a_l, double &f_l, double &g_l,
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateIntervalMT (double &a_l, double &f_l, double &g_l,
                                                                                double &a_u, double &f_u, double &g_u,
                                                                                double a_t, double f_t, double g_t)
 {
@@ -769,7 +756,7 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::updateIntervalMT
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget> double
-pclomp::NormalDistributionsTransform<PointSource, PointTarget>::trialValueSelectionMT (double a_l, double f_l, double g_l,
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::trialValueSelectionMT (double a_l, double f_l, double g_l,
                                                                                     double a_u, double f_u, double g_u,
                                                                                     double a_t, double f_t, double g_t)
 {
@@ -852,7 +839,7 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::trialValueSelect
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget> double
-pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeStepLengthMT (const Eigen::Matrix<double, 6, 1> &x, Eigen::Matrix<double, 6, 1> &step_dir, double step_init, double step_max,
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeStepLengthMT (const Eigen::Matrix<double, 6, 1> &x, Eigen::Matrix<double, 6, 1> &step_dir, double step_init, double step_max,
                                                                                   double step_min, double &score, Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian,
                                                                                   PointCloudSource &trans_cloud)
 {
@@ -1023,7 +1010,7 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeStepLengt
 }
 
 template<typename PointSource, typename PointTarget>
-double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateScore(const PointCloudSource & trans_cloud) const
+double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculateScore(const PointCloudSource & trans_cloud) const
 {
 	double score = 0;
 
@@ -1034,21 +1021,9 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
 		// Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
 		std::vector<TargetGridLeafConstPtr> neighborhood;
 		std::vector<float> distances;
-		switch (search_method) {
-		case KDTREE:
-			target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
-			break;
-		case DIRECT26:
-			target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
-			break;
-		default:
-		case DIRECT7:
-			target_cells_.getNeighborhoodAtPoint7(x_trans_pt, neighborhood);
-			break;
-		case DIRECT1:
-			target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
-			break;
-		}
+
+    // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
+    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
 
 		for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++)
 		{
@@ -1078,7 +1053,7 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
 }
 
 template<typename PointSource, typename PointTarget>
-double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateTransformationProbability(const PointCloudSource & trans_cloud) const
+double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculateTransformationProbability(const PointCloudSource & trans_cloud) const
 {
 	double score = 0;
 
@@ -1089,21 +1064,9 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
 		// Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
 		std::vector<TargetGridLeafConstPtr> neighborhood;
 		std::vector<float> distances;
-		switch (search_method) {
-		case KDTREE:
-			target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
-			break;
-		case DIRECT26:
-			target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
-			break;
-		default:
-		case DIRECT7:
-			target_cells_.getNeighborhoodAtPoint7(x_trans_pt, neighborhood);
-			break;
-		case DIRECT1:
-			target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
-			break;
-		}
+
+    // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
+    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
 
 		for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++)
 		{
@@ -1133,7 +1096,7 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
 }
 
 template<typename PointSource, typename PointTarget>
-double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateNearestVoxelTransformationLikelihood(const PointCloudSource & trans_cloud) const
+double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculateNearestVoxelTransformationLikelihood(const PointCloudSource & trans_cloud) const
 {
   double nearest_voxel_score = 0;
   size_t found_neigborhood_voxel_num = 0;
@@ -1146,21 +1109,9 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
 		// Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
 		std::vector<TargetGridLeafConstPtr> neighborhood;
 		std::vector<float> distances;
-		switch (search_method) {
-		case KDTREE:
-			target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
-			break;
-		case DIRECT26:
-			target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
-			break;
-		default:
-		case DIRECT7:
-			target_cells_.getNeighborhoodAtPoint7(x_trans_pt, neighborhood);
-			break;
-		case DIRECT1:
-			target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
-			break;
-		}
+
+    // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
+    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
 
 		for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++)
 		{
@@ -1197,4 +1148,4 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
   return output_score;
 }
 
-#endif // PCL_REGISTRATION_NDT_IMPL_H_
+#endif // PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
