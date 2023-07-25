@@ -1,6 +1,3 @@
-#include "ndt_omp.h"
-
-#include <cmath>
 /*
  * Software License Agreement (BSD License)
  *
@@ -44,6 +41,9 @@
 #ifndef PCL_REGISTRATION_NDT_OMP_IMPL_H_
 #define PCL_REGISTRATION_NDT_OMP_IMPL_H_
 
+#include "ndt_omp.h"
+
+#include <cmath>
 #include <algorithm>
 #include <vector>
 
@@ -102,7 +102,7 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeTran
     // Initialise final transformation to the guessed one
     final_transformation_ = guess;
     // Apply guessed transformation prior to search for neighbours
-    transformPointCloud(output, output, guess);
+    transformPointCloud (*input_, output, guess);
   }
 
   Eigen::Transform<float, 3, Eigen::Affine, Eigen::ColMajor> eig_transformation;
@@ -1126,10 +1126,10 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
       Eigen::Vector3d voxelXYZ;
       voxelXYZ = target_cells_.getLeafCenter(voxel_idx);
 
-      if (nomap_points_num.count(voxel_idx) == 0){
-        nomap_points_num[voxel_idx] = 0;
+      if (nomap_points_num_.count(voxel_idx) == 0){
+        nomap_points_num_[voxel_idx] = 0;
       }
-      nomap_points_num[voxel_idx] += 1;
+      nomap_points_num_[voxel_idx] += 1;
     }else{
       for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++)
       {
@@ -1155,14 +1155,14 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
 
         if (voxel_points_num.count(voxel_idx) == 0){
           voxel_points_num[voxel_idx] = 0;
-          voxel_score_map[voxel_idx] = 0;
+          voxel_score_map_[voxel_idx] = 0;
         }
-        voxel_score_map[voxel_idx] += score_inc;
+        voxel_score_map_[voxel_idx] += score_inc;
         voxel_points_num[voxel_idx] += 1;
       }
     }
   }
-  for (auto &voxel_score_output: voxel_score_map){
+  for (auto &voxel_score_output: voxel_score_map_){
     if (voxel_points_num[voxel_score_output.first] != 0){
       voxel_score_output.second /= (voxel_points_num[voxel_score_output.first]);
     }

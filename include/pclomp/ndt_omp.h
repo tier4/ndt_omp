@@ -236,6 +236,14 @@ public:
     return nomap_points_num_;
   }
 
+  // For debug
+  void cleanScores()
+  {
+    voxel_score_map_.clear();
+    nomap_points_num_.clear();
+  }
+  // End
+
   // negative log likelihood function
   // lower is better
   double calculateScore(const PointCloudSource & cloud);

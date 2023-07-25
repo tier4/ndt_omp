@@ -225,13 +225,12 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
 
       // Compute the centroid leaf index
       int idx = ijk0 * divb_mul_[0] + ijk1 * divb_mul_[1] + ijk2 * divb_mul_[2];
+      Leaf& leaf = leaves_[idx];
 
-      // int idx = (((input_->points[cp].getArray4fmap () * inverse_leaf_size_).template cast<int>
-      // ()).matrix () - min_b_).dot (divb_mul_);
-      Leaf & leaf = leaves_[idx];
-      if (leaf.nr_points == 0) {
-        leaf.centroid.resize(centroid_size);
-        leaf.centroid.setZero();
+      if (leaf.nr_points == 0)
+      {
+        leaf.centroid.resize (centroid_size);
+        leaf.centroid.setZero ();
       }
 
       Eigen::Vector3d pt3d(input_->points[cp].x, input_->points[cp].y, input_->points[cp].z);
@@ -300,13 +299,16 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
       output.push_back(PointT());
 
       // Do we need to process all the fields?
-      if (!downsample_all_data_) {
-        output.points.back().x = leaf.centroid[0];
-        output.points.back().y = leaf.centroid[1];
-        output.points.back().z = leaf.centroid[2];
-      } else {
-        pcl::for_each_type<FieldList>(
-          pcl::NdCopyEigenPointFunctor<PointT>(leaf.centroid, output.back()));
+      if (!downsample_all_data_)
+      { 
+        // Replace centroid by mean
+        output.points.back ().x = leaf.mean_(0);
+        output.points.back ().y = leaf.mean_(1);
+        output.points.back ().z = leaf.mean_(2);
+      }
+      else
+      {
+        pcl::for_each_type<FieldList> (pcl::NdCopyEigenPointFunctor<PointT> (leaf.centroid, output.back ()));
         // ---[ RGB special case
         if (rgba_index >= 0) {
           // pack r/g/b into rgb
