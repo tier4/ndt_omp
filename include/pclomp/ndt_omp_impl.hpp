@@ -1,4 +1,5 @@
 #include "ndt_omp.h"
+
 /*
  * Software License Agreement (BSD License)
  *
@@ -98,7 +99,7 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeTransform
     // Initialise final transformation to the guessed one
     final_transformation_ = guess;
     // Apply guessed transformation prior to search for neighbours
-    transformPointCloud (output, output, guess);
+    transformPointCloud (*input_, output, guess);
   }
 
   Eigen::Transform<float, 3, Eigen::Affine, Eigen::ColMajor> eig_transformation;
@@ -329,6 +330,7 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeDerivativ
 		hessian += hessians[i];
 		total_neighborhood_count += neighborhood_counts[i];
 	}
+
   //add at 20220721 konishi
   scores_ = scores;
 
@@ -1026,6 +1028,8 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
 	double score = 0;
   std::map<size_t,size_t> voxel_points_num;
 
+  voxel_score_map_.clear();
+
 	for (std::size_t idx = 0; idx < trans_cloud.points.size(); idx++)
 	{
 		PointSource x_trans_pt = trans_cloud.points[idx];
@@ -1033,21 +1037,24 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
 		// Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
 		std::vector<TargetGridLeafConstPtr> neighborhood;
 		std::vector<float> distances;
-		switch (search_method) {
-		case KDTREE:
-			target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
-			break;
-		case DIRECT26:
-			target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
-			break;
-		default:
-		case DIRECT7:
-			target_cells_.getNeighborhoodAtPoint7(x_trans_pt, neighborhood);
-			break;
-		case DIRECT1:
-			target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
-			break;
-		}
+		// switch (search_method) {
+		// case KDTREE:
+		// 	target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+		// 	break;
+		// case DIRECT26:
+		// 	target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
+		// 	break;
+		// default:
+		// case DIRECT7:
+		// 	target_cells_.getNeighborhoodAtPoint7(x_trans_pt, neighborhood);
+		// 	break;
+		// case DIRECT1:
+		// 	target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
+		// 	break;
+		// }
+
+    // For debug, only check the voxel containing the trans point
+    target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
 
     // add at 20220218 by konishi
     size_t voxel_idx;
@@ -1061,10 +1068,10 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
       // std::cerr << voxelXYZ[0] << " "<< voxelXYZ[1] <<" "<< voxelXYZ[2]  << std::endl;
       // std::cerr << cell->getMean().x() <<" " << cell->getMean().y() << " " << cell->getMean().z() << std::endl;
 
-      if (nomap_points_num.count(voxel_idx) == 0){
-        nomap_points_num[voxel_idx] = 0;
+      if (nomap_points_num_.count(voxel_idx) == 0){
+        nomap_points_num_[voxel_idx] = 0;
       }
-      nomap_points_num[voxel_idx] += 1;
+      nomap_points_num_[voxel_idx] += 1;
     }else{
       for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++)
       {
@@ -1101,14 +1108,14 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
         // std::cerr << cell->getMean().x() <<" " << cell->getMean().y() << " " << cell->getMean().z() << std::endl;
         if (voxel_points_num.count(voxel_idx) == 0){
           voxel_points_num[voxel_idx] = 0;
-          voxel_score_map[voxel_idx] = 0;
+          voxel_score_map_[voxel_idx] = 0;
         }
-        voxel_score_map[voxel_idx] += score_inc;
+        voxel_score_map_[voxel_idx] += score_inc;
         voxel_points_num[voxel_idx] += 1;
       }
     }
   }
-  for (auto &voxel_score_output: voxel_score_map){
+  for (auto &voxel_score_output: voxel_score_map_){
     if (voxel_points_num[voxel_score_output.first] != 0){
       voxel_score_output.second /= (voxel_points_num[voxel_score_output.first]);
     }

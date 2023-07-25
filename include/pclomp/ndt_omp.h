@@ -258,14 +258,22 @@ namespace pclomp
 		inline const std::map<size_t,double>
 			getScoreMap() const
 		{
-			return voxel_score_map;
+			return voxel_score_map_;
 		}
 
 		inline const std::map<size_t,size_t>
 			getNoPointMap() const
 		{
-			return nomap_points_num;
+			return nomap_points_num_;
 		}
+
+		// For debug
+		void cleanScores()
+		{
+			voxel_score_map_.clear();
+			nomap_points_num_.clear();
+		}
+		// End
 
 		/** \brief Convert 6 element transformation vector to affine transformation.
 		  * \param[in] x transformation vector of the form [x, y, z, roll, pitch, yaw]
@@ -577,8 +585,8 @@ namespace pclomp
 	double nearest_voxel_transformation_likelihood_;
 	// add at 20220721 konishi
 	std::vector<double> scores_;
-	std::map<size_t,double> voxel_score_map;
-	std::map<size_t,size_t> nomap_points_num;
+	std::map<size_t,double> voxel_score_map_;
+	std::map<size_t,size_t> nomap_points_num_;
 
 	float regularization_scale_factor_;
 	boost::optional<Eigen::Matrix4f> regularization_pose_;

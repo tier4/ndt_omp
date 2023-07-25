@@ -221,7 +221,7 @@ pclomp::VoxelGridCovariance<PointT>::applyFilter (PointCloud &output)
 
       // Compute the centroid leaf index
       int idx = ijk0 * divb_mul_[0] + ijk1 * divb_mul_[1] + ijk2 * divb_mul_[2];
-
+ 
       //int idx = (((input_->points[cp].getArray4fmap () * inverse_leaf_size_).template cast<int> ()).matrix () - min_b_).dot (divb_mul_);
       Leaf& leaf = leaves_[idx];
       if (leaf.nr_points == 0)
@@ -304,9 +304,14 @@ pclomp::VoxelGridCovariance<PointT>::applyFilter (PointCloud &output)
       // Do we need to process all the fields?
       if (!downsample_all_data_)
       {
-        output.points.back ().x = leaf.centroid[0];
-        output.points.back ().y = leaf.centroid[1];
-        output.points.back ().z = leaf.centroid[2];
+        // output.points.back ().x = leaf.centroid[0];
+        // output.points.back ().y = leaf.centroid[1];
+        // output.points.back ().z = leaf.centroid[2];
+ 
+        // Replace centroid by mean
+        output.points.back ().x = leaf.mean_(0);
+        output.points.back ().y = leaf.mean_(1);
+        output.points.back ().z = leaf.mean_(2);
       }
       else
       {
