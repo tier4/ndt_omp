@@ -185,14 +185,13 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::compute
     if (update_visualizer_ != 0)
       update_visualizer_ (output, std::vector<int>(), *target_, std::vector<int>() );
 
-    if (nr_iterations_ > max_iterations_ ||
+    nr_iterations_++;
+
+    if (nr_iterations_ >= max_iterations_ ||
         (nr_iterations_ && (std::fabs (delta_p_norm) < transformation_epsilon_)))
     {
       converged_ = true;
     }
-
-    nr_iterations_++;
-
   }
 
   // Store transformation probability. The relative differences within each scan registration are accurate
