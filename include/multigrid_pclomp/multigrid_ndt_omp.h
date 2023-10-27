@@ -71,6 +71,7 @@ namespace pclomp
 		float transform_probability;
 		float nearest_voxel_transformation_likelihood;
 		int iteration_num;
+		Eigen::Matrix<double, 6, 6> hessian;
 		std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array;
 		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	};
@@ -336,6 +337,7 @@ namespace pclomp
 			ndt_result.nearest_voxel_transformation_likelihood =
 				getNearestVoxelTransformationLikelihood();
 			ndt_result.iteration_num = getFinalNumIteration();
+			ndt_result.hessian = getHessian();
 			return ndt_result;
 		}
 
