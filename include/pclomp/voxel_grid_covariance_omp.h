@@ -417,9 +417,19 @@ namespace pclomp
 
 
         Eigen::Vector3d p;
-        p[0] = (ijk0 + min_b_[0]) / inverse_leaf_size_[0] +1;
-        p[1] = (ijk1 + min_b_[1]) / inverse_leaf_size_[1] +1;
-        p[2] = (ijk2 + min_b_[2]) / inverse_leaf_size_[2] +1;
+        // p[0] = (ijk0 + min_b_[0]) / inverse_leaf_size_[0] +1;
+        // p[1] = (ijk1 + min_b_[1]) / inverse_leaf_size_[1] +1;
+        // p[2] = (ijk2 + min_b_[2]) / inverse_leaf_size_[2] +1;
+
+        p[0] = (static_cast<double>(ijk0 + min_b_[0]) + 0.5) / inverse_leaf_size_[0];
+        p[1] = (static_cast<double>(ijk1 + min_b_[1]) + 0.5) / inverse_leaf_size_[1];
+        p[2] = (static_cast<double>(ijk2 + min_b_[2]) + 0.5) / inverse_leaf_size_[2];
+
+        if (p[0] == 0 && p[1] == 0 && p[2] == 0)
+        {
+        std::cerr << "p_x:" << p[0] << " " << "p_y" << p[1] << " " << "p_z "<< p[2]<< " index = " << index << std::endl;
+
+        }
 
         // std::cerr << "ijk0:" << " " << ijk0 << " " << "ijk1" << ijk1  << " "<< "ijk2"<< ijk2 << " " << std::endl;
         // std::cerr << "inverse_leaf_size_[0]:" << " " << inverse_leaf_size_[0] << " " << "inverse_leaf_size_[1]:" << inverse_leaf_size_[1]  << " "<< "inverse_leaf_size_[2]:"<< inverse_leaf_size_[2] << " " << std::endl;

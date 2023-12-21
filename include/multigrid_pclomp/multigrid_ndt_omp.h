@@ -1,3 +1,17 @@
+// Copyright 2022 TIER IV, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 /*
  * Software License Agreement (BSD License)
  *
@@ -38,37 +52,38 @@
  *
  */
 
-#ifndef PCL_REGISTRATION_NDT_OMP_H_
-#define PCL_REGISTRATION_NDT_OMP_H_
+#ifndef PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_H_
+#define PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_H_
 
 #include "boost/optional.hpp"
 
-#include <pcl/registration/registration.h>
 #include <pcl/search/impl/search.hpp>
-#include "voxel_grid_covariance_omp.h"
+#include <pcl/registration/registration.h>
+#include "multigrid_pclomp/multi_voxel_grid_covariance_omp.h"
 
 #include <unsupported/Eigen/NonLinearOptimization>
 
 namespace pclomp
 {
-	enum NeighborSearchMethod {
-		KDTREE,
-		DIRECT26,
-		DIRECT7,
-		DIRECT1
-	};
-
-	struct EigenCmp
+	struct NdtResult
 	{
-		bool operator()(const Eigen::Vector3i& a, const Eigen::Vector3i& b)
-		{
-			return (a(0) < b(0) || (a(0) == b(0) && a(1) < b(1)) ||
-					(a(0) == b(0) && a(1) == b(1) && a(2) < b(2)));
-		}
+		Eigen::Matrix4f pose;
+		float transform_probability;
+		float nearest_voxel_transformation_likelihood;
+		int iteration_num;
+		std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array;
+		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	};
 
-
-
+	struct NdtParams
+	{
+		double trans_epsilon;
+		double step_size;
+		double resolution;
+		int max_iterations;
+		int num_threads;
+		float regularization_scale_factor;
+	};
 
 	/** \brief A 3D Normal Distribution Transform registration implementation for point cloud data.
 	  * \note For more information please see
@@ -82,7 +97,7 @@ namespace pclomp
 	  * \author Brian Okorn (Space and Naval Warfare Systems Center Pacific)
 	  */
 	template<typename PointSource, typename PointTarget>
-	class NormalDistributionsTransform : public pcl::Registration<PointSource, PointTarget>
+	class MultiGridNormalDistributionsTransform : public pcl::Registration<PointSource, PointTarget>
 	{
 	protected:
 
@@ -98,7 +113,7 @@ namespace pclomp
 		typedef pcl::PointIndices::ConstPtr PointIndicesConstPtr;
 
 		/** \brief Typename of searchable voxel grid containing mean and covariance. */
-		typedef pclomp::VoxelGridCovariance<PointTarget> TargetGrid;
+		typedef pclomp::MultiVoxelGridCovariance<PointTarget> TargetGrid;
 		/** \brief Typename of pointer to searchable voxel grid. */
 		typedef TargetGrid* TargetGridPtr;
 		/** \brief Typename of const pointer to searchable voxel grid. */
@@ -110,21 +125,21 @@ namespace pclomp
 	public:
 
 #if PCL_VERSION >= PCL_VERSION_CALC(1, 10, 0)
-		typedef pcl::shared_ptr< NormalDistributionsTransform<PointSource, PointTarget> > Ptr;
-		typedef pcl::shared_ptr< const NormalDistributionsTransform<PointSource, PointTarget> > ConstPtr;
+		typedef pcl::shared_ptr< MultiGridNormalDistributionsTransform<PointSource, PointTarget> > Ptr;
+		typedef pcl::shared_ptr< const MultiGridNormalDistributionsTransform<PointSource, PointTarget> > ConstPtr;
 #else
-		typedef boost::shared_ptr< NormalDistributionsTransform<PointSource, PointTarget> > Ptr;
-		typedef boost::shared_ptr< const NormalDistributionsTransform<PointSource, PointTarget> > ConstPtr;
+		typedef boost::shared_ptr< MultiGridNormalDistributionsTransform<PointSource, PointTarget> > Ptr;
+		typedef boost::shared_ptr< const MultiGridNormalDistributionsTransform<PointSource, PointTarget> > ConstPtr;
 #endif
 
 
 		/** \brief Constructor.
 		  * Sets \ref outlier_ratio_ to 0.35, \ref step_size_ to 0.05 and \ref resolution_ to 1.0
 		  */
-		NormalDistributionsTransform();
+		MultiGridNormalDistributionsTransform();
 
 		/** \brief Empty destructor */
-		virtual ~NormalDistributionsTransform() {}
+		virtual ~MultiGridNormalDistributionsTransform() {}
 
 		void setNumThreads(int n)
 		{
@@ -136,15 +151,37 @@ namespace pclomp
 			return num_threads_;
 		}
 
+		inline void
+			setInputTarget(const PointCloudTargetConstPtr &cloud)
+		{
+			const std::string default_target_id = "default";
+			addTarget(cloud, default_target_id);
+			createVoxelKdtree();
+		}
+
 		/** \brief Provide a pointer to the input target (e.g., the point cloud that we want to align the input source to).
 		  * \param[in] cloud the input point cloud target
 		  */
 		inline void
-			setInputTarget(const PointCloudTargetConstPtr &cloud)
+			addTarget(const PointCloudTargetConstPtr &cloud, const std::string target_id)
 		{
 			pcl::Registration<PointSource, PointTarget>::setInputTarget(cloud);
-			init();
+			target_cells_.setLeafSize(resolution_, resolution_, resolution_);
+			target_cells_.setInputCloudAndFilter(cloud, target_id);
 		}
+
+		inline void
+			removeTarget(const std::string target_id)
+		{
+			target_cells_.removeCloud(target_id);
+		}
+
+		inline void
+			createVoxelKdtree()
+		{
+			target_cells_.createKdtree();
+		}
+
 
 		/** \brief Set/change the voxel grid resolution.
 		  * \param[in] resolution side length of voxels
@@ -159,6 +196,8 @@ namespace pclomp
 				if (input_)
 					init();
 			}
+
+			initGaussD();
 		}
 
 		/** \brief Get voxel grid resolution.
@@ -204,16 +243,8 @@ namespace pclomp
 			setOutlierRatio(double outlier_ratio)
 		{
 			outlier_ratio_ = outlier_ratio;
-		}
 
-		inline void setNeighborhoodSearchMethod(NeighborSearchMethod method) {
-			search_method = method;
-		}
-
-		inline NeighborSearchMethod
-			getNeighborhoodSearchMethod() const
-		{
-			return search_method;
+			initGaussD();
 		}
 
 		/** \brief Get the registration alignment probability.
@@ -254,44 +285,6 @@ namespace pclomp
 			return transformation_array_;
 		}
 
-		//add at 20220721 konishi
-		inline const std::vector<double>&
-			getScores() const
-		{
-			return scores_;
-		}
-
-		inline const TargetGrid&
-			getTargetCells() const 
-		{
-			return target_cells_;
-		}
-
-		inline const std::map<size_t,double>&
-			getScoreMap() const
-		{
-			return voxel_score_map_;
-		}
-
-		inline const std::map<size_t,size_t>&
-			getNoPointMap() const
-		{
-			return nomap_points_num_;
-		}
-
-		std::set<Eigen::Vector3i, EigenCmp>& getEmptyVoxels()
-		{
-			return empty_voxels_;
-		}
-
-		// For debug
-		void cleanScores()
-		{
-			voxel_score_map_.clear();
-			nomap_points_num_.clear();
-		}
-		// End
-
 		/** \brief Convert 6 element transformation vector to affine transformation.
 		  * \param[in] x transformation vector of the form [x, y, z, roll, pitch, yaw]
 		  * \param[out] trans affine transform corresponding to given transformation vector
@@ -319,8 +312,7 @@ namespace pclomp
 
 		// negative log likelihood function
 		// lower is better
-		double calculateScore(const PointCloudSource& cloud); // change at 20220721 konishi
-		// double calculateScore(const PointCloudSource& cloud) const;
+		double calculateScore(const PointCloudSource& cloud) const;
 		double calculateTransformationProbability(const PointCloudSource& cloud) const;
 		double calculateNearestVoxelTransformationLikelihood(const PointCloudSource& cloud) const;
 
@@ -338,6 +330,52 @@ namespace pclomp
 		{
 			regularization_pose_ = boost::none;
 		}
+
+		NdtResult getResult()
+		{
+			NdtResult ndt_result;
+			ndt_result.pose = this->getFinalTransformation();
+			ndt_result.transformation_array = getFinalTransformationArray();
+			ndt_result.transform_probability = getTransformationProbability();
+			ndt_result.nearest_voxel_transformation_likelihood =
+				getNearestVoxelTransformationLikelihood();
+			ndt_result.iteration_num = getFinalNumIteration();
+			return ndt_result;
+		}
+
+		void setParams(const NdtParams & ndt_params)
+		{
+			this->setTransformationEpsilon(ndt_params.trans_epsilon);
+			this->setStepSize(ndt_params.step_size);
+			this->setResolution(ndt_params.resolution);
+			this->setMaximumIterations(ndt_params.max_iterations);
+			setRegularizationScaleFactor(ndt_params.regularization_scale_factor);
+			setNumThreads(ndt_params.num_threads);
+		}
+
+		NdtParams getParams() const
+		{
+			NdtParams ndt_params;
+			ndt_params.trans_epsilon = transformation_epsilon_;
+			ndt_params.step_size = getStepSize();
+			ndt_params.resolution = getResolution();
+			ndt_params.max_iterations = max_iterations_;
+			ndt_params.regularization_scale_factor = regularization_scale_factor_;
+			ndt_params.num_threads = num_threads_;
+			return ndt_params;
+		}
+
+		pcl::PointCloud<PointTarget> getVoxelPCD() const
+		{
+			return target_cells_.getVoxelPCD();
+		}
+
+		std::vector<std::string> getCurrentMapIDs() const
+		{
+			return target_cells_.getCurrentMapIDs();
+		}
+
+		
 
 	protected:
 
@@ -378,10 +416,6 @@ namespace pclomp
 		void inline
 			init()
 		{
-			target_cells_.setLeafSize(resolution_, resolution_, resolution_);
-			target_cells_.setInputCloud(target_);
-			// Initiate voxel structure.
-			target_cells_.filter(true);
 		}
 
 		/** \brief Compute derivatives of probability function w.r.t. the transformation vector.
@@ -548,6 +582,16 @@ namespace pclomp
 			return (g_a - mu * g_0);
 		}
 
+		// Re-compute these values whenever outlier_ratio or resolution changes
+		void initGaussD()
+		{
+			double gauss_c1 = 10 * (1 - outlier_ratio_);
+			double gauss_c2 = outlier_ratio_ / pow (resolution_, 3);
+			gauss_d3_ = -log (gauss_c2);
+			gauss_d1_ = -log ( gauss_c1 + gauss_c2 ) - gauss_d3_;
+			gauss_d2_ = -2 * log ((-log ( gauss_c1 * exp ( -0.5 ) + gauss_c2 ) - gauss_d3_) / gauss_d1_);
+		}
+
 		/** \brief The voxel grid generated from target cloud containing point means and covariances. */
 		TargetGrid target_cells_;
 
@@ -600,23 +644,15 @@ namespace pclomp
 	Eigen::Matrix<double, 6, 6> hessian_;
 	std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array_;
 	double nearest_voxel_transformation_likelihood_;
-	// add at 20220721 konishi
-	std::vector<double> scores_;
-	std::map<size_t,double> voxel_score_map_;
-	std::map<size_t,size_t> nomap_points_num_;
-	// For recording voxels that contain no map point
-	std::set<Eigen::Vector3i, EigenCmp> empty_voxels_;
 
 	float regularization_scale_factor_;
 	boost::optional<Eigen::Matrix4f> regularization_pose_;
 	Eigen::Vector3f regularization_pose_translation_;
 
 	public:
-		NeighborSearchMethod search_method;
-
 		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	};
 
 }
 
-#endif // PCL_REGISTRATION_NDT_H_
+#endif // PCL_REGISTRATION_NDT_MULTI_VOXEL_H_
