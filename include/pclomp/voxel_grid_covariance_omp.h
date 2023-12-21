@@ -96,25 +96,25 @@ public:
   typedef boost::shared_ptr<const pcl::VoxelGrid<PointT> > ConstPtr;
 #endif
 
-      /** \brief Simple structure to hold a centroid, covariance and the number of points in a leaf.
-        * Inverse covariance, eigen vectors and eigen values are precomputed. */
-      struct Leaf
-      {
-        /** \brief Constructor.
-         * Sets \ref nr_points, \ref icov_, \ref mean_ and \ref evals_ to 0 and \ref cov_ and \ref evecs_ to the identity matrix
-         */
-        Leaf () :
-          nr_points (0),
-          mean_ (Eigen::Vector3d::Zero ()),
-          // add 20220721 konishi
-          voxelXYZ_ (Eigen::Vector3d::Zero ()),
-          centroid_ (),
-          cov_ (Eigen::Matrix3d::Identity ()),
-          icov_ (Eigen::Matrix3d::Zero ()),
-          evecs_ (Eigen::Matrix3d::Identity ()),
-          evals_ (Eigen::Vector3d::Zero ())
-        {
-        }
+  /** \brief Simple structure to hold a centroid, covariance and the number of points in a leaf.
+    * Inverse covariance, eigen vectors and eigen values are precomputed. */
+  struct Leaf
+  {
+    /** \brief Constructor.
+     * Sets \ref nr_points, \ref icov_, \ref mean_ and \ref evals_ to 0 and \ref cov_ and \ref evecs_ to the identity matrix
+     */
+    Leaf () :
+      nr_points (0),
+      mean_ (Eigen::Vector3d::Zero ()),
+      // add 20220721 konishi
+      voxelXYZ_ (Eigen::Vector3d::Zero ()),
+      centroid_ (),
+      cov_ (Eigen::Matrix3d::Identity ()),
+      icov_ (Eigen::Matrix3d::Zero ()),
+      evecs_ (Eigen::Matrix3d::Identity ()),
+      evals_ (Eigen::Vector3d::Zero ())
+    {
+    }
 
     /** \brief Get the voxel covariance.
      * \return covariance matrix

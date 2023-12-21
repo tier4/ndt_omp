@@ -130,11 +130,11 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeTran
     regularization_pose_translation_ = regularization_pose_transformation.translation();
   }
 
-  // Calculate derivatives of initial transform vector, subsequent derivative calculations are done
-  // in the step length determination.
-  score = computeDerivatives(score_gradient, hessian, output, p);
-
-  while (!converged_) {
+  // Calculate derivatives of initial transform vector, subsequent derivative calculations are done in the step length determination.
+  score = computeDerivatives (score_gradient, hessian, output, p);
+  
+  while (!converged_)
+  {
     // Store previous transformation
     previous_transformation_ = transformation_;
 
@@ -1088,6 +1088,10 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeSt
 }
 
 
+// template<typename PointSource, typename PointTarget>
+// double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateScore(const PointCloudSource & trans_cloud) const
+// {
+// 	double score = 0;
 // change at 20220721 konishi
 template<typename PointSource, typename PointTarget>
 double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateScore(const PointCloudSource & trans_cloud)
@@ -1119,14 +1123,19 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
 
     // add at 20220218 by konishi
     size_t voxel_idx;
+
     if (neighborhood.size() == 0){
-      
-      voxel_idx = target_cells_.getLeafIndex(Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z));
+      // Compute the 3D index of the voxel containing the query point
+      Eigen::Vector3i vid;
 
-      Eigen::Vector3d voxelXYZ;
-      voxelXYZ = target_cells_.getLeafCenter(voxel_idx);
+      vid(0) = static_cast<int>(floor(x_trans_pt.x / resolution_));
+      vid(1) = static_cast<int>(floor(x_trans_pt.y / resolution_));
+      vid(2) = static_cast<int>(floor(x_trans_pt.z / resolution_));
 
-      if (nomap_points_num_.count(voxel_idx) == 0){
+      empty_voxels_.insert(vid);
+
+      if (nomap_points_num_.count(voxel_idx) == 0)
+      {
         nomap_points_num_[voxel_idx] = 0;
       }
       nomap_points_num_[voxel_idx] += 1;
