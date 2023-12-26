@@ -60,7 +60,8 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::NormalDistributi
   transformation_epsilon_ = 0.1;
   max_iterations_ = 35;
 
-  search_method = DIRECT7;
+  search_method = KDTREE;
+  current_search_method_ = KDTREE;
   num_threads_ = omp_get_max_threads();
 }
 
@@ -69,6 +70,7 @@ template<typename PointSource, typename PointTarget>
 void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeTransformation(PointCloudSource &output, const Eigen::Matrix4f &guess) {
   nr_iterations_ = 0;
   converged_ = false;
+  current_search_method_ = search_method == HYBRID ? DIRECT1 : search_method;
 
   double gauss_c1, gauss_c2;
 
@@ -148,8 +150,15 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeTran
     // Update Visualizer (untested)
     if(update_visualizer_ != 0) update_visualizer_(output, std::vector<int>(), *target_, std::vector<int>());
 
-    if(nr_iterations_ > max_iterations_ || (nr_iterations_ && (std::fabs(delta_p_norm) < transformation_epsilon_))) {
+    if(nr_iterations_ > max_iterations_) {
       converged_ = true;
+    }
+
+    if(nr_iterations_ && (std::fabs(delta_p_norm) < transformation_epsilon_)) {
+      if(search_method == HYBRID && current_search_method_ == DIRECT1) {
+        current_search_method_ = KDTREE;
+      } else
+        converged_ = true;
     }
 
     nr_iterations_++;
@@ -233,7 +242,7 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeDe
     auto &distances = distancess[thread_n];
 
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
-    switch(search_method) {
+    switch(current_search_method_) {
       case KDTREE:
         target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
         break;
@@ -592,7 +601,7 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeHess
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
     std::vector<TargetGridLeafConstPtr> neighborhood;
     std::vector<float> distances;
-    switch(search_method) {
+    switch(current_search_method_) {
       case KDTREE:
         target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
         break;
@@ -1001,6 +1010,9 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
       case DIRECT1:
         target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
         break;
+      case HYBRID:
+        target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+        break;
     }
 
     for(typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++) {
@@ -1054,6 +1066,9 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
         break;
       case DIRECT1:
         target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
+        break;
+      case HYBRID:
+        target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
         break;
     }
 

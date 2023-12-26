@@ -50,7 +50,7 @@
 #include <unsupported/Eigen/NonLinearOptimization>
 
 namespace pclomp {
-enum NeighborSearchMethod { KDTREE, DIRECT26, DIRECT7, DIRECT1 };
+enum NeighborSearchMethod { KDTREE, DIRECT26, DIRECT7, DIRECT1, HYBRID };
 
 struct NdtResult {
   Eigen::Matrix4f pose;
@@ -505,6 +505,8 @@ protected:
   float regularization_scale_factor_;
   boost::optional<Eigen::Matrix4f> regularization_pose_;
   Eigen::Vector3f regularization_pose_translation_;
+
+  NeighborSearchMethod current_search_method_;
 
 public:
   NeighborSearchMethod search_method;
