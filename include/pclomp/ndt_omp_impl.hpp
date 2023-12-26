@@ -958,6 +958,9 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
       case DIRECT1:
         target_cells_.getNeighborhoodAtPoint1(x_trans_pt, neighborhood);
         break;
+      case HYBRID:
+        target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+        break;
     }
 
     for(typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++) {
