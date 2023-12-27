@@ -59,6 +59,7 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::NormalDistributi
 
   transformation_epsilon_ = 0.1;
   max_iterations_ = 35;
+  tp_epsilon_ = 0.01;
 
   search_method = KDTREE;
   current_search_method_ = KDTREE;
@@ -70,6 +71,8 @@ template<typename PointSource, typename PointTarget>
 void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeTransformation(PointCloudSource &output, const Eigen::Matrix4f &guess) {
   nr_iterations_ = 0;
   converged_ = false;
+  double prior_tp = 0.0;
+  int flat_count = 0;
   current_search_method_ = search_method == HYBRID ? DIRECT1 : search_method;
 
   double gauss_c1, gauss_c2;
@@ -161,15 +164,31 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeTran
         converged_ = true;
     }
 
-    nr_iterations_++;
-  }
+    // Store transformation probability. The relative differences within each scan registration are accurate
+    // but the normalization constants need to be modified for it to be globally accurate
+    if(input_->points.empty()) {
+      trans_probability_ = 0.0f;
+    } else {
+      trans_probability_ = score / static_cast<double>(input_->points.size());
+    }
 
-  // Store transformation probability. The relative differences within each scan registration are accurate
-  // but the normalization constants need to be modified for it to be globally accurate
-  if(input_->points.empty()) {
-    trans_probability_ = 0.0f;
-  } else {
-    trans_probability_ = score / static_cast<double>(input_->points.size());
+    // (Hybrid) If tp falls below a small threshold three times in a row, we consider the function to be flat.
+    // Then, converge as an uncertain solution. This is to prevent unnecessary increases in iterations.
+    if(search_method == HYBRID && current_search_method_ == KDTREE) {
+      if((trans_probability_ - prior_tp) < tp_epsilon_) {
+        flat_count++;
+      } else {
+        flat_count = 0;
+      }
+
+      if(flat_count > 2) {
+        converged_ = true;
+      }
+
+      prior_tp = trans_probability_;
+    }
+
+    nr_iterations_++;
   }
 
   hessian_ = hessian;

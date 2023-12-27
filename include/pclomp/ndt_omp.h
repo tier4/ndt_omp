@@ -497,6 +497,7 @@ protected:
   //      Eigen::Matrix<double, 18, 6> point_hessian_;
 
   int num_threads_;
+  float tp_epsilon_;  // transformation probability epsilon
 
   Eigen::Matrix<double, 6, 6> hessian_;
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array_;
