@@ -56,6 +56,77 @@
 #include <pcl/filters/boost.h>
 #include "multigrid_pclomp/multi_voxel_grid_covariance_omp.h"
 
+template <typename PointT>
+pclomp::MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(const MultiVoxelGridCovariance& other)
+: pcl::VoxelGrid<PointT>(other),
+  leaves_(other.leaves_),
+  grid_leaves_(other.grid_leaves_),
+  leaf_indices_(other.leaf_indices_),
+  kdtree_(other.kdtree_)
+{
+  min_points_per_voxel_ = other.min_points_per_voxel_;
+  min_covar_eigvalue_mult_ = other.min_covar_eigvalue_mult_;
+  
+  // Deep copy
+  voxel_centroids_ptr_.reset(new PointCloud);
+
+  if (other.voxel_centroids_ptr_)
+  {
+    *voxel_centroids_ptr_ = *other.voxel_centroids_ptr_;
+  }
+}
+
+template <typename PointT>
+pclomp::MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(MultiVoxelGridCovariance&& other)
+: pcl::VoxelGrid<PointT>(std::move(other)),
+  leaves_(std::move(other.leaves_)),
+  grid_leaves_(std::move(other.grid_leaves_)),
+  leaf_indices_(std::move(other.leaf_indices_)),
+  kdtree_(std::move(other.kdtree_)),
+  voxel_centroids_ptr_(std::move(other.voxel_centroids_ptr_))
+{
+  min_points_per_voxel_ = other.min_points_per_voxel_;
+  min_covar_eigvalue_mult_ = other.min_covar_eigvalue_mult_;
+}
+
+template <typename PointT>
+pclomp::MultiVoxelGridCovariance<PointT>& pclomp::MultiVoxelGridCovariance<PointT>::operator=(const MultiVoxelGridCovariance& other)
+{
+  pcl::VoxelGrid<PointT>::operator=(other);
+  leaves_ = other.leaves_;
+  grid_leaves_ = other.grid_leaves_;
+  leaf_indices_ = other.leaf_indices_;
+  kdtree_ = other.kdtree_;
+  voxel_centroids_ptr_ = other.voxel_centroids_ptr_;
+  min_points_per_voxel_ = other.min_points_per_voxel_;
+  min_covar_eigvalue_mult_ = other.min_covar_eigvalue_mult_;
+  
+  // Deep copy
+  voxel_centroids_ptr_.reset(new PointCloud);
+
+  if (other.voxel_centroids_ptr_)
+  {
+    *voxel_centroids_ptr_ = *other.voxel_centroids_ptr_;
+  }
+
+  return *this;
+}
+
+template <typename PointT>
+pclomp::MultiVoxelGridCovariance<PointT>& pclomp::MultiVoxelGridCovariance<PointT>::operator=(MultiVoxelGridCovariance&& other)
+{
+  pcl::VoxelGrid<PointT>::operator=(std::move(other));
+  leaves_ = std::move(other.leaves_);
+  grid_leaves_ = std::move(other.grid_leaves_);
+  leaf_indices_ = std::move(other.leaf_indices_);
+  kdtree_ = std::move(other.kdtree_);
+  voxel_centroids_ptr_ = std::move(other.voxel_centroids_ptr_);
+  min_points_per_voxel_ = other.min_points_per_voxel_;
+  min_covar_eigvalue_mult_ = other.min_covar_eigvalue_mult_;
+
+  return *this;
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT>
 void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter(const PointCloudConstPtr &input, const std::string &grid_id, LeafDict &leaves) const {

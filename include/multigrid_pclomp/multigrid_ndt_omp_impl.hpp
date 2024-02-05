@@ -56,6 +56,130 @@
 #ifndef PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 #define PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 
+// For debug
+#include <fstream>
+// End
+
+template <typename PointSource, typename PointTarget>
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform(const MultiGridNormalDistributionsTransform& other)
+: BaseRegType(other),
+  target_cells_(other.target_cells_)
+{
+  resolution_ = other.resolution_;
+  step_size_ = other.step_size_;
+  outlier_ratio_ = other.outlier_ratio_;
+  gauss_d1_ = other.gauss_d1_;
+  gauss_d2_ = other.gauss_d2_;
+  gauss_d3_ = other.gauss_d3_;
+  trans_probability_ = other.trans_probability_;
+  // No need to copy j_ang and h_ang, as those matrices are re-computed on every computeDerivatives() call
+
+  num_threads_ = other.num_threads_;
+  hessian_ = other.hessian_;
+  transformation_array_ = other.transformation_array_;
+  nearest_voxel_transformation_likelihood_ = other.nearest_voxel_transformation_likelihood_;
+
+  regularization_scale_factor_ = other.regularization_scale_factor_;
+  regularization_pose_ = other.regularization_pose_;
+  regularization_pose_translation_ = other.regularization_pose_translation_;
+}
+
+template <typename PointSource, typename PointTarget>
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform(MultiGridNormalDistributionsTransform&& other)
+: BaseRegType(std::move(other)),
+  target_cells_(std::move(other.target_cells_))
+{
+  resolution_ = other.resolution_;
+  step_size_ = other.step_size_;
+  outlier_ratio_ = other.outlier_ratio_;
+  gauss_d1_ = other.gauss_d1_;
+  gauss_d2_ = other.gauss_d2_;
+  gauss_d3_ = other.gauss_d3_;
+  trans_probability_ = other.trans_probability_;
+  // No need to copy j_ang and h_ang, as those matrices are re-computed on every computeDerivatives() call
+
+  num_threads_ = other.num_threads_;
+  hessian_ = other.hessian_;
+  transformation_array_ = other.transformation_array_;
+  nearest_voxel_transformation_likelihood_ = other.nearest_voxel_transformation_likelihood_;
+
+  regularization_scale_factor_ = other.regularization_scale_factor_;
+  regularization_pose_ = other.regularization_pose_;
+  regularization_pose_translation_ = other.regularization_pose_translation_;
+}
+
+template <typename PointSource, typename PointTarget>
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>& 
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::operator=(const MultiGridNormalDistributionsTransform& other)
+{
+
+  // For debug
+  std::ofstream test_file("/home/anh/Work/autoware/multigrid_ndt_omp_impl_hpp_test.txt");
+
+  test_file << __FILE__ << "::" << __LINE__ << "::" << __func__ << "::Copy operator start" << std::endl;
+  // End
+
+  BaseRegType::operator=(other);
+
+  test_file << __FILE__ << "::" << __LINE__ << "::" << __func__ << "::Copy operator mid" << std::endl;
+
+  target_cells_ = other.target_cells_;
+
+  test_file << __FILE__ << "::" << __LINE__ << "::" << __func__ << "::Copy operator mid" << std::endl;
+
+  resolution_ = other.resolution_;
+  step_size_ = other.step_size_;
+  outlier_ratio_ = other.outlier_ratio_;
+  gauss_d1_ = other.gauss_d1_;
+  gauss_d2_ = other.gauss_d2_;
+  gauss_d3_ = other.gauss_d3_;
+  trans_probability_ = other.trans_probability_;
+  // No need to copy j_ang and h_ang, as those matrices are re-computed on every computeDerivatives() call
+
+  test_file << __FILE__ << "::" << __LINE__ << "::" << __func__ << "::Copy operator mid" << std::endl;
+
+  num_threads_ = other.num_threads_;
+  hessian_ = other.hessian_;
+  transformation_array_ = other.transformation_array_;
+  nearest_voxel_transformation_likelihood_ = other.nearest_voxel_transformation_likelihood_;
+
+  regularization_scale_factor_ = other.regularization_scale_factor_;
+  regularization_pose_ = other.regularization_pose_;
+  regularization_pose_translation_ = other.regularization_pose_translation_;
+
+  test_file << __FILE__ << "::" << __LINE__ << "::" << __func__ << "::Copy operator end" << std::endl;
+
+  return *this;
+}
+
+template <typename PointSource, typename PointTarget>
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>& 
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::operator=(MultiGridNormalDistributionsTransform&& other)
+{
+  BaseRegType::operator=(std::move(other));
+
+  target_cells_ = std::move(other.target_cells_);
+  resolution_ = other.resolution_;
+  step_size_ = other.step_size_;
+  outlier_ratio_ = other.outlier_ratio_;
+  gauss_d1_ = other.gauss_d1_;
+  gauss_d2_ = other.gauss_d2_;
+  gauss_d3_ = other.gauss_d3_;
+  trans_probability_ = other.trans_probability_;
+  // No need to copy j_ang and h_ang, as those matrices are re-computed on every computeDerivatives() call
+
+  num_threads_ = other.num_threads_;
+  hessian_ = other.hessian_;
+  transformation_array_ = other.transformation_array_;
+  nearest_voxel_transformation_likelihood_ = other.nearest_voxel_transformation_likelihood_;
+
+  regularization_scale_factor_ = other.regularization_scale_factor_;
+  regularization_pose_ = other.regularization_pose_;
+  regularization_pose_translation_ = other.regularization_pose_translation_;
+
+  return *this;
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
 pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform()
