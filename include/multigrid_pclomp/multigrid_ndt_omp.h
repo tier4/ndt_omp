@@ -163,6 +163,16 @@ public:
     return num_threads_;
   }
 
+  inline void setInputSource(const PointCloudSourceConstPtr& input)
+  {
+    // This is to avoid segmentation fault when setting null input
+    // No idea why PCL does not check the nullity of input
+    if (input)
+    {
+      pcl::Registration<PointSource, PointTarget>::setInputSource(input);
+    }
+  }
+
   inline void setInputTarget(const PointCloudTargetConstPtr &cloud) {
     const std::string default_target_id = "default";
     addTarget(cloud, default_target_id);

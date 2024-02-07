@@ -112,20 +112,9 @@ template <typename PointSource, typename PointTarget>
 pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>& 
 pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::operator=(const MultiGridNormalDistributionsTransform& other)
 {
-
-  // For debug
-  std::ofstream test_file("/home/anh/Work/autoware/multigrid_ndt_omp_impl_hpp_test.txt");
-
-  test_file << __FILE__ << "::" << __LINE__ << "::" << __func__ << "::Copy operator start" << std::endl;
-  // End
-
   BaseRegType::operator=(other);
 
-  test_file << __FILE__ << "::" << __LINE__ << "::" << __func__ << "::Copy operator mid" << std::endl;
-
   target_cells_ = other.target_cells_;
-
-  test_file << __FILE__ << "::" << __LINE__ << "::" << __func__ << "::Copy operator mid" << std::endl;
 
   resolution_ = other.resolution_;
   step_size_ = other.step_size_;
@@ -136,8 +125,6 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::operato
   trans_probability_ = other.trans_probability_;
   // No need to copy j_ang and h_ang, as those matrices are re-computed on every computeDerivatives() call
 
-  test_file << __FILE__ << "::" << __LINE__ << "::" << __func__ << "::Copy operator mid" << std::endl;
-
   num_threads_ = other.num_threads_;
   hessian_ = other.hessian_;
   transformation_array_ = other.transformation_array_;
@@ -146,8 +133,6 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::operato
   regularization_scale_factor_ = other.regularization_scale_factor_;
   regularization_pose_ = other.regularization_pose_;
   regularization_pose_translation_ = other.regularization_pose_translation_;
-
-  test_file << __FILE__ << "::" << __LINE__ << "::" << __func__ << "::Copy operator end" << std::endl;
 
   return *this;
 }
