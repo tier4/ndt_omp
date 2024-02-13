@@ -56,10 +56,6 @@
 #ifndef PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 #define PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 
-// For debug
-#include <fstream>
-// End
-
 template <typename PointSource, typename PointTarget>
 pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform(const MultiGridNormalDistributionsTransform& other)
 : BaseRegType(other),

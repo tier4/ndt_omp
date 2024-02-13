@@ -214,6 +214,11 @@ public:
     return (resolution_);
   }
 
+  inline Eigen::Vector3f getGridLeafSize() const 
+  {
+    return target_cells_.getLeafSize();
+  }
+
   /** \brief Get the newton line search maximum step length.
    * \return maximum step length
    */
