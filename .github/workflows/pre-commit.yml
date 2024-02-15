@@ -15,6 +15,9 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
+      - name: Check clang-format version
+        run: clang-format --version
+
       - name: Run pre-commit
         uses: autowarefoundation/autoware-github-actions/pre-commit@v1
         with:
