@@ -162,7 +162,7 @@ public:
   }
 
   inline void createVoxelKdtree() {
-    target_cells_.createKdtree();
+    target_cells_.createKdtree();    
   }
 
   /** \brief Set/change the voxel grid resolution.
