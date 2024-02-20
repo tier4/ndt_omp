@@ -214,11 +214,6 @@ public:
     return (resolution_);
   }
 
-  inline Eigen::Vector3f getGridLeafSize() const 
-  {
-    return target_cells_.getLeafSize();
-  }
-
   /** \brief Get the newton line search maximum step length.
    * \return maximum step length
    */
@@ -352,9 +347,7 @@ public:
 
 protected:
   using pcl::Registration<PointSource, PointTarget>::reg_name_;
-  using pcl::Registration<PointSource, PointTarget>::getClassName;
   using pcl::Registration<PointSource, PointTarget>::input_;
-  using pcl::Registration<PointSource, PointTarget>::indices_;  // Why need this one?
   using pcl::Registration<PointSource, PointTarget>::target_;
   using pcl::Registration<PointSource, PointTarget>::nr_iterations_;
   using pcl::Registration<PointSource, PointTarget>::max_iterations_;
@@ -363,8 +356,6 @@ protected:
   using pcl::Registration<PointSource, PointTarget>::transformation_;
   using pcl::Registration<PointSource, PointTarget>::transformation_epsilon_;
   using pcl::Registration<PointSource, PointTarget>::converged_;
-  using pcl::Registration<PointSource, PointTarget>::corr_dist_threshold_;
-  using pcl::Registration<PointSource, PointTarget>::inlier_threshold_;
 
   using pcl::Registration<PointSource, PointTarget>::update_visualizer_;
 
