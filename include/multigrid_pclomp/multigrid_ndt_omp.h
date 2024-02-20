@@ -73,8 +73,7 @@ struct NdtResult {
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array;
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  friend std::ostream& operator<<(std::ostream& os, const NdtResult& val)
-  {
+  friend std::ostream &operator<<(std::ostream &os, const NdtResult &val) {
     os << "Pose: " << std::endl << val.pose << std::endl;
     os << "TP: " << val.transform_probability << std::endl;
     os << "NVTP: " << val.nearest_voxel_transformation_likelihood << std::endl;
@@ -145,12 +144,12 @@ public:
   MultiGridNormalDistributionsTransform();
 
   // Copy & move constructor
-  MultiGridNormalDistributionsTransform(const MultiGridNormalDistributionsTransform& other);
-  MultiGridNormalDistributionsTransform(MultiGridNormalDistributionsTransform&& other);
+  MultiGridNormalDistributionsTransform(const MultiGridNormalDistributionsTransform &other);
+  MultiGridNormalDistributionsTransform(MultiGridNormalDistributionsTransform &&other);
 
   // Copy & move assignments
-  MultiGridNormalDistributionsTransform& operator=(const MultiGridNormalDistributionsTransform& other);
-  MultiGridNormalDistributionsTransform& operator=(MultiGridNormalDistributionsTransform&& other);
+  MultiGridNormalDistributionsTransform &operator=(const MultiGridNormalDistributionsTransform &other);
+  MultiGridNormalDistributionsTransform &operator=(MultiGridNormalDistributionsTransform &&other);
 
   /** \brief Empty destructor */
   virtual ~MultiGridNormalDistributionsTransform() {}
@@ -163,12 +162,10 @@ public:
     return num_threads_;
   }
 
-  inline void setInputSource(const PointCloudSourceConstPtr& input)
-  {
+  inline void setInputSource(const PointCloudSourceConstPtr &input) {
     // This is to avoid segmentation fault when setting null input
     // No idea why PCL does not check the nullity of input
-    if (input)
-    {
+    if(input) {
       pcl::Registration<PointSource, PointTarget>::setInputSource(input);
     }
   }

@@ -223,11 +223,11 @@ public:
     filter_name_ = "MultiVoxelGridCovariance";
   }
 
-  MultiVoxelGridCovariance(const MultiVoxelGridCovariance& other);
-  MultiVoxelGridCovariance(MultiVoxelGridCovariance&& other);
+  MultiVoxelGridCovariance(const MultiVoxelGridCovariance &other);
+  MultiVoxelGridCovariance(MultiVoxelGridCovariance &&other);
 
-  MultiVoxelGridCovariance& operator=(const MultiVoxelGridCovariance& other);
-  MultiVoxelGridCovariance& operator=(MultiVoxelGridCovariance&& other);
+  MultiVoxelGridCovariance &operator=(const MultiVoxelGridCovariance &other);
+  MultiVoxelGridCovariance &operator=(MultiVoxelGridCovariance &&other);
 
   /** \brief Initializes voxel structure.
    */

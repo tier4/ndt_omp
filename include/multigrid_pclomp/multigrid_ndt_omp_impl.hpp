@@ -56,11 +56,8 @@
 #ifndef PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 #define PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 
-template <typename PointSource, typename PointTarget>
-pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform(const MultiGridNormalDistributionsTransform& other)
-: BaseRegType(other),
-  target_cells_(other.target_cells_)
-{
+template<typename PointSource, typename PointTarget>
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform(const MultiGridNormalDistributionsTransform &other) : BaseRegType(other), target_cells_(other.target_cells_) {
   resolution_ = other.resolution_;
   step_size_ = other.step_size_;
   outlier_ratio_ = other.outlier_ratio_;
@@ -80,11 +77,8 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGr
   regularization_pose_translation_ = other.regularization_pose_translation_;
 }
 
-template <typename PointSource, typename PointTarget>
-pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform(MultiGridNormalDistributionsTransform&& other)
-: BaseRegType(std::move(other)),
-  target_cells_(std::move(other.target_cells_))
-{
+template<typename PointSource, typename PointTarget>
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform(MultiGridNormalDistributionsTransform &&other) : BaseRegType(std::move(other)), target_cells_(std::move(other.target_cells_)) {
   resolution_ = other.resolution_;
   step_size_ = other.step_size_;
   outlier_ratio_ = other.outlier_ratio_;
@@ -104,10 +98,8 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGr
   regularization_pose_translation_ = other.regularization_pose_translation_;
 }
 
-template <typename PointSource, typename PointTarget>
-pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>& 
-pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::operator=(const MultiGridNormalDistributionsTransform& other)
-{
+template<typename PointSource, typename PointTarget>
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget> &pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::operator=(const MultiGridNormalDistributionsTransform &other) {
   BaseRegType::operator=(other);
 
   target_cells_ = other.target_cells_;
@@ -133,10 +125,8 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::operato
   return *this;
 }
 
-template <typename PointSource, typename PointTarget>
-pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>& 
-pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::operator=(MultiGridNormalDistributionsTransform&& other)
-{
+template<typename PointSource, typename PointTarget>
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget> &pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::operator=(MultiGridNormalDistributionsTransform &&other) {
   BaseRegType::operator=(std::move(other));
 
   target_cells_ = std::move(other.target_cells_);
