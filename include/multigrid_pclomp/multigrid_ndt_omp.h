@@ -72,6 +72,16 @@ struct NdtResult {
   Eigen::Matrix<double, 6, 6> hessian;
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array;
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  friend std::ostream &operator<<(std::ostream &os, const NdtResult &val) {
+    os << "Pose: " << std::endl << val.pose << std::endl;
+    os << "TP: " << val.transform_probability << std::endl;
+    os << "NVTP: " << val.nearest_voxel_transformation_likelihood << std::endl;
+    os << "Iteration num: " << val.iteration_num << std::endl;
+    os << "Hessian: " << std::endl << val.hessian << std::endl;
+
+    return os;
+  }
 };
 
 struct NdtParams {
@@ -117,6 +127,8 @@ protected:
   /** \brief Typename of const pointer to searchable voxel grid leaf. */
   typedef typename TargetGrid::LeafConstPtr TargetGridLeafConstPtr;
 
+  typedef pcl::Registration<PointSource, PointTarget> BaseRegType;
+
 public:
 #if PCL_VERSION >= PCL_VERSION_CALC(1, 10, 0)
   typedef pcl::shared_ptr<MultiGridNormalDistributionsTransform<PointSource, PointTarget>> Ptr;
@@ -131,6 +143,14 @@ public:
    */
   MultiGridNormalDistributionsTransform();
 
+  // Copy & move constructor
+  MultiGridNormalDistributionsTransform(const MultiGridNormalDistributionsTransform &other);
+  MultiGridNormalDistributionsTransform(MultiGridNormalDistributionsTransform &&other);
+
+  // Copy & move assignments
+  MultiGridNormalDistributionsTransform &operator=(const MultiGridNormalDistributionsTransform &other);
+  MultiGridNormalDistributionsTransform &operator=(MultiGridNormalDistributionsTransform &&other);
+
   /** \brief Empty destructor */
   virtual ~MultiGridNormalDistributionsTransform() {}
 
@@ -140,6 +160,14 @@ public:
 
   inline int getNumThreads() const {
     return num_threads_;
+  }
+
+  inline void setInputSource(const PointCloudSourceConstPtr &input) {
+    // This is to avoid segmentation fault when setting null input
+    // No idea why PCL does not check the nullity of input
+    if(input) {
+      pcl::Registration<PointSource, PointTarget>::setInputSource(input);
+    }
   }
 
   inline void setInputTarget(const PointCloudTargetConstPtr &cloud) {
@@ -316,9 +344,7 @@ public:
 
 protected:
   using pcl::Registration<PointSource, PointTarget>::reg_name_;
-  using pcl::Registration<PointSource, PointTarget>::getClassName;
   using pcl::Registration<PointSource, PointTarget>::input_;
-  using pcl::Registration<PointSource, PointTarget>::indices_;
   using pcl::Registration<PointSource, PointTarget>::target_;
   using pcl::Registration<PointSource, PointTarget>::nr_iterations_;
   using pcl::Registration<PointSource, PointTarget>::max_iterations_;
@@ -327,8 +353,6 @@ protected:
   using pcl::Registration<PointSource, PointTarget>::transformation_;
   using pcl::Registration<PointSource, PointTarget>::transformation_epsilon_;
   using pcl::Registration<PointSource, PointTarget>::converged_;
-  using pcl::Registration<PointSource, PointTarget>::corr_dist_threshold_;
-  using pcl::Registration<PointSource, PointTarget>::inlier_threshold_;
 
   using pcl::Registration<PointSource, PointTarget>::update_visualizer_;
 
