@@ -156,6 +156,7 @@ public:
 
   void setNumThreads(int n) {
     num_threads_ = n;
+    target_cells_.setThreadNum(num_threads_);
   }
 
   inline int getNumThreads() const {
@@ -182,7 +183,9 @@ public:
   inline void addTarget(const PointCloudTargetConstPtr &cloud, const std::string target_id) {
     pcl::Registration<PointSource, PointTarget>::setInputTarget(cloud);
     target_cells_.setLeafSize(resolution_, resolution_, resolution_);
-    target_cells_.setInputCloudAndFilter(cloud, target_id);
+    // For debug, use the multi-thread version
+    // target_cells_.setInputCloudAndFilter(cloud, target_id);
+    target_cells_.setInputCloudAndFilter2(cloud, target_id);
   }
 
   inline void removeTarget(const std::string target_id) {

@@ -61,6 +61,20 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <Eigen/Dense>
 #include <Eigen/Cholesky>
+
+
+#include <future>
+#include <ctime>
+#include <fstream>
+#include <sstream>
+#include <sys/time.h>
+#include <pcl/io/pcd_io.h>
+
+
+#ifndef timeDiff
+#define timeDiff(start, end)  ((end.tv_sec - start.tv_sec) * 1000000 + end.tv_usec - start.tv_usec)
+#endif
+
 namespace pclomp {
 /** \brief A searchable voxel structure containing the mean and covariance of the data.
  * \note For more information please see
@@ -221,6 +235,14 @@ public:
     min_b_.setZero();
     max_b_.setZero();
     filter_name_ = "MultiVoxelGridCovariance";
+
+    thread_num_ = 1;
+    setThreadNum(thread_num_);
+    last_check_tid_ = -1;
+
+    gettimeofday(&all_start_, NULL);
+
+    test_file_.open("/home/anh/Work/autoware/time_test.txt", std::ios::app);
   }
 
   MultiVoxelGridCovariance(const MultiVoxelGridCovariance &other);
@@ -238,13 +260,32 @@ public:
     grid_leaves_[grid_id] = leaves;
   }
 
+  inline void setInputCloudAndFilter2(const PointCloudConstPtr& cloud, const std::string &grid_id) {    
+    int idle_tid = get_idle_tid();
+    processing_inputs_[idle_tid] = cloud;
+    thread_futs_[idle_tid] = std::async(std::launch::async, 
+                                          &MultiVoxelGridCovariance<PointT>::applyFilterThread, this, 
+                                          idle_tid, std::cref(grid_id), std::ref(grid_leaves_[grid_id]));
+  }
+
   inline void removeCloud(const std::string &grid_id) {
     grid_leaves_.erase(grid_id);
   }
 
   inline void createKdtree() {
+    // Wait for all threads to finish
+    sync();
+
+    gettimeofday(&all_end_, NULL);
+
+    // No need mutex here, since no other thread is running now
+    test_file_ << "Total filter time = " << timeDiff(all_start_, all_end_) << std::endl;
+
+    // Measure time of building tree
+    gettimeofday(&all_start_, NULL);
     leaves_.clear();
     for(const auto &kv : grid_leaves_) {
+      test_file_ << "Grid leaves size = " << kv.second.size() << std::endl;
       leaves_.insert(kv.second.begin(), kv.second.end());
     }
 
@@ -266,6 +307,31 @@ public:
     if(voxel_centroids_ptr_->size() > 0) {
       kdtree_.setInputCloud(voxel_centroids_ptr_);
     }
+    gettimeofday(&all_end_, NULL);
+
+    test_file_ << "Build tree time = " << timeDiff(all_start_, all_end_) << std::endl;
+
+    if (!voxel_centroids_ptr_)
+    {
+      test_file_ << "Empty centroids" << std::endl;
+    }
+    else
+    {
+      test_file_ << "Number of centroids = " << voxel_centroids_ptr_->size();
+    }
+
+    gettimeofday(&all_start_, NULL);
+
+    // For debug, save the centroid cloud
+    pcl::io::savePCDFileBinary("/home/anh/Work/autoware/centroids.pcd", *voxel_centroids_ptr_);
+
+    // Save all grids
+    for (auto &gl : grid_leaves_)
+    {
+      leafToPCD(gl.first, gl.second);
+    }
+    exit(0);
+    // End
   }
 
   /** \brief Search for all the nearest occupied voxels of the query point in a given radius.
@@ -324,11 +390,96 @@ public:
     return output;
   }
 
+  void setThreadNum(int thread_num)
+  {
+    test_file_ << __FILE__ << "::" << __LINE__ << "::" << __func__ << "::thread num = " << thread_num << std::endl;
+    if (thread_num <= 0)
+    {
+      thread_num_ = 1;
+    }
+
+    thread_num_ = thread_num;
+    thread_futs_.resize(thread_num_);
+    processing_inputs_.resize(thread_num_);
+  }
+
 protected:
+  // Return the index of an idle thread, which is not running any
+  // job, or has already finished its job and waiting for a join.
+  // In the later case, join the thread and
+  int get_idle_tid()
+  {
+    int tid = (last_check_tid_ == thread_num_ - 1) ? 0 : last_check_tid_ + 1;
+    std::chrono::microseconds span(100);
+
+    // Loop until an idle thread is found
+    while (true)
+    {
+      // Return immediately if a thread that has not been given a job is found
+      if (!thread_futs_[tid].valid())
+      {
+        last_check_tid_ = tid;
+        return tid;
+      }
+
+      // If no such thread is found, wait for the current thread to finish its job
+      auto stat = thread_futs_[tid].wait_for(span);
+
+      if (stat == std::future_status::ready)
+      {
+        last_check_tid_ = tid;
+        return tid;
+      }
+
+      // If the current thread has not finished its job, check the next thread
+      tid = (tid == thread_num_ - 1) ? 0 : tid + 1;
+    }
+  }
+
+  // Wait for all running threads to finish
+  void sync()
+  {
+    for (int i = 0; i < thread_num_; ++i)
+    {
+      if (thread_futs_[i].valid())
+      {
+        thread_futs_[i].wait();
+      }
+    }
+  }
+
+  bool applyFilterThread(int tid, const std::string &grid_id, LeafDict &leaves) 
+  {
+    // For debug, measure the exe time
+    struct timeval start, end;
+
+    gettimeofday(&start, NULL);
+    applyFilter(processing_inputs_[tid], grid_id, leaves);
+
+    // For debug
+    int size = processing_inputs_[tid]->size();
+    // End
+
+    // Clean the processed input cloud
+    processing_inputs_[tid].reset();
+    gettimeofday(&end, NULL);
+
+    // Save the processing time in milliseconds
+    std::ostringstream val;
+
+    val << "Thread " << tid << " exe time = " << timeDiff(start, end) << " input size = " << size << std::endl;
+
+    test_mtx_.lock();
+    test_file_ << val.str();
+    test_mtx_.unlock();    
+
+    return true;
+  }
+
   /** \brief Filter cloud and initializes voxel structure.
    * \param[out] output cloud containing centroids of voxels containing a sufficient number of points
    */
-  void applyFilter(const PointCloudConstPtr &input, const std::string &grid_id, LeafDict &leaves) const;
+  void applyFilter(const PointCloudConstPtr &input, const std::string &grid_id, LeafDict &leaves);
 
   void updateVoxelCentroids(const Leaf &leaf, PointCloud &voxel_centroids) const;
 
@@ -337,6 +488,45 @@ protected:
   void computeLeafParams(const Eigen::Vector3d &pt_sum, Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> &eigensolver, Leaf &leaf) const;
 
   LeafID getLeafID(const std::string &grid_id, const PointT &point, const BoundingBox &bbox) const;
+
+  // Debug functions
+  // Cut the full path to only get the file name 
+  std::string cutFname(const std::string& input)
+  {
+    auto last_slash = input.rfind("/");
+
+    return input.substr(last_slash + 1);
+  }
+
+  void leafToPCD(const std::string& leaf_name, const LeafDict& grid_leaf)
+  {
+    auto fname = cutFname(leaf_name);
+
+    test_file_ << __FILE__ << "::" << __LINE__ << "::" << __func__ << "::save to = " << fname << " size = " << grid_leaf.size() << std::endl;
+
+    if (grid_leaf.size() == 0)
+    {
+      test_file_ << __FILE__ << "::" << __LINE__ << "::" << __func__ << "::empty leaf = " << leaf_name << std::endl;
+      return;
+    }
+
+    pcl::PointCloud<PointT> out_cloud;
+
+    out_cloud.reserve(grid_leaf.size());
+
+    for (auto& p : grid_leaf)
+    {
+      PointT op;
+
+      op.x = p.second.centroid[0];
+      op.y = p.second.centroid[1];
+      op.z = p.second.centroid[2];
+
+      out_cloud.push_back(op);
+    }
+
+    pcl::io::savePCDFileBinary("/home/anh/Work/autoware/" + fname, out_cloud);
+  }
 
   /** \brief Minimum points contained with in a voxel to allow it to be usable. */
   int min_points_per_voxel_;
@@ -357,6 +547,17 @@ protected:
   pcl::KdTreeFLANN<PointT> kdtree_;
 
   PointCloudPtr voxel_centroids_ptr_;
+
+  // Thread pooling, for parallel processing
+  int thread_num_;
+  std::vector<std::future<bool>> thread_futs_;
+  std::vector<PointCloudConstPtr> processing_inputs_;
+  int last_check_tid_;
+  // For debug
+  struct timeval all_start_, all_end_;
+  std::fstream test_file_;
+  std::mutex test_mtx_;
+  // End
 };
 }  // namespace pclomp
 

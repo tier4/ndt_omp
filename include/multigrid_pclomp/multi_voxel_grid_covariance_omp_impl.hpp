@@ -68,6 +68,10 @@ pclomp::MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(const MultiVo
   if(other.voxel_centroids_ptr_) {
     *voxel_centroids_ptr_ = *other.voxel_centroids_ptr_;
   }
+
+  setThreadNum(other.thread_num_);
+  last_check_tid_ = other.last_check_tid_;
+  test_file_.open("/home/anh/Work/autoware/time_test.txt", std::ios::app);
 }
 
 template<typename PointT>
@@ -75,6 +79,10 @@ pclomp::MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(MultiVoxelGri
     : pcl::VoxelGrid<PointT>(std::move(other)), leaves_(std::move(other.leaves_)), grid_leaves_(std::move(other.grid_leaves_)), leaf_indices_(std::move(other.leaf_indices_)), kdtree_(std::move(other.kdtree_)), voxel_centroids_ptr_(std::move(other.voxel_centroids_ptr_)) {
   min_points_per_voxel_ = other.min_points_per_voxel_;
   min_covar_eigvalue_mult_ = other.min_covar_eigvalue_mult_;
+
+  setThreadNum(other.thread_num_);
+  last_check_tid_ = other.last_check_tid_;
+  test_file_.open("/home/anh/Work/autoware/time_test.txt", std::ios::app);
 }
 
 template<typename PointT>
@@ -95,6 +103,10 @@ pclomp::MultiVoxelGridCovariance<PointT> &pclomp::MultiVoxelGridCovariance<Point
     *voxel_centroids_ptr_ = *other.voxel_centroids_ptr_;
   }
 
+  setThreadNum(other.thread_num_);
+  last_check_tid_ = other.last_check_tid_;
+  test_file_.open("/home/anh/Work/autoware/time_test.txt", std::ios::app);
+
   return *this;
 }
 
@@ -109,12 +121,16 @@ pclomp::MultiVoxelGridCovariance<PointT> &pclomp::MultiVoxelGridCovariance<Point
   min_points_per_voxel_ = other.min_points_per_voxel_;
   min_covar_eigvalue_mult_ = other.min_covar_eigvalue_mult_;
 
+  setThreadNum(other.thread_num_);
+  last_check_tid_ = other.last_check_tid_;
+  test_file_.open("/home/anh/Work/autoware/time_test.txt", std::ios::app);
+
   return *this;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT>
-void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter(const PointCloudConstPtr &input, const std::string &grid_id, LeafDict &leaves) const {
+void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter(const PointCloudConstPtr &input, const std::string &grid_id, LeafDict &leaves) {
   // Has the input dataset been set already?
   if(!input) {
     PCL_WARN("[pcl::%s::applyFilter] No input dataset given!\n", getClassName().c_str());
@@ -199,6 +215,15 @@ void pclomp::MultiVoxelGridCovariance<PointT>::applyFilter(const PointCloudConst
   for(const LeafID &leaf_id : leaf_ids_to_remove) {
     leaves.erase(leaf_id);
   }
+
+  // For debug
+  std::ostringstream val;
+  val << __FILE__ << "::" << __LINE__ << "::" << __func__ << "::input size = " << input->size() << " leaf size = " << leaves.size() <<  std::endl;
+
+  test_mtx_.lock();
+  test_file_ << val.str();
+  test_mtx_.unlock();
+  // End
 }
 
 template<typename PointT>
