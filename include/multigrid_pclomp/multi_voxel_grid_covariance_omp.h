@@ -62,7 +62,6 @@
 #include <Eigen/Dense>
 #include <Eigen/Cholesky>
 
-
 #include <future>
 #include <ctime>
 #include <fstream>
@@ -72,9 +71,8 @@
 #include <queue>
 #include <unistd.h>
 
-
 #ifndef timeDiff
-#define timeDiff(start, end)  ((end.tv_sec - start.tv_sec) * 1000000 + end.tv_usec - start.tv_usec)
+#define timeDiff(start, end) ((end.tv_sec - start.tv_sec) * 1000000 + end.tv_usec - start.tv_usec)
 #endif
 
 namespace pclomp {
@@ -111,11 +109,11 @@ protected:
 
 public:
 #if PCL_VERSION >= PCL_VERSION_CALC(1, 10, 0)
-  typedef pcl::shared_ptr<pcl::VoxelGrid<PointT> > Ptr;
-  typedef pcl::shared_ptr<const pcl::VoxelGrid<PointT> > ConstPtr;
+  typedef pcl::shared_ptr<pcl::VoxelGrid<PointT>> Ptr;
+  typedef pcl::shared_ptr<const pcl::VoxelGrid<PointT>> ConstPtr;
 #else
-  typedef boost::shared_ptr<pcl::VoxelGrid<PointT> > Ptr;
-  typedef boost::shared_ptr<const pcl::VoxelGrid<PointT> > ConstPtr;
+  typedef boost::shared_ptr<pcl::VoxelGrid<PointT>> Ptr;
+  typedef boost::shared_ptr<const pcl::VoxelGrid<PointT>> ConstPtr;
 #endif
 
   /** \brief Simple structure to hold a centroid, covariance and the number of points in a leaf.
@@ -126,30 +124,15 @@ public:
      */
     Leaf() : nr_points_(0), mean_(Eigen::Vector3d::Zero()), centroid_(), cov_(Eigen::Matrix3d::Identity()), icov_(Eigen::Matrix3d::Zero()), evecs_(Eigen::Matrix3d::Identity()), evals_(Eigen::Vector3d::Zero()) {}
 
-    Leaf(const Leaf& other) : 
-      mean_(other.mean_), 
-      centroid_(other.centroid_), 
-      cov_(other.cov_), 
-      icov_(other.icov_), 
-      evecs_(other.evecs_),
-      evals_(other.evals_)
-    {
+    Leaf(const Leaf &other) : mean_(other.mean_), centroid_(other.centroid_), cov_(other.cov_), icov_(other.icov_), evecs_(other.evecs_), evals_(other.evals_) {
       nr_points_ = other.nr_points_;
     }
 
-    Leaf(Leaf&& other) :
-      mean_(std::move(other.mean_)),
-      centroid_(std::move(other.centroid_)), 
-      cov_(std::move(other.cov_)), 
-      icov_(std::move(other.icov_)), 
-      evecs_(std::move(other.evecs_)),
-      evals_(std::move(other.evals_))
-    {
+    Leaf(Leaf &&other) : mean_(std::move(other.mean_)), centroid_(std::move(other.centroid_)), cov_(std::move(other.cov_)), icov_(std::move(other.icov_)), evecs_(std::move(other.evecs_)), evals_(std::move(other.evals_)) {
       nr_points_ = other.nr_points_;
     }
 
-    Leaf& operator=(const Leaf& other)
-    {
+    Leaf &operator=(const Leaf &other) {
       mean_ = other.mean_;
       centroid_ = other.centroid_;
       cov_ = other.cov_;
@@ -161,8 +144,7 @@ public:
       return *this;
     }
 
-    Leaf& operator=(Leaf&& other)
-    {
+    Leaf &operator=(Leaf &&other) {
       mean_ = std::move(other.mean_);
       centroid_ = std::move(other.centroid_);
       cov_ = std::move(other.cov_);
@@ -332,13 +314,11 @@ public:
   }
 
   PointCloud getVoxelPCD() {
-    if (!rebuilt_)
-    {
+    if(!rebuilt_) {
       // First, count the number of leaves
       int64_t total_leaf_num = 0;
 
-      for (auto& grid : grid_list_)
-      {
+      for(auto &grid : grid_list_) {
         total_leaf_num += grid->leaves_.size();
       }
 
@@ -350,11 +330,9 @@ public:
 
       size_t pos = 0;
 
-      for (auto& grid : grid_list_)
-      {
-        for (auto& leaf : grid->leaves_)
-        {
-          auto& op = (*voxel_centroids_ptr_)[pos++];
+      for(auto &grid : grid_list_) {
+        for(auto &leaf : grid->leaves_) {
+          auto &op = (*voxel_centroids_ptr_)[pos++];
 
           op.x = leaf.centroid_[0];
           op.y = leaf.centroid_[1];
@@ -380,10 +358,8 @@ public:
     return output;
   }
 
-  void setThreadNum(int thread_num)
-  {
-    if (thread_num <= 0)
-    {
+  void setThreadNum(int thread_num) {
+    if(thread_num <= 0) {
       thread_num_ = 1;
     }
 
@@ -392,8 +368,7 @@ public:
     processing_inputs_.resize(thread_num_);
   }
 
-  ~MultiVoxelGridCovariance()
-  {
+  ~MultiVoxelGridCovariance() {
     // Stop all threads in the case an intermediate interrupt occurs
     sync();
   }
@@ -402,25 +377,21 @@ protected:
   // Return the index of an idle thread, which is not running any
   // job, or has already finished its job and waiting for a join.
   // In the later case, join the thread and
-  int get_idle_tid()
-  {
+  int get_idle_tid() {
     int tid = (last_check_tid_ == thread_num_ - 1) ? 0 : last_check_tid_ + 1;
     std::chrono::microseconds span(50);
 
     // Loop until an idle thread is found
-    while (true)
-    {
+    while(true) {
       // gettimeofday(&start, NULL);
       // Return immediately if a thread that has not been given a job is found
-      if (!thread_futs_[tid].valid())
-      {
+      if(!thread_futs_[tid].valid()) {
         last_check_tid_ = tid;
         return tid;
       }
 
       // If no such thread is found, wait for the current thread to finish its job
-      if (thread_futs_[tid].wait_for(span) == std::future_status::ready)
-      {
+      if(thread_futs_[tid].wait_for(span) == std::future_status::ready) {
         last_check_tid_ = tid;
         return tid;
       }
@@ -431,30 +402,25 @@ protected:
   }
 
   // Wait for all running threads to finish
-  void sync()
-  {
-    for (int i = 0; i < thread_num_; ++i)
-    {
-      if (thread_futs_[i].valid())
-      {
+  void sync() {
+    for(int i = 0; i < thread_num_; ++i) {
+      if(thread_futs_[i].valid()) {
         thread_futs_[i].wait();
       }
     }
   }
 
-  // Compute the square distance from a point to a bounding box 
-  inline double sqr_dist_to_grid(const PointT& p, const GridNodeType& grid) const
-  {
-    double dx = (p.x < grid.lower_[0]) ? grid.lower_[0] - p.x : ((p.x > grid.upper_[0]) ? p.x - grid.upper_[0] : 0); 
-    double dy = (p.y < grid.lower_[1]) ? grid.lower_[1] - p.y : ((p.y > grid.upper_[1]) ? p.y - grid.upper_[1] : 0); 
-    double dz = (p.z < grid.lower_[2]) ? grid.lower_[2] - p.z : ((p.z > grid.upper_[2]) ? p.z - grid.upper_[2] : 0); 
+  // Compute the square distance from a point to a bounding box
+  inline double sqr_dist_to_grid(const PointT &p, const GridNodeType &grid) const {
+    double dx = (p.x < grid.lower_[0]) ? grid.lower_[0] - p.x : ((p.x > grid.upper_[0]) ? p.x - grid.upper_[0] : 0);
+    double dy = (p.y < grid.lower_[1]) ? grid.lower_[1] - p.y : ((p.y > grid.upper_[1]) ? p.y - grid.upper_[1] : 0);
+    double dz = (p.z < grid.lower_[2]) ? grid.lower_[2] - p.z : ((p.z > grid.upper_[2]) ? p.z - grid.upper_[2] : 0);
 
     return (dx * dx + dy * dy + dz * dz);
   }
 
   // A wraper of the real applyFilter
-  bool applyFilterThread(int tid, GridNodeType &node) 
-  {
+  bool applyFilterThread(int tid, GridNodeType &node) {
     applyFilter(processing_inputs_[tid], node);
     processing_inputs_[tid].reset();
 
@@ -506,9 +472,8 @@ protected:
   pcl::KdTreeFLANN<PointT> grid_kdtree_;
   // The radius used for searching candidate grids
   // It is the maximum half length of the diagonals of grids' bounding boxes
-  float grid_radius_; 
+  float grid_radius_;
   int removed_count_;
-
 };
 }  // namespace pclomp
 

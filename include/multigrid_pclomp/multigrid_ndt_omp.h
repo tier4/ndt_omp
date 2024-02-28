@@ -180,7 +180,7 @@ public:
   /** \brief Provide a pointer to the input target (e.g., the point cloud that we want to align the input source to).
    * \param[in] cloud the input point cloud target
    */
-  inline void addTarget(const PointCloudTargetConstPtr &cloud, const std::string& target_id) {
+  inline void addTarget(const PointCloudTargetConstPtr &cloud, const std::string &target_id) {
     pcl::Registration<PointSource, PointTarget>::setInputTarget(cloud);
     target_cells_.setLeafSize(resolution_, resolution_, resolution_);
     target_cells_.setInputCloudAndFilter(cloud, target_id);
