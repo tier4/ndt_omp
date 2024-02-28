@@ -312,7 +312,6 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
   computeAngleDerivatives(p);
 
   std::vector<std::vector<TargetGridLeafConstPtr>> neighborhoods(num_threads_);
-  std::vector<std::vector<float>> distancess(num_threads_);
 
   // Update gradient and hessian for each point, line 17 in Algorithm 2 [Magnusson 2009]
 #pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
@@ -338,10 +337,9 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
     x_trans_pt = trans_cloud.points[idx];
 
     auto &neighborhood = neighborhoods[thread_n];
-    auto &distances = distancess[thread_n];
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood);
 
     double sum_score_pt = 0;
     double nearest_voxel_score_pt = 0;
@@ -685,10 +683,9 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
 
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
     std::vector<TargetGridLeafConstPtr> neighborhood;
-    std::vector<float> distances;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood);
 
     for(typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++) {
       cell = *neighborhood_it;
@@ -1016,10 +1013,9 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
     std::vector<TargetGridLeafConstPtr> neighborhood;
-    std::vector<float> distances;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood);
 
     for(typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++) {
       TargetGridLeafConstPtr cell = *neighborhood_it;
@@ -1050,16 +1046,18 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 template<typename PointSource, typename PointTarget>
 double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculateTransformationProbability(const PointCloudSource &trans_cloud) const {
   double score = 0;
+  std::vector<double> scores(trans_cloud.size());
 
+#pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
   for(std::size_t idx = 0; idx < trans_cloud.points.size(); idx++) {
+    double tmp_score = 0;
     PointSource x_trans_pt = trans_cloud.points[idx];
 
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
     std::vector<TargetGridLeafConstPtr> neighborhood;
-    std::vector<float> distances;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood);
 
     for(typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++) {
       TargetGridLeafConstPtr cell = *neighborhood_it;
@@ -1076,8 +1074,16 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
       // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
       double score_inc = -gauss_d1_ * e_x_cov_x;
 
-      score += score_inc;
+      tmp_score += score_inc;
     }
+
+    scores[idx] = tmp_score;
+  }
+
+  // Sum the point-wise score
+  for (auto& s : scores)
+  {
+    score += s;
   }
 
   double output_score = 0;
@@ -1090,18 +1096,21 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 template<typename PointSource, typename PointTarget>
 double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculateNearestVoxelTransformationLikelihood(const PointCloudSource &trans_cloud) const {
   double nearest_voxel_score = 0;
-  size_t found_neigborhood_voxel_num = 0;
+  size_t found_neighborhood_voxel_num = 0;
 
+  std::vector<double> point_nvs(trans_cloud.size(), 0);
+  std::vector<size_t> point_found_nnvn(trans_cloud.size(), 0);
+
+#pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
   for(std::size_t idx = 0; idx < trans_cloud.points.size(); idx++) {
     double nearest_voxel_score_pt = 0;
     PointSource x_trans_pt = trans_cloud.points[idx];
 
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
     std::vector<TargetGridLeafConstPtr> neighborhood;
-    std::vector<float> distances;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood);
 
     for(typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++) {
       TargetGridLeafConstPtr cell = *neighborhood_it;
@@ -1124,14 +1133,21 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
     }
 
     if(!neighborhood.empty()) {
-      ++found_neigborhood_voxel_num;
-      nearest_voxel_score += nearest_voxel_score_pt;
+      point_nvs[idx] = nearest_voxel_score_pt;
+      point_found_nnvn[idx] = 1;
     }
   }
 
+  // Sum up point-wise scores
+  for (size_t idx = 0; idx < trans_cloud.size(); ++idx)
+  {
+    found_neighborhood_voxel_num += point_nvs[idx];
+    nearest_voxel_score += point_found_nnvn[idx];
+  }
+
   double output_score = 0;
-  if(found_neigborhood_voxel_num != 0) {
-    output_score = nearest_voxel_score / static_cast<double>(found_neigborhood_voxel_num);
+  if(found_neighborhood_voxel_num != 0) {
+    output_score = nearest_voxel_score / static_cast<double>(found_neighborhood_voxel_num);
   }
   return output_score;
 }

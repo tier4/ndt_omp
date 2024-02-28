@@ -180,12 +180,10 @@ public:
   /** \brief Provide a pointer to the input target (e.g., the point cloud that we want to align the input source to).
    * \param[in] cloud the input point cloud target
    */
-  inline void addTarget(const PointCloudTargetConstPtr &cloud, const std::string target_id) {
+  inline void addTarget(const PointCloudTargetConstPtr &cloud, const std::string& target_id) {
     pcl::Registration<PointSource, PointTarget>::setInputTarget(cloud);
     target_cells_.setLeafSize(resolution_, resolution_, resolution_);
-    // For debug, use the multi-thread version
-    // target_cells_.setInputCloudAndFilter(cloud, target_id);
-    target_cells_.setInputCloudAndFilter2(cloud, target_id);
+    target_cells_.setInputCloudAndFilter(cloud, target_id);
   }
 
   inline void removeTarget(const std::string target_id) {
@@ -337,7 +335,7 @@ public:
     return ndt_params;
   }
 
-  pcl::PointCloud<PointTarget> getVoxelPCD() const {
+  pcl::PointCloud<PointTarget> getVoxelPCD() {
     return target_cells_.getVoxelPCD();
   }
 
