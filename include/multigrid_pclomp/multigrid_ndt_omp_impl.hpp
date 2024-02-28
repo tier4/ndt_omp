@@ -1081,8 +1081,7 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
   }
 
   // Sum the point-wise score
-  for (auto& s : scores)
-  {
+  for(auto &s : scores) {
     score += s;
   }
 
@@ -1139,8 +1138,7 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
   }
 
   // Sum up point-wise scores
-  for (size_t idx = 0; idx < trans_cloud.size(); ++idx)
-  {
+  for(size_t idx = 0; idx < trans_cloud.size(); ++idx) {
     found_neighborhood_voxel_num += point_nvs[idx];
     nearest_voxel_score += point_found_nnvn[idx];
   }

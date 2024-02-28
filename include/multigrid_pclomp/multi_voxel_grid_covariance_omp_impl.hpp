@@ -56,17 +56,10 @@
 #include <pcl/filters/boost.h>
 #include "multigrid_pclomp/multi_voxel_grid_covariance_omp.h"
 
-
-namespace pclomp
-{
+namespace pclomp {
 
 template<typename PointT>
-MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(const MultiVoxelGridCovariance &other)
-    : pcl::VoxelGrid<PointT>(other), 
-      sid_to_iid_(other.sid_to_iid_), 
-      grid_list_(other.grid_list_),
-      grid_kdtree_(other.grid_kdtree_)
-{
+MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(const MultiVoxelGridCovariance &other) : pcl::VoxelGrid<PointT>(other), sid_to_iid_(other.sid_to_iid_), grid_list_(other.grid_list_), grid_kdtree_(other.grid_kdtree_) {
   min_points_per_voxel_ = other.min_points_per_voxel_;
   min_covar_eigvalue_mult_ = other.min_covar_eigvalue_mult_;
 
@@ -79,8 +72,7 @@ MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(const MultiVoxelGridC
 
   grid_centers_ptr_.reset(new PointCloud);
 
-  if (other.grid_centers_ptr_)
-  {
+  if(other.grid_centers_ptr_) {
     *grid_centers_ptr_ = *other.grid_centers_ptr_;
   }
 
@@ -93,13 +85,12 @@ MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(const MultiVoxelGridC
 
 template<typename PointT>
 MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(MultiVoxelGridCovariance &&other)
-    : pcl::VoxelGrid<PointT>(std::move(other)), 
+    : pcl::VoxelGrid<PointT>(std::move(other)),
       voxel_centroids_ptr_(std::move(other.voxel_centroids_ptr_)),
-      sid_to_iid_(std::move(other.sid_to_iid_)), 
+      sid_to_iid_(std::move(other.sid_to_iid_)),
       grid_list_(std::move(other.grid_list_)),
       grid_centers_ptr_(std::move(other.grid_centers_ptr_)),
-      grid_kdtree_(std::move(other.grid_kdtree_))
-{
+      grid_kdtree_(std::move(other.grid_kdtree_)) {
   min_points_per_voxel_ = other.min_points_per_voxel_;
   min_covar_eigvalue_mult_ = other.min_covar_eigvalue_mult_;
 
@@ -111,8 +102,7 @@ MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(MultiVoxelGridCovaria
 }
 
 template<typename PointT>
-MultiVoxelGridCovariance<PointT> &pclomp::MultiVoxelGridCovariance<PointT>::operator=(const MultiVoxelGridCovariance &other) 
-{
+MultiVoxelGridCovariance<PointT> &pclomp::MultiVoxelGridCovariance<PointT>::operator=(const MultiVoxelGridCovariance &other) {
   pcl::VoxelGrid<PointT>::operator=(other);
   voxel_centroids_ptr_ = other.voxel_centroids_ptr_;
   sid_to_iid_ = other.sid_to_iid_;
@@ -144,14 +134,13 @@ MultiVoxelGridCovariance<PointT> &pclomp::MultiVoxelGridCovariance<PointT>::oper
 }
 
 template<typename PointT>
-MultiVoxelGridCovariance<PointT> &pclomp::MultiVoxelGridCovariance<PointT>::operator=(MultiVoxelGridCovariance &&other) 
-{
+MultiVoxelGridCovariance<PointT> &pclomp::MultiVoxelGridCovariance<PointT>::operator=(MultiVoxelGridCovariance &&other) {
   pcl::VoxelGrid<PointT>::operator=(std::move(other));
   voxel_centroids_ptr_ = std::move(other.voxel_centroids_ptr_);
   sid_to_iid_ = std::move(other.sid_to_iid_);
   grid_list_ = std::move(other.grid_list_);
   grid_centers_ptr_ = std::move(other.grid_centers_ptr_);
-  grid_kdtree_=  std::move(grid_kdtree_);
+  grid_kdtree_ = std::move(grid_kdtree_);
 
   min_points_per_voxel_ = other.min_points_per_voxel_;
   min_covar_eigvalue_mult_ = other.min_covar_eigvalue_mult_;
@@ -165,9 +154,8 @@ MultiVoxelGridCovariance<PointT> &pclomp::MultiVoxelGridCovariance<PointT>::oper
   return *this;
 }
 
-template <typename PointT>
-void MultiVoxelGridCovariance<PointT>::setInputCloudAndFilter(const PointCloudConstPtr &cloud, const std::string &grid_id) 
-{
+template<typename PointT>
+void MultiVoxelGridCovariance<PointT>::setInputCloudAndFilter(const PointCloudConstPtr &cloud, const std::string &grid_id) {
   // Creat a new grid and push it to the back of the vector grid_list_
   // The vector grid_list_ will be rebuilt after we remove obsolete grids
   GridNodePtr new_grid(new GridNodeType);
@@ -176,27 +164,21 @@ void MultiVoxelGridCovariance<PointT>::setInputCloudAndFilter(const PointCloudCo
 
   sid_to_iid_[grid_id] = grid_list_.size() - 1;
 
-  if (thread_num_ == 1)
-  {
+  if(thread_num_ == 1) {
     applyFilter(cloud, *new_grid);
-  }
-  else
-  {
+  } else {
     int idle_tid = get_idle_tid();
 
     processing_inputs_[idle_tid] = cloud;
-    thread_futs_[idle_tid] = std::async(std::launch::async, 
-                                          &MultiVoxelGridCovariance<PointT>::applyFilterThread, this, 
-                                          idle_tid, std::ref(*new_grid));
+    thread_futs_[idle_tid] = std::async(std::launch::async, &MultiVoxelGridCovariance<PointT>::applyFilterThread, this, idle_tid, std::ref(*new_grid));
   }
 
   ++add_count_;
   rebuilt_ = false;
 }
 
-template <typename PointT>
-void MultiVoxelGridCovariance<PointT>::removeCloud(const std::string& grid_id)
-{
+template<typename PointT>
+void MultiVoxelGridCovariance<PointT>::removeCloud(const std::string &grid_id) {
   auto iid = sid_to_iid_.find(grid_id);
 
   // Set the pointer corresponding to the specified grid to null
@@ -208,9 +190,8 @@ void MultiVoxelGridCovariance<PointT>::removeCloud(const std::string& grid_id)
   rebuilt_ = false;
 }
 
-template <typename PointT>
-void MultiVoxelGridCovariance<PointT>::createKdtree()
-{
+template<typename PointT>
+void MultiVoxelGridCovariance<PointT>::createKdtree() {
   // Wait for all threads to finish
   sync();
 
@@ -225,10 +206,9 @@ void MultiVoxelGridCovariance<PointT>::createKdtree()
   grid_centers_ptr_->resize(new_grid_num);
   grid_radius_ = 0;
 
-  for (auto& it : sid_to_iid_)
-  {
-    int& old_pos = it.second;
-    auto& grid_ptr = grid_list_[old_pos];
+  for(auto &it : sid_to_iid_) {
+    int &old_pos = it.second;
+    auto &grid_ptr = grid_list_[old_pos];
 
     new_grid_list_[new_pos] = grid_ptr;
     (*grid_centers_ptr_)[new_pos] = grid_ptr->center_;
@@ -241,8 +221,7 @@ void MultiVoxelGridCovariance<PointT>::createKdtree()
     double dz = grid_ptr->upper_[2] - grid_ptr->lower_[2];
     double cur_dist = sqrt(dx * dx + dy * dy + dz * dz) / 2.0;
 
-    if (cur_dist > grid_radius_)
-    {
+    if(cur_dist > grid_radius_) {
       grid_radius_ = cur_dist;
     }
   }
@@ -250,17 +229,13 @@ void MultiVoxelGridCovariance<PointT>::createKdtree()
   grid_list_ = std::move(new_grid_list_);
 
   // Rebuilt the grid_kdtree
-  if (grid_centers_ptr_->size() > 0)
-  {
+  if(grid_centers_ptr_->size() > 0) {
     grid_kdtree_.setInputCloud(grid_centers_ptr_);
   }
 }
 
-template <typename PointT>
-int MultiVoxelGridCovariance<PointT>::radiusSearch(const PointT &point, double radius, 
-                                                    std::vector<LeafConstPtr> &k_leaves, 
-                                                    unsigned int max_nn) const 
-{
+template<typename PointT>
+int MultiVoxelGridCovariance<PointT>::radiusSearch(const PointT &point, double radius, std::vector<LeafConstPtr> &k_leaves, unsigned int max_nn) const {
   k_leaves.clear();
 
   // First, search from the grid kdtree to find candidate grids
@@ -273,29 +248,25 @@ int MultiVoxelGridCovariance<PointT>::radiusSearch(const PointT &point, double r
   // This should be fast, since the number of grids is small
   int gk = grid_kdtree_.radiusSearch(point, grid_radius_, g_indices, k_sqr_distances, max_nn);
 
-  if (gk <= 0)
-  {
+  if(gk <= 0) {
     return 0;
   }
 
-  for (auto& nn_gid : g_indices)
-  {
-    auto& grid_ptr = grid_list_[nn_gid];
+  for(auto &nn_gid : g_indices) {
+    auto &grid_ptr = grid_list_[nn_gid];
     // Skip too far grids
-    if (grid_ptr->leaves_.size() <= 0 || sqr_dist_to_grid(point, *grid_ptr) > sqr_radius)
-    {
+    if(grid_ptr->leaves_.size() <= 0 || sqr_dist_to_grid(point, *grid_ptr) > sqr_radius) {
       continue;
     }
 
     k_indices.clear();
     k_sqr_distances.clear();
-    
+
     int k = (grid_ptr->kdtree_).radiusSearch(point, radius, k_indices, k_sqr_distances, max_nn);
 
-    // Find leaves corresponding to neighbors    
-    for (auto& nn_leaf_id : k_indices)
-    {
-      auto& leaf = grid_ptr->leaves_[nn_leaf_id];
+    // Find leaves corresponding to neighbors
+    for(auto &nn_leaf_id : k_indices) {
+      auto &leaf = grid_ptr->leaves_[nn_leaf_id];
       tmp_k_leaves.push_back(&leaf);
     }
   }
@@ -303,8 +274,7 @@ int MultiVoxelGridCovariance<PointT>::radiusSearch(const PointT &point, double r
   // Convert list to vector
   k_leaves.reserve(tmp_k_leaves.size());
 
-  for (auto& nn : tmp_k_leaves)
-  {
+  for(auto &nn : tmp_k_leaves) {
     k_leaves.push_back(nn);
   }
 
@@ -368,15 +338,13 @@ void MultiVoxelGridCovariance<PointT>::applyFilter(const PointCloudConstPtr &inp
   std::map<int64_t, Leaf> map_leaves;
 
   // First pass: go over all points and insert them into the right leaf
-  for (auto& p : *input)
-  {
-    if(!input->is_dense)
-    {
+  for(auto &p : *input) {
+    if(!input->is_dense) {
       // Check if the point is invalid
-      if(!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z)) continue;    
+      if(!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z)) continue;
     }
     int64_t lid = getLeafID(p, bbox);
-    Leaf& leaf = map_leaves[lid];
+    Leaf &leaf = map_leaves[lid];
     updateLeaf(p, centroid_size, leaf);
   }
 
@@ -385,25 +353,23 @@ void MultiVoxelGridCovariance<PointT>::applyFilter(const PointCloudConstPtr &inp
   // Eigen values and vectors calculated to prevent near singular matrices
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver;
   Eigen::Vector3d pt_sum;
-  PointCloudPtr lcloud(new PointCloud); // Cloud of leaves
+  PointCloudPtr lcloud(new PointCloud);  // Cloud of leaves
 
   node.leaves_.reserve(map_leaves.size());
   lcloud->reserve(map_leaves.size());
 
   // Eigen values less than a threshold of max eigen value are inflated to a set fraction of the max eigen value.
-  for (auto& it : map_leaves)
-  {
+  for(auto &it : map_leaves) {
     // Skip leaves that do not have enough points
-    if (it.second.nr_points_ < min_points_per_voxel_)
-    {
+    if(it.second.nr_points_ < min_points_per_voxel_) {
       continue;
     }
-    
+
     // Append qualified leaves to the end of the output vector
     node.leaves_.push_back(it.second);
 
-    // Normalize the centroid    
-    Leaf& leaf = node.leaves_.back();
+    // Normalize the centroid
+    Leaf &leaf = node.leaves_.back();
 
     // Normalize the centroid
     leaf.centroid_ /= static_cast<float>(leaf.nr_points_);
@@ -420,8 +386,7 @@ void MultiVoxelGridCovariance<PointT>::applyFilter(const PointCloudConstPtr &inp
   }
 
   // Create node's kdtree
-  if (lcloud->size() > 0)
-  {
+  if(lcloud->size() > 0) {
     node.kdtree_.setInputCloud(lcloud);
   }
 }
@@ -488,7 +453,7 @@ void pclomp::MultiVoxelGridCovariance<PointT>::computeLeafParams(const Eigen::Ve
   }
 }
 
-}
+}  // namespace pclomp
 
 #define PCL_INSTANTIATE_VoxelGridCovariance(T) template class PCL_EXPORTS pcl::VoxelGridCovariance<T>;
 
