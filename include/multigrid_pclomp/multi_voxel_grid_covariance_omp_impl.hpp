@@ -381,7 +381,11 @@ void MultiVoxelGridCovariance<PointT>::applyFilter(const PointCloudConstPtr &inp
     // Normalize mean
     leaf.mean_ /= leaf.nr_points_;
 
-    PointT leaf_point(leaf.centroid_[0], leaf.centroid_[1], leaf.centroid_[2]);
+    PointT leaf_point;
+
+    leaf_point.x = leaf.centroid_[0];
+    leaf_point.y = leaf.centroid_[1];
+    leaf_point.z = leaf.centroid_[2];
 
     lcloud->push_back(leaf_point);
 
