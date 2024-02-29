@@ -249,7 +249,7 @@ int MultiVoxelGridCovariance<PointT>::radiusSearch(const PointT &point, double r
   std::vector<int> k_indices;
 
   // This should be fast, since the number of grids is small
-  int gk = grid_kdtree_.radiusSearch(point, grid_radius_, g_indices, k_sqr_distances, max_nn);
+  int gk = grid_kdtree_.radiusSearch(point, radius + grid_radius_, g_indices, k_sqr_distances, max_nn);
 
   if(gk <= 0) {
     return 0;
