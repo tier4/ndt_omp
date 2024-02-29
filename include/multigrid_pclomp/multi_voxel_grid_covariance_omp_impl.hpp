@@ -235,6 +235,8 @@ void MultiVoxelGridCovariance<PointT>::createKdtree() {
   if(grid_centers_ptr_->size() > 0) {
     grid_kdtree_.setInputCloud(grid_centers_ptr_);
   }
+
+  removed_count_ = 0;
 }
 
 template<typename PointT>
