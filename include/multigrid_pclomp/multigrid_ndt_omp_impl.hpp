@@ -1090,7 +1090,7 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 template<typename PointSource, typename PointTarget>
 double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculateNearestVoxelTransformationLikelihood(const PointCloudSource &trans_cloud) const {
   double nearest_voxel_score = 0;
-  size_t found_neigborhood_voxel_num = 0;
+  size_t found_neighborhood_voxel_num = 0;
 
   for(std::size_t idx = 0; idx < trans_cloud.points.size(); idx++) {
     double nearest_voxel_score_pt = 0;
@@ -1124,14 +1124,14 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
     }
 
     if(!neighborhood.empty()) {
-      ++found_neigborhood_voxel_num;
+      ++found_neighborhood_voxel_num;
       nearest_voxel_score += nearest_voxel_score_pt;
     }
   }
 
   double output_score = 0;
-  if(found_neigborhood_voxel_num != 0) {
-    output_score = nearest_voxel_score / static_cast<double>(found_neigborhood_voxel_num);
+  if(found_neighborhood_voxel_num != 0) {
+    output_score = nearest_voxel_score / static_cast<double>(found_neighborhood_voxel_num);
   }
   return output_score;
 }

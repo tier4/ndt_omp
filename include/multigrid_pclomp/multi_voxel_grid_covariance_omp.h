@@ -95,20 +95,52 @@ protected:
 
 public:
 #if PCL_VERSION >= PCL_VERSION_CALC(1, 10, 0)
-  typedef pcl::shared_ptr<pcl::VoxelGrid<PointT> > Ptr;
-  typedef pcl::shared_ptr<const pcl::VoxelGrid<PointT> > ConstPtr;
+  typedef pcl::shared_ptr<pcl::VoxelGrid<PointT>> Ptr;
+  typedef pcl::shared_ptr<const pcl::VoxelGrid<PointT>> ConstPtr;
 #else
-  typedef boost::shared_ptr<pcl::VoxelGrid<PointT> > Ptr;
-  typedef boost::shared_ptr<const pcl::VoxelGrid<PointT> > ConstPtr;
+  typedef boost::shared_ptr<pcl::VoxelGrid<PointT>> Ptr;
+  typedef boost::shared_ptr<const pcl::VoxelGrid<PointT>> ConstPtr;
 #endif
 
   /** \brief Simple structure to hold a centroid, covariance and the number of points in a leaf.
    * Inverse covariance, eigen vectors and eigen values are precomputed. */
   struct Leaf {
     /** \brief Constructor.
-     * Sets \ref nr_points, \ref icov_, \ref mean_ and \ref evals_ to 0 and \ref cov_ and \ref evecs_ to the identity matrix
+     * Sets \ref nr_points_, \ref icov_, \ref mean_ and \ref evals_ to 0 and \ref cov_ and \ref evecs_ to the identity matrix
      */
-    Leaf() : nr_points(0), mean_(Eigen::Vector3d::Zero()), centroid(), cov_(Eigen::Matrix3d::Identity()), icov_(Eigen::Matrix3d::Zero()), evecs_(Eigen::Matrix3d::Identity()), evals_(Eigen::Vector3d::Zero()) {}
+    Leaf() : nr_points_(0), mean_(Eigen::Vector3d::Zero()), centroid_(), cov_(Eigen::Matrix3d::Identity()), icov_(Eigen::Matrix3d::Zero()), evecs_(Eigen::Matrix3d::Identity()), evals_(Eigen::Vector3d::Zero()) {}
+
+    Leaf(const Leaf &other) : mean_(other.mean_), centroid_(other.centroid_), cov_(other.cov_), icov_(other.icov_), evecs_(other.evecs_), evals_(other.evals_) {
+      nr_points_ = other.nr_points_;
+    }
+
+    Leaf(Leaf &&other) : mean_(std::move(other.mean_)), centroid_(std::move(other.centroid_)), cov_(std::move(other.cov_)), icov_(std::move(other.icov_)), evecs_(std::move(other.evecs_)), evals_(std::move(other.evals_)) {
+      nr_points_ = other.nr_points_;
+    }
+
+    Leaf &operator=(const Leaf &other) {
+      mean_ = other.mean_;
+      centroid_ = other.centroid_;
+      cov_ = other.cov_;
+      icov_ = other.icov_;
+      evecs_ = other.evecs_;
+      evals_ = other.evals_;
+      nr_points_ = other.nr_points_;
+
+      return *this;
+    }
+
+    Leaf &operator=(Leaf &&other) {
+      mean_ = std::move(other.mean_);
+      centroid_ = std::move(other.centroid_);
+      cov_ = std::move(other.cov_);
+      icov_ = std::move(other.icov_);
+      evecs_ = std::move(other.evecs_);
+      evals_ = std::move(other.evals_);
+      nr_points_ = other.nr_points_;
+
+      return *this;
+    }
 
     /** \brief Get the voxel covariance.
      * \return covariance matrix
@@ -151,11 +183,11 @@ public:
      * \return number of points
      */
     int getPointCount() const {
-      return (nr_points);
+      return (nr_points_);
     }
 
     /** \brief Number of points contained by voxel */
-    int nr_points;
+    int nr_points_;
 
     /** \brief 3D voxel centroid */
     Eigen::Vector3d mean_;
@@ -163,7 +195,7 @@ public:
     /** \brief Nd voxel centroid
      * \note Differs from \ref mean_ when color data is used
      */
-    Eigen::VectorXf centroid;
+    Eigen::VectorXf centroid_;
 
     /** \brief Voxel covariance matrix */
     Eigen::Matrix3d cov_;
@@ -231,42 +263,15 @@ public:
 
   /** \brief Initializes voxel structure.
    */
-  inline void setInputCloudAndFilter(const PointCloudConstPtr &cloud, const std::string &grid_id) {
-    LeafDict leaves;
-    applyFilter(cloud, grid_id, leaves);
+  void setInputCloudAndFilter(const PointCloudConstPtr &cloud, const std::string &grid_id);
 
-    grid_leaves_[grid_id] = leaves;
-  }
+  /** \brief Remove a ND voxel grid corresponding to the specified id
+   */
+  void removeCloud(const std::string &grid_id);
 
-  inline void removeCloud(const std::string &grid_id) {
-    grid_leaves_.erase(grid_id);
-  }
-
-  inline void createKdtree() {
-    leaves_.clear();
-    for(const auto &kv : grid_leaves_) {
-      leaves_.insert(kv.second.begin(), kv.second.end());
-    }
-
-    leaf_indices_.clear();
-    voxel_centroids_ptr_.reset(new PointCloud);
-    voxel_centroids_ptr_->height = 1;
-    voxel_centroids_ptr_->is_dense = true;
-    voxel_centroids_ptr_->points.clear();
-    voxel_centroids_ptr_->points.reserve(leaves_.size());
-    for(const auto &element : leaves_) {
-      leaf_indices_.push_back(element.first);
-      voxel_centroids_ptr_->push_back(PointT());
-      voxel_centroids_ptr_->points.back().x = element.second.centroid[0];
-      voxel_centroids_ptr_->points.back().y = element.second.centroid[1];
-      voxel_centroids_ptr_->points.back().z = element.second.centroid[2];
-    }
-    voxel_centroids_ptr_->width = static_cast<uint32_t>(voxel_centroids_ptr_->points.size());
-
-    if(voxel_centroids_ptr_->size() > 0) {
-      kdtree_.setInputCloud(voxel_centroids_ptr_);
-    }
-  }
+  /** \brief Build Kdtrees from the NDT voxel for later radius search
+   */
+  void createKdtree();
 
   /** \brief Search for all the nearest occupied voxels of the query point in a given radius.
    * \note Only voxels containing a sufficient number of points are used.
@@ -277,25 +282,7 @@ public:
    * \param[in] max_nn
    * \return number of neighbors found
    */
-  int radiusSearch(const PointT &point, double radius, std::vector<LeafConstPtr> &k_leaves, std::vector<float> &k_sqr_distances, unsigned int max_nn = 0) const {
-    k_leaves.clear();
-
-    // Find neighbors within radius in the occupied voxel centroid cloud
-    std::vector<int> k_indices;
-    int k = kdtree_.radiusSearch(point, radius, k_indices, k_sqr_distances, max_nn);
-
-    // Find leaves corresponding to neighbors
-    k_leaves.reserve(k);
-    for(std::vector<int>::iterator iter = k_indices.begin(); iter != k_indices.end(); iter++) {
-      auto leaf = leaves_.find(leaf_indices_[*iter]);
-      if(leaf == leaves_.end()) {
-        std::cerr << "error : could not find the leaf corresponding to the voxel" << std::endl;
-        std::cin.ignore(1);
-      }
-      k_leaves.push_back(&(leaf->second));
-    }
-    return k;
-  }
+  int radiusSearch(const PointT &point, double radius, std::vector<LeafConstPtr> &k_leaves, std::vector<float> &k_sqr_distances, unsigned int max_nn = 0) const;
 
   /** \brief Search for all the nearest occupied voxels of the query point in a given radius.
    * \note Only voxels containing a sufficient number of points are used.
@@ -307,22 +294,11 @@ public:
    * \param[in] max_nn
    * \return number of neighbors found
    */
-  inline int radiusSearch(const PointCloud &cloud, int index, double radius, std::vector<LeafConstPtr> &k_leaves, std::vector<float> &k_sqr_distances, unsigned int max_nn = 0) const {
-    if(index >= static_cast<int>(cloud.points.size()) || index < 0) return (0);
-    return (radiusSearch(cloud.points[index], radius, k_leaves, k_sqr_distances, max_nn));
-  }
+  int radiusSearch(const PointCloud &cloud, int index, double radius, std::vector<LeafConstPtr> &k_leaves, std::vector<float> &k_sqr_distances, unsigned int max_nn = 0) const;
 
-  PointCloud getVoxelPCD() const {
-    return *voxel_centroids_ptr_;
-  }
+  PointCloud getVoxelPCD() const;
 
-  std::vector<std::string> getCurrentMapIDs() const {
-    std::vector<std::string> output{};
-    for(const auto &element : grid_leaves_) {
-      output.push_back(element.first);
-    }
-    return output;
-  }
+  std::vector<std::string> getCurrentMapIDs() const;
 
 protected:
   /** \brief Filter cloud and initializes voxel structure.
