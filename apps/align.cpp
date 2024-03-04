@@ -10,6 +10,7 @@
 
 #include <pclomp/ndt_omp.h>
 #include <pclomp/gicp_omp.h>
+#include <multigrid_pclomp/multigrid_ndt_omp.h>
 
 // align point clouds and measure processing time
 pcl::PointCloud<pcl::PointXYZ>::Ptr align(pcl::Registration<pcl::PointXYZ, pcl::PointXYZ>::Ptr registration, const pcl::PointCloud<pcl::PointXYZ>::Ptr& target_cloud, const pcl::PointCloud<pcl::PointXYZ>::Ptr& source_cloud) {
@@ -87,6 +88,9 @@ int main(int argc, char** argv) {
   pclomp::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr ndt_omp(new pclomp::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
   ndt_omp->setResolution(1.0);
 
+  pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr mg_ndt_omp(new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
+  mg_ndt_omp->setResolution(1.0);
+
   for(int n : num_threads) {
     for(const auto& search_method : search_methods) {
       std::cout << "--- pclomp::NDT (" << search_method.first << ", " << n << " threads) ---" << std::endl;
@@ -94,6 +98,10 @@ int main(int argc, char** argv) {
       ndt_omp->setNeighborhoodSearchMethod(search_method.second);
       aligned = align(ndt_omp, target_cloud, source_cloud);
     }
+
+    std::cout << "--- multigrid_pclomp::NDT (" << n << " threads) ---" << std::endl;
+    mg_ndt_omp->setNumThreads(n);
+    aligned = align(mg_ndt_omp, target_cloud, source_cloud);
   }
 
   // visualization

@@ -64,7 +64,7 @@
 #include <unsupported/Eigen/NonLinearOptimization>
 
 namespace pclomp {
-struct NdtResult {
+struct MGNdtResult {
   Eigen::Matrix4f pose;
   float transform_probability;
   float nearest_voxel_transformation_likelihood;
@@ -73,7 +73,7 @@ struct NdtResult {
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array;
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  friend std::ostream &operator<<(std::ostream &os, const NdtResult &val) {
+  friend std::ostream &operator<<(std::ostream &os, const MGNdtResult &val) {
     os << "Pose: " << std::endl << val.pose << std::endl;
     os << "TP: " << val.transform_probability << std::endl;
     os << "NVTP: " << val.nearest_voxel_transformation_likelihood << std::endl;
@@ -84,7 +84,7 @@ struct NdtResult {
   }
 };
 
-struct NdtParams {
+struct MGNdtParams {
   double trans_epsilon;
   double step_size;
   double resolution;
@@ -303,8 +303,8 @@ public:
     regularization_pose_ = boost::none;
   }
 
-  NdtResult getResult() {
-    NdtResult ndt_result;
+  MGNdtResult getResult() {
+    MGNdtResult ndt_result;
     ndt_result.pose = this->getFinalTransformation();
     ndt_result.transformation_array = getFinalTransformationArray();
     ndt_result.transform_probability = getTransformationProbability();
@@ -314,7 +314,7 @@ public:
     return ndt_result;
   }
 
-  void setParams(const NdtParams &ndt_params) {
+  void setParams(const MGNdtParams &ndt_params) {
     this->setTransformationEpsilon(ndt_params.trans_epsilon);
     this->setStepSize(ndt_params.step_size);
     this->setResolution(ndt_params.resolution);
@@ -323,8 +323,8 @@ public:
     setNumThreads(ndt_params.num_threads);
   }
 
-  NdtParams getParams() const {
-    NdtParams ndt_params;
+  MGNdtParams getParams() const {
+    MGNdtParams ndt_params;
     ndt_params.trans_epsilon = transformation_epsilon_;
     ndt_params.step_size = getStepSize();
     ndt_params.resolution = getResolution();

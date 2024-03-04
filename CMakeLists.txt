@@ -125,18 +125,6 @@ else()
   message(WARNING "OpenMP not found")
 endif()
 
-add_executable(align
-  apps/align.cpp
-)
-add_dependencies(align
-  ndt_omp
-)
-target_link_libraries(align
-  ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES}
-  ndt_omp
-)
-
 #############################
 ## ROS 2 multigrid ndt_omp ##
 #############################
@@ -153,6 +141,18 @@ endif()
 ###################################
 ## ROS 2 multigrid ndt_omp (end) ##
 ###################################
+
+add_executable(align
+  apps/align.cpp
+)
+add_dependencies(align
+  ndt_omp multigrid_ndt_omp
+)
+target_link_libraries(align
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+  ndt_omp multigrid_ndt_omp
+)
 
 ament_auto_package()
 
