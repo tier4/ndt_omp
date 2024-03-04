@@ -64,16 +64,21 @@ add_library(ndt_omp
   src/pclomp/gicp_omp.cpp
 )
 
+add_library(multigrid_ndt_omp
+  src/multigrid_pclomp/multi_voxel_grid_covariance_omp.cpp
+  src/multigrid_pclomp/multigrid_ndt_omp.cpp
+)
+
 add_executable(align
   apps/align.cpp
 )
 add_dependencies(align
-  ndt_omp
+  ndt_omp multigrid_ndt_omp
 )
 target_link_libraries(align
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
-  ndt_omp
+  ndt_omp multigrid_ndt_omp
 )
 
 #############
@@ -82,7 +87,7 @@ target_link_libraries(align
 
 install(
   TARGETS
-    ndt_omp
+    ndt_omp multigrid_ndt_omp
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
@@ -90,6 +95,8 @@ install(
 
 # install headers
 install(DIRECTORY include/pclomp
+        DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION})
+install(DIRECTORY include/multigrid_pclomp
         DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION})
 else()
 # ROS2
