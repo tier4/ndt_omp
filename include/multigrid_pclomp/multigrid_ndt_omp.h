@@ -64,34 +64,6 @@
 #include <unsupported/Eigen/NonLinearOptimization>
 
 namespace pclomp {
-struct MGNdtResult {
-  Eigen::Matrix4f pose;
-  float transform_probability;
-  float nearest_voxel_transformation_likelihood;
-  int iteration_num;
-  Eigen::Matrix<double, 6, 6> hessian;
-  std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array;
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-  friend std::ostream &operator<<(std::ostream &os, const MGNdtResult &val) {
-    os << "Pose: " << std::endl << val.pose << std::endl;
-    os << "TP: " << val.transform_probability << std::endl;
-    os << "NVTP: " << val.nearest_voxel_transformation_likelihood << std::endl;
-    os << "Iteration num: " << val.iteration_num << std::endl;
-    os << "Hessian: " << std::endl << val.hessian << std::endl;
-
-    return os;
-  }
-};
-
-struct MGNdtParams {
-  double trans_epsilon;
-  double step_size;
-  double resolution;
-  int max_iterations;
-  int num_threads;
-  float regularization_scale_factor;
-};
 
 /** \brief A 3D Normal Distribution Transform registration implementation for point cloud data.
  * \note For more information please see
@@ -106,6 +78,36 @@ struct MGNdtParams {
  */
 template<typename PointSource, typename PointTarget>
 class MultiGridNormalDistributionsTransform : public pcl::Registration<PointSource, PointTarget> {
+public:
+  struct Result {
+  Eigen::Matrix4f pose;
+  float transform_probability;
+  float nearest_voxel_transformation_likelihood;
+  int iteration_num;
+  Eigen::Matrix<double, 6, 6> hessian;
+  std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  friend std::ostream &operator<<(std::ostream &os, const Result &val) {
+    os << "Pose: " << std::endl << val.pose << std::endl;
+    os << "TP: " << val.transform_probability << std::endl;
+    os << "NVTP: " << val.nearest_voxel_transformation_likelihood << std::endl;
+    os << "Iteration num: " << val.iteration_num << std::endl;
+    os << "Hessian: " << std::endl << val.hessian << std::endl;
+
+    return os;
+  }
+};
+
+struct Params {
+  double trans_epsilon;
+  double step_size;
+  double resolution;
+  int max_iterations;
+  int num_threads;
+  float regularization_scale_factor;
+};
+
 protected:
   typedef typename pcl::Registration<PointSource, PointTarget>::PointCloudSource PointCloudSource;
   typedef typename PointCloudSource::Ptr PointCloudSourcePtr;
@@ -303,8 +305,8 @@ public:
     regularization_pose_ = boost::none;
   }
 
-  MGNdtResult getResult() {
-    MGNdtResult ndt_result;
+  Result getResult() {
+    Result ndt_result;
     ndt_result.pose = this->getFinalTransformation();
     ndt_result.transformation_array = getFinalTransformationArray();
     ndt_result.transform_probability = getTransformationProbability();
@@ -314,7 +316,7 @@ public:
     return ndt_result;
   }
 
-  void setParams(const MGNdtParams &ndt_params) {
+  void setParams(const Params &ndt_params) {
     this->setTransformationEpsilon(ndt_params.trans_epsilon);
     this->setStepSize(ndt_params.step_size);
     this->setResolution(ndt_params.resolution);
@@ -323,8 +325,8 @@ public:
     setNumThreads(ndt_params.num_threads);
   }
 
-  MGNdtParams getParams() const {
-    MGNdtParams ndt_params;
+  Params getParams() const {
+    Params ndt_params;
     ndt_params.trans_epsilon = transformation_epsilon_;
     ndt_params.step_size = getStepSize();
     ndt_params.resolution = getResolution();
