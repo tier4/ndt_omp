@@ -167,9 +167,7 @@ public:
     // No idea why PCL does not check the nullity of input
     if(input) {
       pcl::Registration<PointSource, PointTarget>::setInputSource(input);
-    }
-    else
-    {
+    } else {
       std::cerr << "Error: Null input source cloud is not allowed" << std::endl;
       exit(EXIT_FAILURE);
     }

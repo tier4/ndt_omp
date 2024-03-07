@@ -355,7 +355,7 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
     Eigen::Matrix<double, 6, 6> hessian_pt = Eigen::Matrix<double, 6, 6>::Zero();
     int neighborhood_count = 0;
 
-    for(auto& cell : neighborhood) {
+    for(auto &cell : neighborhood) {
       x_pt = (*input_)[idx];
       x = Eigen::Vector3d(x_pt.x, x_pt.y, x_pt.z);
 
@@ -481,24 +481,24 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
     // Precomputed angular hessian components. Letters correspond to Equation 6.21 and numbers correspond to row index [Magnusson 2009]
     h_ang.setZero();
 
-    h_ang.row(0) << (-cx * sz - sx * sy * cz), (-cx * cz + sx * sy * sz), sx * cy, 0; // a2
+    h_ang.row(0) << (-cx * sz - sx * sy * cz), (-cx * cz + sx * sy * sz), sx * cy, 0;     // a2
     h_ang.row(1) << (-sx * sz + cx * sy * cz), (-cx * sy * sz - sx * cz), (-cx * cy), 0;  // a3
 
     h_ang.row(2) << (cx * cy * cz), (-cx * cy * sz), (cx * sy), 0;  // b2
     h_ang.row(3) << (sx * cy * cz), (-sx * cy * sz), (sx * sy), 0;  // b3
 
     h_ang.row(4) << (-sx * cz - cx * sy * sz), (sx * sz - cx * sy * cz), 0, 0;  // c2
-    h_ang.row(5) << (cx * cz - sx * sy * sz), (-sx * sy * cz - cx * sz), 0, 0; // c3
+    h_ang.row(5) << (cx * cz - sx * sy * sz), (-sx * sy * cz - cx * sz), 0, 0;  // c3
 
-    h_ang.row(6) << (-cy * cz), (cy * sz), (sy), 0; // d1
-    h_ang.row(7) << (-sx * sy * cz), (sx * sy * sz), (sx * cy), 0;  // d2
+    h_ang.row(6) << (-cy * cz), (cy * sz), (sy), 0;                  // d1
+    h_ang.row(7) << (-sx * sy * cz), (sx * sy * sz), (sx * cy), 0;   // d2
     h_ang.row(8) << (cx * sy * cz), (-cx * sy * sz), (-cx * cy), 0;  // d3
 
-    h_ang.row(9) << (sy * sz), (sy * cz), 0, 0; // e1
-    h_ang.row(10) << (-sx * cy * sz), (-sx * cy * cz), 0, 0; // e2
-    h_ang.row(11) << (cx * cy * sz), (cx * cy * cz), 0, 0;  // e3
+    h_ang.row(9) << (sy * sz), (sy * cz), 0, 0;               // e1
+    h_ang.row(10) << (-sx * cy * sz), (-sx * cy * cz), 0, 0;  // e2
+    h_ang.row(11) << (cx * cy * sz), (cx * cy * cz), 0, 0;    // e3
 
-    h_ang.row(12) << (-cy * cz), (cy * sz), 0, 0;  // f1
+    h_ang.row(12) << (-cy * cz), (cy * sz), 0, 0;                                 // f1
     h_ang.row(13) << (-cx * sz - sx * sy * cz), (-cx * cz + sx * sy * sz), 0, 0;  // f2
     h_ang.row(14) << (-sx * sz + cx * sy * cz), (-cx * sy * sz - sx * cz), 0, 0;  // f3
   }
@@ -628,7 +628,7 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
     target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
 
-    for(auto& cell : neighborhood){
+    for(auto &cell : neighborhood) {
       x_pt = (*input_)[idx];
       x = Eigen::Vector3d(x_pt.x, x_pt.y, x_pt.z);
 
@@ -957,7 +957,7 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
     target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
 
-    for(auto& cell : neighborhood) {
+    for(auto &cell : neighborhood) {
       Eigen::Vector3d x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
 
       // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
@@ -995,7 +995,7 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
     target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
 
-    for(auto& cell : neighborhood) {
+    for(auto &cell : neighborhood) {
       Eigen::Vector3d x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
 
       // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
@@ -1035,7 +1035,7 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
     target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
 
-    for(auto& cell : neighborhood) {
+    for(auto &cell : neighborhood) {
       Eigen::Vector3d x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
 
       // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
