@@ -136,11 +136,6 @@ public:
       std::cerr << "Error: Null input source cloud is not allowed" << std::endl;
       exit(EXIT_FAILURE);
     }
-    else
-    {
-      std::cerr << "Error: Null input source cloud is not allowed" << std::endl;
-      exit(EXIT_FAILURE);
-    }
   }
 
   inline void setInputTarget(const PointCloudTargetConstPtr &cloud) {
