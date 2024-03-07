@@ -286,6 +286,7 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeD
   int total_neighborhood_count = 0;
   double nearest_voxel_score = 0;
   size_t found_neigborhood_voxel_num = 0;
+  size_t input_size = input_->size();
 
   std::vector<double> scores(params_.num_threads);
   std::vector<double> nearest_voxel_scores(params_.num_threads);

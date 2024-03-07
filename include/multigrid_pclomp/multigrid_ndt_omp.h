@@ -136,6 +136,11 @@ public:
       std::cerr << "Error: Null input source cloud is not allowed" << std::endl;
       exit(EXIT_FAILURE);
     }
+    else
+    {
+      std::cerr << "Error: Null input source cloud is not allowed" << std::endl;
+      exit(EXIT_FAILURE);
+    }
   }
 
   inline void setInputTarget(const PointCloudTargetConstPtr &cloud) {
@@ -499,7 +504,6 @@ protected:
    * The precomputed angular derivatives for the hessian of a transformation vector, Equation 6.19 [Magnusson 2009].
    */
   Eigen::Vector3d h_ang_a2_, h_ang_a3_, h_ang_b2_, h_ang_b3_, h_ang_c2_, h_ang_c3_, h_ang_d1_, h_ang_d2_, h_ang_d3_, h_ang_e1_, h_ang_e2_, h_ang_e3_, h_ang_f1_, h_ang_f2_, h_ang_f3_;
-
   Eigen::Matrix<float, 16, 4> h_ang;
 
   Eigen::Matrix<double, 6, 6> hessian_;
