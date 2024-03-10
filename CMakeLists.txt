@@ -21,138 +21,139 @@ endif()
 set(CMAKE_BUILD_TYPE "RELEASE")
 
 if($ENV{ROS_VERSION} EQUAL 1)
-  # ROS1
-  find_package(catkin REQUIRED COMPONENTS
-    roscpp
-    pcl_ros
-  )
+# ROS1
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  pcl_ros
+)
 
-  find_package(PCL 1.7 REQUIRED)
-  include_directories(${PCL_INCLUDE_DIRS})
-  link_directories(${PCL_LIBRARY_DIRS})
-  add_definitions(${PCL_DEFINITIONS})
+find_package(PCL 1.7 REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
-  message(STATUS "PCL_INCLUDE_DIRS:" ${PCL_INCLUDE_DIRS})
-  message(STATUS "PCL_LIBRARY_DIRS:" ${PCL_LIBRARY_DIRS})
-  message(STATUS "PCL_DEFINITIONS:" ${PCL_DEFINITIONS})
+message(STATUS "PCL_INCLUDE_DIRS:" ${PCL_INCLUDE_DIRS})
+message(STATUS "PCL_LIBRARY_DIRS:" ${PCL_LIBRARY_DIRS})
+message(STATUS "PCL_DEFINITIONS:" ${PCL_DEFINITIONS})
 
-  find_package(OpenMP)
+find_package(OpenMP)
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
 
-  if(OPENMP_FOUND)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-  endif()
+###################################
+## catkin specific configuration ##
+###################################
+catkin_package(
+  INCLUDE_DIRS include
+  LIBRARIES ndt_omp
+)
 
-  # ##################################
-  # # catkin specific configuration ##
-  # ##################################
-  catkin_package(
-    INCLUDE_DIRS include
-    LIBRARIES ndt_omp
-  )
+###########
+## Build ##
+###########
+include_directories(include)
+include_directories(
+  ${catkin_INCLUDE_DIRS}
+)
 
-  # ##########
-  # # Build ##
-  # ##########
-  include_directories(include)
-  include_directories(
-    ${catkin_INCLUDE_DIRS}
-  )
+add_library(ndt_omp
+  src/pclomp/voxel_grid_covariance_omp.cpp
+  src/pclomp/ndt_omp.cpp
+  src/pclomp/gicp_omp.cpp
+)
 
-  add_library(ndt_omp
-    src/pclomp/voxel_grid_covariance_omp.cpp
-    src/pclomp/ndt_omp.cpp
-    src/pclomp/gicp_omp.cpp
-  )
+add_executable(align
+  apps/align.cpp
+)
+add_dependencies(align
+  ndt_omp
+)
+target_link_libraries(align
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+  ndt_omp
+)
 
-  add_executable(align
-    apps/align.cpp
-  )
-  add_dependencies(align
+#############
+## INSTALL ##
+#############
+
+install(
+  TARGETS
     ndt_omp
-  )
-  target_link_libraries(align
-    ${catkin_LIBRARIES}
-    ${PCL_LIBRARIES}
-    ndt_omp
-  )
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
 
-  # ############
-  # # INSTALL ##
-  # ############
-  install(
-    TARGETS
-    ndt_omp
-    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  )
-
-  # install headers
-  install(DIRECTORY include/pclomp
-    DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION})
+# install headers
+install(DIRECTORY include/pclomp
+        DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION})
 else()
-  # ROS2
-  find_package(ament_cmake_auto REQUIRED)
-  ament_auto_find_build_dependencies()
+# ROS2
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
 
-  find_package(PCL 1.7 REQUIRED)
-  include_directories(${PCL_INCLUDE_DIRS})
-  link_directories(${PCL_LIBRARY_DIRS})
-  add_definitions(${PCL_DEFINITIONS})
+find_package(PCL 1.7 REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
-  message(STATUS "PCL_INCLUDE_DIRS:" ${PCL_INCLUDE_DIRS})
-  message(STATUS "PCL_LIBRARY_DIRS:" ${PCL_LIBRARY_DIRS})
-  message(STATUS "PCL_DEFINITIONS:" ${PCL_DEFINITIONS})
+message(STATUS "PCL_INCLUDE_DIRS:" ${PCL_INCLUDE_DIRS})
+message(STATUS "PCL_LIBRARY_DIRS:" ${PCL_LIBRARY_DIRS})
+message(STATUS "PCL_DEFINITIONS:" ${PCL_DEFINITIONS})
 
-  find_package(OpenMP)
+find_package(OpenMP)
 
-  # ##########
-  # # Build ##
-  # ##########
-  ament_auto_add_library(ndt_omp SHARED
-    src/pclomp/voxel_grid_covariance_omp.cpp
-    src/pclomp/ndt_omp.cpp
-    src/pclomp/gicp_omp.cpp
-  )
+###########
+## Build ##
+###########
 
-  target_link_libraries(ndt_omp ${PCL_LIBRARIES})
+ament_auto_add_library(ndt_omp SHARED
+  src/pclomp/voxel_grid_covariance_omp.cpp
+  src/pclomp/ndt_omp.cpp
+  src/pclomp/gicp_omp.cpp
+)
 
-  if(OpenMP_CXX_FOUND)
-    target_link_libraries(ndt_omp OpenMP::OpenMP_CXX)
-  else()
-    message(WARNING "OpenMP not found")
-  endif()
+target_link_libraries(ndt_omp ${PCL_LIBRARIES})
 
-  # ############################
-  # # ROS 2 multigrid ndt_omp ##
-  # ############################
-  ament_auto_add_library(multigrid_ndt_omp SHARED
-    src/multigrid_pclomp/multi_voxel_grid_covariance_omp.cpp
-    src/multigrid_pclomp/multigrid_ndt_omp.cpp
-  )
-  target_link_libraries(multigrid_ndt_omp ${PCL_LIBRARIES})
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(ndt_omp OpenMP::OpenMP_CXX)
+else()
+  message(WARNING "OpenMP not found")
+endif()
 
-  if(OpenMP_CXX_FOUND)
-    target_link_libraries(multigrid_ndt_omp OpenMP::OpenMP_CXX)
-  else()
-    message(WARNING "OpenMP not found")
-  endif()
+#############################
+## ROS 2 multigrid ndt_omp ##
+#############################
+ament_auto_add_library(multigrid_ndt_omp SHARED
+  src/multigrid_pclomp/multi_voxel_grid_covariance_omp.cpp
+  src/multigrid_pclomp/multigrid_ndt_omp.cpp
+)
+target_link_libraries(multigrid_ndt_omp ${PCL_LIBRARIES})
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(multigrid_ndt_omp OpenMP::OpenMP_CXX)
+else()
+  message(WARNING "OpenMP not found")
+endif()
+###################################
+## ROS 2 multigrid ndt_omp (end) ##
+###################################
 
-  # ##################################
-  # # ROS 2 multigrid ndt_omp (end) ##
-  # ##################################
-  ament_auto_package()
+ament_auto_package()
 
-  # test
-  add_executable(regression_test
-    apps/regression_test.cpp
-  )
-  add_dependencies(regression_test
-    ndt_omp multigrid_ndt_omp
-  )
-  target_link_libraries(regression_test
-    ${PCL_LIBRARIES}
-    ndt_omp multigrid_ndt_omp
-  )
+# regression test
+add_executable(regression_test
+  apps/regression_test.cpp
+)
+add_dependencies(regression_test
+  ndt_omp multigrid_ndt_omp
+)
+target_link_libraries(regression_test
+  ${PCL_LIBRARIES}
+  ndt_omp multigrid_ndt_omp
+)
+
 endif()
