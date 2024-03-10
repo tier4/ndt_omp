@@ -57,3 +57,49 @@ Red: target, Green: source, Blue: aligned
 ## Related packages
 - [ndt_omp](https://github.com/koide3/ndt_omp)
 - [fast_gicp](https://github.com/SMRT-AIST/fast_gicp)
+
+## Regression Test
+
+### Preparation
+
+You can use `script/convert_rosbag_to_test_data.py` to convert a rosbag to regression test data.
+
+The regression test data should be placed in `./regression_test_data/input` directory.
+
+```bash
+./regression_test_data/
+└── input
+    ├── kinematic_state.csv
+    ├── pointcloud_map.pcd  # means map.pcd
+    └── sensor_pcd
+        ├── pointcloud_00000000.pcd
+        ├── pointcloud_00000001.pcd
+        ├── pointcloud_00000002.pcd
+        ├── ...
+        ├── pointcloud_00001297.pcd
+        ├── pointcloud_00001298.pcd
+        └── pointcloud_00001299.pcd
+
+2 directories, 1302 files
+```
+
+### build
+
+```bash
+mkdir build
+cd build
+cmake ..
+make -j
+```
+
+### Run
+
+```bash
+./regression_test ../regression_test_data/input ../regression_test_data/output
+```
+
+### Check
+
+```bash
+python3 script/compare_regression_test_result.py ../regression_test_data/output ../regression_test_data/reference_output
+```
