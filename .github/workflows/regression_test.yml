@@ -28,7 +28,7 @@ jobs:
 
       - name: Build
         run: |
-          source /opt/ros/$ROS_DISTRO/setup.bash
+          source /opt/ros/humble/setup.bash
           mkdir -p build
           cd build
           cmake ..
