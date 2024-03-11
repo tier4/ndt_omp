@@ -57,3 +57,53 @@ Red: target, Green: source, Blue: aligned
 ## Related packages
 - [ndt_omp](https://github.com/koide3/ndt_omp)
 - [fast_gicp](https://github.com/SMRT-AIST/fast_gicp)
+
+## Regression Test
+
+### Preparation
+
+You can use `script/convert_rosbag_to_test_data.py` to convert a rosbag to regression test data.
+
+The regression test data should be placed in `./regression_test_data/input` directory.
+
+A sample data is [here](https://drive.google.com/file/d/1E-_zj2nchmntioSJJgyoDQEYHtrs3o-C/view).
+
+The sample data is recorded by AWSIM, so the corresponding map is [nishishinjuku_autoware_map](https://github.com/tier4/AWSIM/releases/download/v1.1.0/nishishinjuku_autoware_map.zip).
+
+The directory structure should be like this:
+
+```bash
+./regression_test_data/
+└── input
+    ├── kinematic_state.csv
+    ├── pointcloud_map.pcd  # means map.pcd
+    └── sensor_pcd
+        ├── pointcloud_00000000.pcd
+        ├── pointcloud_00000001.pcd
+        ├── pointcloud_00000002.pcd
+        ├── ...
+        ├── pointcloud_00000817.pcd
+        ├── pointcloud_00000818.pcd
+        └── pointcloud_00000819.pcd
+```
+
+### build
+
+```bash
+mkdir build
+cd build
+cmake ..
+make -j
+```
+
+### Run
+
+```bash
+./regression_test ../regression_test_data/input ../regression_test_data/output
+```
+
+### Check
+
+```bash
+python3 script/compare_regression_test_result.py ../regression_test_data/output ../regression_test_data/reference_output
+```

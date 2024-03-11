@@ -1,0 +1,49 @@
+name: regression_test
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  regression_test:
+    runs-on: ubuntu-latest
+    container:
+      image: ros:humble
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y wget unzip libpcl-dev python3-pip
+          pip3 install pandas matplotlib
+
+      - name: Download data
+        run: |
+          ./script/download_data.sh
+
+      - name: Build
+        shell: bash
+        run: |
+          source /opt/ros/humble/setup.bash
+          mkdir -p build
+          cd build
+          cmake ..
+          make -j
+          cd ..
+
+      - name: Run
+        run: |
+          ./script/execute_regression_test.sh
+
+      - name: Upload output files
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regression-test-output
+          path: ./regression_test_data/output/
