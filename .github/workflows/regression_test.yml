@@ -17,6 +17,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y wget
+
       - name: Download data
         run: |
           ./script/download_data.sh
