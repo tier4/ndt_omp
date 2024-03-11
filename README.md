@@ -66,6 +66,12 @@ You can use `script/convert_rosbag_to_test_data.py` to convert a rosbag to regre
 
 The regression test data should be placed in `./regression_test_data/input` directory.
 
+A sample data is [here](https://drive.google.com/file/d/1E-_zj2nchmntioSJJgyoDQEYHtrs3o-C/view).
+
+The sample data is recorded by AWSIM, so the corresponding map is [nishishinjuku_autoware_map](https://github.com/tier4/AWSIM/releases/download/v1.1.0/nishishinjuku_autoware_map.zip).
+
+The directory structure should be like this:
+
 ```bash
 ./regression_test_data/
 └── input
@@ -76,11 +82,9 @@ The regression test data should be placed in `./regression_test_data/input` dire
         ├── pointcloud_00000001.pcd
         ├── pointcloud_00000002.pcd
         ├── ...
-        ├── pointcloud_00001297.pcd
-        ├── pointcloud_00001298.pcd
-        └── pointcloud_00001299.pcd
-
-2 directories, 1302 files
+        ├── pointcloud_00000817.pcd
+        ├── pointcloud_00000818.pcd
+        └── pointcloud_00000819.pcd
 ```
 
 ### build
