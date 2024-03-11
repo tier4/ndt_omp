@@ -7,7 +7,7 @@ on:
       - synchronize
 
 jobs:
-  pre-commit:
+  regression_test:
     runs-on: ubuntu-latest
     container:
       image: ros:humble
@@ -43,6 +43,7 @@ jobs:
 
       - name: Upload output files
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: regression-test-output
           path: ./regression_test_data/output/
