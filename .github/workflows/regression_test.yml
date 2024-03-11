@@ -40,3 +40,9 @@ jobs:
       - name: Run
         run: |
           ./script/execute_regression_test.sh
+
+      - name: Upload output files
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-test-output
+          path: ./regression_test_data/output/
