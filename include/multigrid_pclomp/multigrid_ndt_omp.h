@@ -64,6 +64,8 @@
 #include <unsupported/Eigen/NonLinearOptimization>
 
 namespace pclomp {
+enum NeighborSearchMethod { KDTREE, DIRECT26, DIRECT7, DIRECT1 };
+
 struct NdtResult {
   Eigen::Matrix4f pose;
   float transform_probability;
