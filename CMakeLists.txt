@@ -144,4 +144,16 @@ endif()
 
 ament_auto_package()
 
+# regression test
+add_executable(regression_test
+  apps/regression_test.cpp
+)
+add_dependencies(regression_test
+  ndt_omp multigrid_ndt_omp
+)
+target_link_libraries(regression_test
+  ${PCL_LIBRARIES}
+  ndt_omp multigrid_ndt_omp
+)
+
 endif()
