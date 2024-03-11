@@ -1,0 +1,32 @@
+name: regression_test
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Download data
+        run: |
+          ./scripts/download_data.sh
+
+      - name: Build
+        run: |
+          mkdir -p build
+          cd build
+          cmake ..
+          make -j
+          cd ..
+
+      - name: Run
+        run: |
+          ./scripts/execute_regression_test.sh
