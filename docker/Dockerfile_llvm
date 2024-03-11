@@ -1,3 +1,5 @@
+ARG ROS_DISTRO
+
 FROM ros:${ROS_DISTRO}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
