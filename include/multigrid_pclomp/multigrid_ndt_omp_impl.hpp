@@ -56,6 +56,13 @@
 #ifndef PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 #define PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 
+#include <sys/time.h>
+#include <fstream>
+
+#ifndef timeDiff
+#define timeDiff(start, end) ((end.tv_sec - start.tv_sec) * 1000000 + end.tv_usec - start.tv_usec)
+#endif
+
 template<typename PointSource, typename PointTarget>
 pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform(const MultiGridNormalDistributionsTransform &other) : BaseRegType(other), target_cells_(other.target_cells_) {
   resolution_ = other.resolution_;
@@ -272,6 +279,11 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
   }
 
   hessian_ = hessian;
+
+  // For debug
+  std::ofstream test_file("/home/anh/Work/autoware/compute_trans_old.txt");
+  test_file << "Iteration = " << nr_iterations_ << std::endl;
+  exit(0);
 }
 
 #ifndef _OPENMP
@@ -286,6 +298,13 @@ int omp_get_thread_num() {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
 double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, PointCloudSource &trans_cloud, Eigen::Matrix<double, 6, 1> &p, bool compute_hessian) {
+  // For debug
+  std::ofstream test_file("/home/anh/Work/autoware/compute_derivatives_old.txt", std::ios::app);
+  struct timeval start, end;
+
+  gettimeofday(&start, NULL);
+
+  // End
   score_gradient.setZero();
   hessian.setZero();
   double score = 0;
@@ -314,6 +333,12 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 
   std::vector<std::vector<TargetGridLeafConstPtr>> neighborhoods(num_threads_);
   std::vector<std::vector<float>> distancess(num_threads_);
+
+  gettimeofday(&end, NULL);
+
+  test_file << "Init = " << timeDiff(start, end) << std::endl;
+
+  gettimeofday(&start, NULL);
 
   // Update gradient and hessian for each point, line 17 in Algorithm 2 [Magnusson 2009]
 #pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
@@ -384,6 +409,12 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
     neighborhood_counts[idx] += neighborhood_count;
   }
 
+    gettimeofday(&end, NULL);
+
+  test_file << "Compute = " << timeDiff(start, end) << std::endl;
+
+  gettimeofday(&start, NULL);
+
   // Ensure that the result is invariant against the summing up order
   for(size_t i = 0; i < input_size; ++i) {
     score += scores[i];
@@ -426,6 +457,12 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
   } else {
     nearest_voxel_transformation_likelihood_ = 0.0;
   }
+
+    gettimeofday(&end, NULL);
+
+  test_file << "Finalize = " << timeDiff(start, end) << std::endl;
+
+  gettimeofday(&start, NULL);
 
   return (score);
 }
