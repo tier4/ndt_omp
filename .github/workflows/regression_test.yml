@@ -27,6 +27,7 @@ jobs:
           ./script/download_data.sh
 
       - name: Build
+        shell: bash
         run: |
           source /opt/ros/humble/setup.bash
           mkdir -p build
