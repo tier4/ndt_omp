@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(ndt_omp)
 
-add_definitions(-std=c++14)
-set(CMAKE_CXX_FLAGS "-std=c++14")
+add_definitions(-std=c++17)
+set(CMAKE_CXX_FLAGS "-std=c++17")
 
 # Compile flags for SIMD instructions
 if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
