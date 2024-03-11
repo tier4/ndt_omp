@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y wget unzip
+          apt-get install -y wget unzip libpcl-dev
 
       - name: Download data
         run: |
