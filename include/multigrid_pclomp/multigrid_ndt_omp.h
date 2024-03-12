@@ -109,27 +109,19 @@ struct NdtParams {
 template<typename PointSource, typename PointTarget>
 class MultiGridNormalDistributionsTransform : public pcl::Registration<PointSource, PointTarget> {
 protected:
-  typedef typename pcl::Registration<PointSource, PointTarget>::PointCloudSource PointCloudSource;
+  typedef pcl::Registration<PointSource, PointTarget> BaseRegType;
+  typedef typename BaseRegType::PointCloudSource PointCloudSource;
   typedef typename PointCloudSource::Ptr PointCloudSourcePtr;
   typedef typename PointCloudSource::ConstPtr PointCloudSourceConstPtr;
 
-  typedef typename pcl::Registration<PointSource, PointTarget>::PointCloudTarget PointCloudTarget;
+  typedef typename BaseRegType::PointCloudTarget PointCloudTarget;
   typedef typename PointCloudTarget::Ptr PointCloudTargetPtr;
   typedef typename PointCloudTarget::ConstPtr PointCloudTargetConstPtr;
 
-  typedef pcl::PointIndices::Ptr PointIndicesPtr;
-  typedef pcl::PointIndices::ConstPtr PointIndicesConstPtr;
-
   /** \brief Typename of searchable voxel grid containing mean and covariance. */
   typedef pclomp::MultiVoxelGridCovariance<PointTarget> TargetGrid;
-  /** \brief Typename of pointer to searchable voxel grid. */
-  typedef TargetGrid *TargetGridPtr;
-  /** \brief Typename of const pointer to searchable voxel grid. */
-  typedef const TargetGrid *TargetGridConstPtr;
   /** \brief Typename of const pointer to searchable voxel grid leaf. */
   typedef typename TargetGrid::LeafConstPtr TargetGridLeafConstPtr;
-
-  typedef pcl::Registration<PointSource, PointTarget> BaseRegType;
 
 public:
 #if PCL_VERSION >= PCL_VERSION_CALC(1, 10, 0)
@@ -158,6 +150,7 @@ public:
 
   void setNumThreads(int n) {
     num_threads_ = n;
+    target_cells_.setThreadNum(num_threads_);
   }
 
   inline int getNumThreads() const {
@@ -168,7 +161,10 @@ public:
     // This is to avoid segmentation fault when setting null input
     // No idea why PCL does not check the nullity of input
     if(input) {
-      pcl::Registration<PointSource, PointTarget>::setInputSource(input);
+      BaseRegType::setInputSource(input);
+    } else {
+      std::cerr << "Error: Null input source cloud is not allowed" << std::endl;
+      exit(EXIT_FAILURE);
     }
   }
 
@@ -182,7 +178,7 @@ public:
    * \param[in] cloud the input point cloud target
    */
   inline void addTarget(const PointCloudTargetConstPtr &cloud, const std::string &target_id) {
-    pcl::Registration<PointSource, PointTarget>::setInputTarget(cloud);
+    BaseRegType::setInputTarget(cloud);
     target_cells_.setLeafSize(resolution_, resolution_, resolution_);
     target_cells_.setInputCloudAndFilter(cloud, target_id);
   }
@@ -289,7 +285,6 @@ public:
 
   // negative log likelihood function
   // lower is better
-  double calculateScore(const PointCloudSource &cloud) const;
   double calculateTransformationProbability(const PointCloudSource &cloud) const;
   double calculateNearestVoxelTransformationLikelihood(const PointCloudSource &cloud) const;
 
@@ -336,7 +331,7 @@ public:
     return ndt_params;
   }
 
-  pcl::PointCloud<PointTarget> getVoxelPCD() const {
+  PointCloudTarget getVoxelPCD() {
     return target_cells_.getVoxelPCD();
   }
 
@@ -345,18 +340,18 @@ public:
   }
 
 protected:
-  using pcl::Registration<PointSource, PointTarget>::reg_name_;
-  using pcl::Registration<PointSource, PointTarget>::input_;
-  using pcl::Registration<PointSource, PointTarget>::target_;
-  using pcl::Registration<PointSource, PointTarget>::nr_iterations_;
-  using pcl::Registration<PointSource, PointTarget>::max_iterations_;
-  using pcl::Registration<PointSource, PointTarget>::previous_transformation_;
-  using pcl::Registration<PointSource, PointTarget>::final_transformation_;
-  using pcl::Registration<PointSource, PointTarget>::transformation_;
-  using pcl::Registration<PointSource, PointTarget>::transformation_epsilon_;
-  using pcl::Registration<PointSource, PointTarget>::converged_;
+  using BaseRegType::reg_name_;
+  using BaseRegType::input_;
+  using BaseRegType::target_;
+  using BaseRegType::nr_iterations_;
+  using BaseRegType::max_iterations_;
+  using BaseRegType::previous_transformation_;
+  using BaseRegType::final_transformation_;
+  using BaseRegType::transformation_;
+  using BaseRegType::transformation_epsilon_;
+  using BaseRegType::converged_;
 
-  using pcl::Registration<PointSource, PointTarget>::update_visualizer_;
+  using BaseRegType::update_visualizer_;
 
   /** \brief Estimate the transformation and returns the transformed source (input) as output.
    * \param[out] output the resultant input transformed point cloud dataset
@@ -392,7 +387,7 @@ protected:
    * \param[in] c_inv covariance of occupied covariance voxel
    * \param[in] compute_hessian flag to calculate hessian, unnecessary for step calculation.
    */
-  double updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<float, 4, 6> &point_gradient_, const Eigen::Matrix<float, 24, 6> &point_hessian_, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv, bool compute_hessian = true) const;
+  double updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 4, 6> &point_gradient, const Eigen::Matrix<double, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv, bool compute_hessian = true) const;
 
   /** \brief Precompute angular components of derivatives.
    * \note Equation 6.19 and 6.21 [Magnusson 2009].
@@ -406,9 +401,7 @@ protected:
    * \param[in] x point from the input cloud
    * \param[in] compute_hessian flag to calculate hessian, unnecessary for step calculation.
    */
-  void computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<double, 3, 6> &point_gradient_, Eigen::Matrix<double, 18, 6> &point_hessian_, bool compute_hessian = true) const;
-
-  void computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<float, 4, 6> &point_gradient_, Eigen::Matrix<float, 24, 6> &point_hessian_, bool compute_hessian = true) const;
+  void computePointDerivatives(const Eigen::Vector3d &x, Eigen::Matrix<double, 4, 6> &point_gradient, Eigen::Matrix<double, 24, 6> &point_hessian, bool compute_hessian = true) const;
 
   /** \brief Compute hessian of probability function w.r.t. the transformation vector.
    * \note Equation 6.13 [Magnusson 2009].
@@ -424,7 +417,7 @@ protected:
    * \param[in] x_trans transformed point minus mean of occupied covariance voxel
    * \param[in] c_inv covariance of occupied covariance voxel
    */
-  void updateHessian(Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 3, 6> &point_gradient_, const Eigen::Matrix<double, 18, 6> &point_hessian_, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv) const;
+  void updateHessian(Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 4, 6> &point_gradient, const Eigen::Matrix<double, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv) const;
 
   /** \brief Compute line search step length and update transform and probability derivatives using More-Thuente method.
    * \note Search Algorithm [More, Thuente 1994]
@@ -523,23 +516,13 @@ protected:
    *
    * The precomputed angular derivatives for the jacobian of a transformation vector, Equation 6.19 [Magnusson 2009].
    */
-  Eigen::Vector3d j_ang_a_, j_ang_b_, j_ang_c_, j_ang_d_, j_ang_e_, j_ang_f_, j_ang_g_, j_ang_h_;
-
-  Eigen::Matrix<float, 8, 4> j_ang;
+  Eigen::Matrix<double, 8, 4> j_ang;
 
   /** \brief Precomputed Angular Hessian
    *
    * The precomputed angular derivatives for the hessian of a transformation vector, Equation 6.19 [Magnusson 2009].
    */
-  Eigen::Vector3d h_ang_a2_, h_ang_a3_, h_ang_b2_, h_ang_b3_, h_ang_c2_, h_ang_c3_, h_ang_d1_, h_ang_d2_, h_ang_d3_, h_ang_e1_, h_ang_e2_, h_ang_e3_, h_ang_f1_, h_ang_f2_, h_ang_f3_;
-
-  Eigen::Matrix<float, 16, 4> h_ang;
-
-  /** \brief The first order derivative of the transformation of a point w.r.t. the transform vector, \f$ J_E \f$ in Equation 6.18 [Magnusson 2009]. */
-  //      Eigen::Matrix<double, 3, 6> point_gradient_;
-
-  /** \brief The second order derivative of the transformation of a point w.r.t. the transform vector, \f$ H_E \f$ in Equation 6.20 [Magnusson 2009]. */
-  //      Eigen::Matrix<double, 18, 6> point_hessian_;
+  Eigen::Matrix<double, 16, 4> h_ang;
 
   int num_threads_;
 
