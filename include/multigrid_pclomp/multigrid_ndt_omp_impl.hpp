@@ -263,11 +263,6 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
   }
 
   hessian_ = hessian;
-
-  // For debug
-  std::ofstream test_file("/home/anh/Work/autoware/compute_trans_old.txt");
-  test_file << "Iteration = " << nr_iterations_ << std::endl;
-  exit(0);
 }
 
 #ifndef _OPENMP
@@ -376,12 +371,6 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeD
     neighborhood_counts[tid] += neighborhood.size();
   }
 
-    gettimeofday(&end, NULL);
-
-  test_file << "Compute = " << timeDiff(start, end) << std::endl;
-
-  gettimeofday(&start, NULL);
-
   // Ensure that the result is invariant against the summing up order
   for(size_t i = 0; i < params_.num_threads; ++i) {
     score += scores[i];
@@ -424,12 +413,6 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeD
   } else {
     nearest_voxel_transformation_likelihood_ = 0.0;
   }
-
-    gettimeofday(&end, NULL);
-
-  test_file << "Finalize = " << timeDiff(start, end) << std::endl;
-
-  gettimeofday(&start, NULL);
 
   return (score);
 }
