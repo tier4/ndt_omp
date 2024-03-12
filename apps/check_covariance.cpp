@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
   mkdir(output_dir.c_str(), 0777);
   std::ofstream ofs(output_dir + "/result.csv");
   ofs << std::fixed;
-  ofs << "index,elapsed_milliseconds,score,x,y,cov_by_la_00,cov_by_la_01,cov_by_la_10,cov_by_la_11,cov_by_mndt_00,cov_by_mndt_01,cov_by_mndt_10,cov_by_mndt_11" << std::endl;
+  ofs << "index,elapsed_milliseconds,score,x,y,cov_by_la_00,cov_by_la_01,cov_by_la_10,cov_by_la_11,cov_by_mndt_00,cov_by_mndt_01,cov_by_mndt_10,cov_by_mndt_11,cov_by_mndt_score_00,cov_by_mndt_score_01,cov_by_mndt_score_10,cov_by_mndt_score_11" << std::endl;
 
   // execute align
   for(int64_t i = 0; i < n_data; i++) {
@@ -135,7 +135,11 @@ int main(int argc, char** argv) {
     // estimate covariance
     const Eigen::Matrix2d cov_by_la = pclomp::estimate_xy_covariance_by_Laplace_approximation(ndt_result);
     const Eigen::Matrix2d cov_by_mndt = pclomp::estimate_xy_covariance_by_multi_ndt(ndt_result, mg_ndt_omp, initial_pose, offset_x, offset_y);
+    const Eigen::Matrix2d cov_by_mndt_score = pclomp::estimate_xy_covariance_by_multi_ndt_score(ndt_result, mg_ndt_omp, initial_pose, offset_x, offset_y);
 
-    ofs << i << "," << elapsed << "," << score << "," << initial_pose(0, 3) << "," << initial_pose(1, 3) << "," << cov_by_la(0, 0) << "," << cov_by_la(0, 1) << "," << cov_by_la(1, 0) << "," << cov_by_la(1, 1) << "," << cov_by_mndt(0, 0) << "," << cov_by_mndt(0, 1) << "," << cov_by_mndt(1, 0) << "," << cov_by_mndt(1, 1) << std::endl;
+    ofs << i << "," << elapsed << "," << score << "," << initial_pose(0, 3) << "," << initial_pose(1, 3);
+    ofs << "," << cov_by_la(0, 0) << "," << cov_by_la(0, 1) << "," << cov_by_la(1, 0) << "," << cov_by_la(1, 1);
+    ofs << "," << cov_by_mndt(0, 0) << "," << cov_by_mndt(0, 1) << "," << cov_by_mndt(1, 0) << "," << cov_by_mndt(1, 1);
+    ofs << "," << cov_by_mndt_score(0, 0) << "," << cov_by_mndt_score(0, 1) << "," << cov_by_mndt_score(1, 0) << "," << cov_by_mndt_score(1, 1) << std::endl;
   }
 }

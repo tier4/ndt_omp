@@ -28,6 +28,7 @@ def plot_ellipse(mean, cov, color, label, scale):
         angle=angle,
         color=color,
         alpha=0.5,
+        fill=False,
         label=f"{label}(scale={scale})",
     )
     plt.gca().add_patch(ellipse)
@@ -41,9 +42,10 @@ if __name__ == "__main__":
 
     """
     df_result
-    index,elapsed_milliseconds,score,x,y,cov_by_la_00,cov_by_la_01,cov_by_la_10,cov_by_la_11,cov_by_mndt_00,cov_by_mndt_01,cov_by_mndt_10,cov_by_mndt_11
-    0,586.745000,1.649302,81377.359375,49916.902344,0.000205,0.000009,0.000009,0.000206,0.000015,0.000000,0.000000,0.000000
-    1,7.622000,1.645455,81377.359375,49916.902344,0.000206,0.000009,0.000009,0.000207,0.000017,0.000001,0.000001,0.000004
+    index,elapsed_milliseconds,score,x,y,cov_by_la_00,cov_by_la_01,cov_by_la_10,cov_by_la_11,cov_by_mndt_00,cov_by_mndt_01,cov_by_mndt_10,cov_by_mndt_11,cov_by_mndt_score_00,cov_by_mndt_score_01,cov_by_mndt_score_10,cov_by_mndt_score_11
+    0,576.501000,3.429885,81377.359375,49916.902344,0.000110,0.000007,0.000007,0.000116,0.000017,-0.000002,-0.000002,0.000002,0.106793,0.080732,0.080732,0.177989
+    1,2.180000,3.412068,81377.359375,49916.902344,0.000111,0.000007,0.000007,0.000117,0.000009,0.000004,0.000004,0.000009,0.108240,0.080859,0.080859,0.179305
+    2,1.885000,3.424125,81377.359375,49916.902344,0.000109,0.000007,0.000007,0.000116,0.000000,0.000000,0.000000,0.000009,0.106697,0.080186,0.080186,0.179408
     ...
     """
 
@@ -84,9 +86,18 @@ if __name__ == "__main__":
         cov_by_mndt = row[
             ["cov_by_mndt_00", "cov_by_mndt_01", "cov_by_mndt_10", "cov_by_mndt_11"]
         ].values.reshape(2, 2)
+        cov_by_mndt_score = row[
+            [
+                "cov_by_mndt_score_00",
+                "cov_by_mndt_score_01",
+                "cov_by_mndt_score_10",
+                "cov_by_mndt_score_11",
+            ]
+        ].values.reshape(2, 2)
         x, y = row["x"], row["y"]
         plot_ellipse([x, y], cov_by_la, "blue", "Laplace Approximation", 100)
         plot_ellipse([x, y], cov_by_mndt, "red", "Multi NDT", 100)
+        plot_ellipse([x, y], cov_by_mndt_score, "green", "Multi NDT Score", 10)
         plt.scatter(df_result["x"][0:i], df_result["y"][0:i], color="black", s=1)
         plt.legend(loc="upper center", bbox_to_anchor=(0.5, 1.15))
         plt.grid()
