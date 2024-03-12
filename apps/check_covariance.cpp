@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
   }
 
   // prepare ndt
-  pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr mg_ndt_omp(new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
+  std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> mg_ndt_omp(new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
   mg_ndt_omp->setInputTarget(target_cloud);
   mg_ndt_omp->setResolution(2.0);
   mg_ndt_omp->setNumThreads(4);
