@@ -549,7 +549,7 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 4, 6> &point_gradient4, const Eigen::Matrix<double, 24, 6> &point_hessian_, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv, bool compute_hessian) const {
+double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 4, 6> &point_gradient4, const Eigen::Matrix<double, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv, bool compute_hessian) const {
   Eigen::Matrix<double, 1, 4> x_trans4(x_trans[0], x_trans[1], x_trans[2], 0.0f);
   Eigen::Matrix4d c_inv4 = Eigen::Matrix4d::Zero();
   c_inv4.topLeftCorner(3, 3) = c_inv.cast<double>();
@@ -582,11 +582,11 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
     for(int i = 0; i < 6; ++i) {
       // Sigma_k^-1 d(T(x,p))/dpi, Reusable portion of Equation 6.12 and 6.13 [Magnusson 2009]
       // Update gradient, Equation 6.12 [Magnusson 2009]
-      x_trans4_dot_c_inv4_x_ext_point_hessian4ij.noalias() = x_trans4_x_c_inv4 * point_hessian.block<4, 6>(i * 4, 0);
+      x_trans4_dot_c_inv4_x_ext_point_hessian_4ij.noalias() = x_trans4_x_c_inv4 * point_hessian.block<4, 6>(i * 4, 0);
 
       for(int j = 0; j < hessian.cols(); j++) {
         // Update hessian, Equation 6.13 [Magnusson 2009]
-        hessian(i, j) += e_x_cov_x * (-gauss_d2 * x_trans4_dot_c_inv4_x_point_gradient4(i) * x_trans4_dot_c_inv4_x_point_gradient4(j) + x_trans4_dot_c_inv4_x_ext_point_hessian4ij(j) + point_gradient4_colj_dot_c_inv4_x_point_gradient4_col_i(j, i));
+        hessian(i, j) += e_x_cov_x * (-gauss_d2 * x_trans4_dot_c_inv4_x_point_gradient4(i) * x_trans4_dot_c_inv4_x_point_gradient4(j) + x_trans4_dot_c_inv4_x_ext_point_hessian_4ij(j) + point_gradient4_colj_dot_c_inv4_x_point_gradient4_col_i(j, i));
       }
     }
   }
