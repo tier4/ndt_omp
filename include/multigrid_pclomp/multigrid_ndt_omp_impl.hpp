@@ -366,7 +366,6 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 
       // Update score, gradient and hessian, lines 19-21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13, respectively [Magnusson 2009]
       double score_pt = updateDerivatives(score_gradient_pt, hessian_pt, point_gradient, point_hessian, x_trans, c_inv, compute_hessian);
-
       sum_score_pt += score_pt;
 
       if(score_pt > nearest_voxel_score_pt) {
@@ -691,6 +690,11 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
   for(auto &th : t_hessians) {
     hessian += th;
   }
+
+  // Sum over t_hessians
+  for(auto &th : t_hessians) {
+    hessian += th;
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -989,6 +993,7 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 
 template<typename PointSource, typename PointTarget>
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculateScore(const PointCloudSource &trans_cloud) const {
   double score = 0;
@@ -1029,13 +1034,21 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 
 template<typename PointSource, typename PointTarget>
 >>>>>>> 39754a6 (refactor: organized ndt params (#43))
+=======
+>>>>>>> 28c6d20 (Coding)
 double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculateTransformationProbability(const PointCloudSource &trans_cloud) const {
   double score = 0;
 
   // Score per thread
+<<<<<<< HEAD
   std::vector<double> t_scores(params_.num_threads_, 0);
 
 #pragma omp parallel for num_threads(params_.num_threads_) schedule(guided, 8)
+=======
+  std::vector<double> t_scores(num_threads_, 0);
+
+#pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
+>>>>>>> 28c6d20 (Coding)
   for(size_t idx = 0; idx < trans_cloud.size(); ++idx) {
     int tid = omp_get_thread_num();
     PointSource x_trans_pt = trans_cloud[idx];
@@ -1090,10 +1103,22 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
   size_t found_neighborhood_voxel_num = 0;
 
   // Thread-wise results
+<<<<<<< HEAD
   std::vector<double> t_nvs(params_.num_threads_, 0.0);
   std::vector<size_t> t_found_nnvn(params_.num_threads_, 0);
 
 #pragma omp parallel for num_threads(params_.num_threads_) schedule(guided, 8)
+=======
+  std::vector<double> t_nvs(num_threads_);
+  std::vector<size_t> t_found_nnvn(num_threads_);
+
+  for(int i = 0; i < num_threads_; ++i) {
+    t_nvs[i] = 0;
+    t_found_nnvn[i] = 0;
+  }
+
+#pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
+>>>>>>> 28c6d20 (Coding)
   for(size_t idx = 0; idx < trans_cloud.size(); ++idx) {
     int tid = omp_get_thread_num();
     PointSource x_trans_pt = trans_cloud[idx];
@@ -1134,7 +1159,11 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
   }
 
   // Sum up point-wise scores
+<<<<<<< HEAD
   for(size_t idx = 0; idx < params_.num_threads_; ++idx) {
+=======
+  for(size_t idx = 0; idx < num_threads_; ++idx) {
+>>>>>>> 28c6d20 (Coding)
     found_neighborhood_voxel_num += t_nvs[idx];
     nearest_voxel_score += t_found_nnvn[idx];
   }
