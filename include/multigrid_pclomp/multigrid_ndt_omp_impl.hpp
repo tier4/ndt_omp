@@ -153,8 +153,7 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget> &pclomp:
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform()
-    : target_cells_(), resolution_(1.0f), step_size_(0.1), outlier_ratio_(0.55), trans_probability_(0.0), regularization_pose_(boost::none) {
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform() : target_cells_(), resolution_(1.0f), step_size_(0.1), outlier_ratio_(0.55), trans_probability_(0.0), regularization_pose_(boost::none) {
   reg_name_ = "MultiGridNormalDistributionsTransform";
 
   double gauss_c1, gauss_c2;
@@ -290,7 +289,7 @@ template<typename PointSource, typename PointTarget>
 double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, PointCloudSource &trans_cloud, Eigen::Matrix<double, 6, 1> &p, bool compute_hessian) {
   score_gradient.setZero();
   hessian.setZero();
-  
+
   double score = 0;
   int total_neighborhood_count = 0;
   double nearest_voxel_score = 0;
@@ -481,24 +480,24 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
     // Precomputed angular hessian components. Letters correspond to Equation 6.21 and numbers correspond to row index [Magnusson 2009]
     h_ang_.setZero();
 
-    h_ang_.row(0) << (-cx * sz - sx * sy * cz), (-cx * cz + sx * sy * sz), sx * cy, 0.0f; // a2
+    h_ang_.row(0) << (-cx * sz - sx * sy * cz), (-cx * cz + sx * sy * sz), sx * cy, 0.0f;     // a2
     h_ang_.row(1) << (-sx * sz + cx * sy * cz), (-cx * sy * sz - sx * cz), (-cx * cy), 0.0f;  // a3
 
     h_ang_.row(2) << (cx * cy * cz), (-cx * cy * sz), (cx * sy), 0.0f;  // b2
     h_ang_.row(3) << (sx * cy * cz), (-sx * cy * sz), (sx * sy), 0.0f;  // b3
 
     h_ang_.row(4) << (-sx * cz - cx * sy * sz), (sx * sz - cx * sy * cz), 0.0f, 0.0f;  // c2
-    h_ang_.row(5) << (cx * cz - sx * sy * sz), (-sx * sy * cz - cx * sz), 0.0f, 0.0f; // c3
+    h_ang_.row(5) << (cx * cz - sx * sy * sz), (-sx * sy * cz - cx * sz), 0.0f, 0.0f;  // c3
 
-    h_ang_.row(6) << (-cy * cz), (cy * sz), (sy), 0.0f; // d1
-    h_ang_.row(7) << (-sx * sy * cz), (sx * sy * sz), (sx * cy), 0.0f;  // d2
+    h_ang_.row(6) << (-cy * cz), (cy * sz), (sy), 0.0f;                  // d1
+    h_ang_.row(7) << (-sx * sy * cz), (sx * sy * sz), (sx * cy), 0.0f;   // d2
     h_ang_.row(8) << (cx * sy * cz), (-cx * sy * sz), (-cx * cy), 0.0f;  // d3
 
-    h_ang_.row(9) << (sy * sz), (sy * cz), 0.0f, 0.0f; // e1
-    h_ang_.row(10) << (-sx * cy * sz), (-sx * cy * cz), 0.0f, 0.0f; // e2
-    h_ang_.row(11) << (cx * cy * sz), (cx * cy * cz), 0.0f, 0.0f;  // e3
+    h_ang_.row(9) << (sy * sz), (sy * cz), 0.0f, 0.0f;               // e1
+    h_ang_.row(10) << (-sx * cy * sz), (-sx * cy * cz), 0.0f, 0.0f;  // e2
+    h_ang_.row(11) << (cx * cy * sz), (cx * cy * cz), 0.0f, 0.0f;    // e3
 
-    h_ang_.row(12) << (-cy * cz), (cy * sz), 0.0f, 0.0f;  // f1
+    h_ang_.row(12) << (-cy * cz), (cy * sz), 0.0f, 0.0f;                                 // f1
     h_ang_.row(13) << (-cx * sz - sx * sy * cz), (-cx * cz + sx * sy * sz), 0.0f, 0.0f;  // f2
     h_ang_.row(14) << (-sx * sz + cx * sy * cz), (-cx * sy * sz - sx * cz), 0.0f, 0.0f;  // f3
   }
