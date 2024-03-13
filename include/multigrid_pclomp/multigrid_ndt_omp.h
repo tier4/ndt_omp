@@ -80,11 +80,12 @@ namespace pclomp {
 template<typename PointSource, typename PointTarget>
 class MultiGridNormalDistributionsTransform : public pcl::Registration<PointSource, PointTarget> {
 protected:
-  typedef typename pcl::Registration<PointSource, PointTarget>::PointCloudSource PointCloudSource;
+  typedef pcl::Registration<PointSource, PointTarget> BaseRegType;
+  typedef typename BaseRegType::PointCloudSource PointCloudSource;
   typedef typename PointCloudSource::Ptr PointCloudSourcePtr;
   typedef typename PointCloudSource::ConstPtr PointCloudSourceConstPtr;
 
-  typedef typename pcl::Registration<PointSource, PointTarget>::PointCloudTarget PointCloudTarget;
+  typedef typename BaseRegType::PointCloudTarget PointCloudTarget;
   typedef typename PointCloudTarget::Ptr PointCloudTargetPtr;
   typedef typename PointCloudTarget::ConstPtr PointCloudTargetConstPtr;
 
@@ -93,14 +94,8 @@ protected:
 
   /** \brief Typename of searchable voxel grid containing mean and covariance. */
   typedef pclomp::MultiVoxelGridCovariance<PointTarget> TargetGrid;
-  /** \brief Typename of pointer to searchable voxel grid. */
-  typedef TargetGrid *TargetGridPtr;
-  /** \brief Typename of const pointer to searchable voxel grid. */
-  typedef const TargetGrid *TargetGridConstPtr;
   /** \brief Typename of const pointer to searchable voxel grid leaf. */
   typedef typename TargetGrid::LeafConstPtr TargetGridLeafConstPtr;
-
-  typedef pcl::Registration<PointSource, PointTarget> BaseRegType;
 
 public:
 #if PCL_VERSION >= PCL_VERSION_CALC(1, 10, 0)
@@ -139,8 +134,10 @@ public:
     // This is to avoid segmentation fault when setting null input
     // No idea why PCL does not check the nullity of input
     if(input) {
-      pcl::Registration<PointSource, PointTarget>::setInputSource(input);
-    } else {
+      BaseRegType::setInputSource(input);
+    }
+    else
+    {
       std::cerr << "Error: Null input source cloud is not allowed" << std::endl;
       exit(EXIT_FAILURE);
     }
@@ -156,7 +153,7 @@ public:
    * \param[in] cloud the input point cloud target
    */
   inline void addTarget(const PointCloudTargetConstPtr &cloud, const std::string &target_id) {
-    pcl::Registration<PointSource, PointTarget>::setInputTarget(cloud);
+    BaseRegType::setInputTarget(cloud);
     target_cells_.setLeafSize(resolution_, resolution_, resolution_);
     target_cells_.setInputCloudAndFilter(cloud, target_id);
   }
@@ -319,18 +316,18 @@ public:
   }
 
 protected:
-  using pcl::Registration<PointSource, PointTarget>::reg_name_;
-  using pcl::Registration<PointSource, PointTarget>::input_;
-  using pcl::Registration<PointSource, PointTarget>::target_;
-  using pcl::Registration<PointSource, PointTarget>::nr_iterations_;
-  using pcl::Registration<PointSource, PointTarget>::max_iterations_;
-  using pcl::Registration<PointSource, PointTarget>::previous_transformation_;
-  using pcl::Registration<PointSource, PointTarget>::final_transformation_;
-  using pcl::Registration<PointSource, PointTarget>::transformation_;
-  using pcl::Registration<PointSource, PointTarget>::transformation_epsilon_;
-  using pcl::Registration<PointSource, PointTarget>::converged_;
+  using BaseRegType::reg_name_;
+  using BaseRegType::input_;
+  using BaseRegType::target_;
+  using BaseRegType::nr_iterations_;
+  using BaseRegType::max_iterations_;
+  using BaseRegType::previous_transformation_;
+  using BaseRegType::final_transformation_;
+  using BaseRegType::transformation_;
+  using BaseRegType::transformation_epsilon_;
+  using BaseRegType::converged_;
 
-  using pcl::Registration<PointSource, PointTarget>::update_visualizer_;
+  using BaseRegType::update_visualizer_;
 
   /** \brief Estimate the transformation and returns the transformed source (input) as output.
    * \param[out] output the resultant input transformed point cloud dataset
@@ -495,13 +492,13 @@ protected:
    *
    * The precomputed angular derivatives for the jacobian of a transformation vector, Equation 6.19 [Magnusson 2009].
    */
-  Eigen::Matrix<double, 8, 4> j_ang;
+  Eigen::Matrix<double, 8, 4> j_ang_;
 
   /** \brief Precomputed Angular Hessian
    *
    * The precomputed angular derivatives for the hessian of a transformation vector, Equation 6.19 [Magnusson 2009].
    */
-  Eigen::Matrix<double, 16, 4> h_ang;
+  Eigen::Matrix<double, 16, 4> h_ang_;
   int num_threads_;
 
   Eigen::Matrix<double, 6, 6> hessian_;
