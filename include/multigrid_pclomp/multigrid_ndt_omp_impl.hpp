@@ -686,6 +686,11 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHes
   for(auto &th : t_hessians) {
     hessian += th;
   }
+
+  // Sum over t_hessians
+  for(auto &th : t_hessians) {
+    hessian += th;
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1044,8 +1049,8 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculat
   size_t found_neighborhood_voxel_num = 0;
 
   // Thread-wise results
-  std::vector<double> t_nvs(params_.num_threads, 0.0);
-  std::vector<size_t> t_found_nnvn(params_.num_threads, 0.0);
+  std::vector<double> t_nvs(params_.num_threads);
+  std::vector<size_t> t_found_nnvn(params_.num_threads);
 
   for(int i = 0; i < params_.num_threads; ++i) {
     t_nvs[i] = 0;
