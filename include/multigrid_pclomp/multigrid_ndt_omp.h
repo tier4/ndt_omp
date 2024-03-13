@@ -140,6 +140,9 @@ public:
     // No idea why PCL does not check the nullity of input
     if(input) {
       pcl::Registration<PointSource, PointTarget>::setInputSource(input);
+    } else {
+      std::cerr << "Error: Null input source cloud is not allowed" << std::endl;
+      exit(EXIT_FAILURE);
     }
   }
 
@@ -363,7 +366,7 @@ protected:
    * \param[in] c_inv covariance of occupied covariance voxel
    * \param[in] compute_hessian flag to calculate hessian, unnecessary for step calculation.
    */
-  double updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<float, 4, 6> &point_gradient_, const Eigen::Matrix<float, 24, 6> &point_hessian_, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv, bool compute_hessian = true) const;
+  double updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<float, 4, 6> &point_gradient, const Eigen::Matrix<float, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv, bool compute_hessian = true) const;
 
   /** \brief Precompute angular components of derivatives.
    * \note Equation 6.19 and 6.21 [Magnusson 2009].
@@ -377,9 +380,9 @@ protected:
    * \param[in] x point from the input cloud
    * \param[in] compute_hessian flag to calculate hessian, unnecessary for step calculation.
    */
-  void computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<double, 3, 6> &point_gradient_, Eigen::Matrix<double, 18, 6> &point_hessian_, bool compute_hessian = true) const;
+  void computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<double, 3, 6> &point_gradient, Eigen::Matrix<double, 18, 6> &point_hessian, bool compute_hessian = true) const;
 
-  void computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<float, 4, 6> &point_gradient_, Eigen::Matrix<float, 24, 6> &point_hessian_, bool compute_hessian = true) const;
+  void computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<float, 4, 6> &point_gradient, Eigen::Matrix<float, 24, 6> &point_hessian, bool compute_hessian = true) const;
 
   /** \brief Compute hessian of probability function w.r.t. the transformation vector.
    * \note Equation 6.13 [Magnusson 2009].
@@ -395,7 +398,7 @@ protected:
    * \param[in] x_trans transformed point minus mean of occupied covariance voxel
    * \param[in] c_inv covariance of occupied covariance voxel
    */
-  void updateHessian(Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 3, 6> &point_gradient_, const Eigen::Matrix<double, 18, 6> &point_hessian_, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv) const;
+  void updateHessian(Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 3, 6> &point_gradient, const Eigen::Matrix<double, 18, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv) const;
 
   /** \brief Compute line search step length and update transform and probability derivatives using More-Thuente method.
    * \note Search Algorithm [More, Thuente 1994]
@@ -505,13 +508,6 @@ protected:
   Eigen::Vector3d h_ang_a2_, h_ang_a3_, h_ang_b2_, h_ang_b3_, h_ang_c2_, h_ang_c3_, h_ang_d1_, h_ang_d2_, h_ang_d3_, h_ang_e1_, h_ang_e2_, h_ang_e3_, h_ang_f1_, h_ang_f2_, h_ang_f3_;
 
   Eigen::Matrix<float, 16, 4> h_ang;
-
-  /** \brief The first order derivative of the transformation of a point w.r.t. the transform vector, \f$ J_E \f$ in Equation 6.18 [Magnusson 2009]. */
-  //      Eigen::Matrix<double, 3, 6> point_gradient_;
-
-  /** \brief The second order derivative of the transformation of a point w.r.t. the transform vector, \f$ H_E \f$ in Equation 6.20 [Magnusson 2009]. */
-  //      Eigen::Matrix<double, 18, 6> point_hessian_;
-
   int num_threads_;
 
   Eigen::Matrix<double, 6, 6> hessian_;
