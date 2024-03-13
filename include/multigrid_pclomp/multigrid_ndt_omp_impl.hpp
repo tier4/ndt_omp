@@ -195,7 +195,6 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
   }
 
   Eigen::Transform<float, 3, Eigen::Affine, Eigen::ColMajor> eig_transformation;
-
   eig_transformation.matrix() = final_transformation_;
   transformation_array_.clear();
   transformation_array_.push_back(final_transformation_);
@@ -204,7 +203,6 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
   Eigen::Matrix<double, 6, 1> p, delta_p, score_gradient;
   Eigen::Vector3f init_translation = eig_transformation.translation();
   Eigen::Vector3f init_rotation = eig_transformation.rotation().eulerAngles(0, 1, 2);
-
   p << init_translation(0), init_translation(1), init_translation(2), init_rotation(0), init_rotation(1), init_rotation(2);
 
   Eigen::Matrix<double, 6, 6> hessian;
@@ -290,7 +288,6 @@ template<typename PointSource, typename PointTarget>
 double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, PointCloudSource &trans_cloud, Eigen::Matrix<double, 6, 1> &p, bool compute_hessian) {
   score_gradient.setZero();
   hessian.setZero();
-
   double score = 0;
   int total_neighborhood_count = 0;
   double nearest_voxel_score = 0;
@@ -303,7 +300,6 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
   std::vector<Eigen::Matrix<double, 6, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 1>>> score_gradients(input_size);
   std::vector<Eigen::Matrix<double, 6, 6>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 6>>> hessians(input_size);
   std::vector<int> neighborhood_counts(input_size);
-
   for(size_t i = 0; i < input_size; ++i) {
     scores[i] = 0;
     nearest_voxel_scores[i] = 0;
