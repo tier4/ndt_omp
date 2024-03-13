@@ -620,6 +620,21 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHes
     // Compute derivative of transform function w.r.t. transform vector, J_E and H_E in Equations 6.18 and 6.20 [Magnusson 2009]
     computePointDerivatives(x, point_gradient, point_hessian);
 
+    if(neighborhood.empty()) {
+      continue;
+    }
+
+    auto &x_pt = (*input_)[idx];
+    // For math
+    Eigen::Vector3d x(x_pt.x, x_pt.y, x_pt.z);
+
+    auto &point_gradient = t_point_gradients[tid];
+    auto &point_hessian = t_point_hessians[tid];
+    auto &tmp_hessian = t_hessians[tid];
+
+    // Compute derivative of transform function w.r.t. transform vector, J_E and H_E in Equations 6.18 and 6.20 [Magnusson 2009]
+    computePointDerivatives(x, point_gradient, point_hessian);
+
     for(auto &cell : neighborhood) {
       // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
       // Update hessian, lines 21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13, respectively [Magnusson 2009]
@@ -988,6 +1003,12 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculat
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
     target_cells_.radiusSearch(x_trans_pt, params_.resolution_, neighborhood);
+
+    if(neighborhood.empty()) {
+      continue;
+    }
+
+    double nearest_voxel_score_pt = 0;
 
     if(neighborhood.empty()) {
       continue;
