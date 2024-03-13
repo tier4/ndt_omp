@@ -234,7 +234,7 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
     }
 
     delta_p.normalize();
-    delta_p_norm = computeStepLengthMT(p, delta_p, delta_p_norm, params_.step_size, params_.trans_epsilon / 2, score, score_gradient, hessian, output);
+    delta_p_norm = computeStepLengthMT(p, delta_p, delta_p_norm, params_.step_size, params_.trans_epsilon / 2.0, score, score_gradient, hessian, output);
     delta_p *= delta_p_norm;
 
     transformation_ = (Eigen::Translation<float, 3>(static_cast<float>(delta_p(0)), static_cast<float>(delta_p(1)), static_cast<float>(delta_p(2))) * Eigen::AngleAxis<float>(static_cast<float>(delta_p(3)), Eigen::Vector3f::UnitX()) * Eigen::AngleAxis<float>(static_cast<float>(delta_p(4)), Eigen::Vector3f::UnitY()) * Eigen::AngleAxis<float>(static_cast<float>(delta_p(5)), Eigen::Vector3f::UnitZ()))
@@ -464,24 +464,24 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeAng
     // Precomputed angular hessian components. Letters correspond to Equation 6.21 and numbers correspond to row index [Magnusson 2009]
     h_ang_.setZero();
 
-    h_ang_.row(0) << (-cx * sz - sx * sy * cz), (-cx * cz + sx * sy * sz), sx * cy, 0.0f;     // a2
+    h_ang_.row(0) << (-cx * sz - sx * sy * cz), (-cx * cz + sx * sy * sz), sx * cy, 0.0f; // a2
     h_ang_.row(1) << (-sx * sz + cx * sy * cz), (-cx * sy * sz - sx * cz), (-cx * cy), 0.0f;  // a3
 
     h_ang_.row(2) << (cx * cy * cz), (-cx * cy * sz), (cx * sy), 0.0f;  // b2
     h_ang_.row(3) << (sx * cy * cz), (-sx * cy * sz), (sx * sy), 0.0f;  // b3
 
     h_ang_.row(4) << (-sx * cz - cx * sy * sz), (sx * sz - cx * sy * cz), 0.0f, 0.0f;  // c2
-    h_ang_.row(5) << (cx * cz - sx * sy * sz), (-sx * sy * cz - cx * sz), 0.0f, 0.0f;  // c3
+    h_ang_.row(5) << (cx * cz - sx * sy * sz), (-sx * sy * cz - cx * sz), 0.0f, 0.0f; // c3
 
-    h_ang_.row(6) << (-cy * cz), (cy * sz), (sy), 0.0f;                  // d1
-    h_ang_.row(7) << (-sx * sy * cz), (sx * sy * sz), (sx * cy), 0.0f;   // d2
+    h_ang_.row(6) << (-cy * cz), (cy * sz), (sy), 0.0f; // d1
+    h_ang_.row(7) << (-sx * sy * cz), (sx * sy * sz), (sx * cy), 0.0f;  // d2
     h_ang_.row(8) << (cx * sy * cz), (-cx * sy * sz), (-cx * cy), 0.0f;  // d3
 
-    h_ang_.row(9) << (sy * sz), (sy * cz), 0.0f, 0.0f;               // e1
-    h_ang_.row(10) << (-sx * cy * sz), (-sx * cy * cz), 0.0f, 0.0f;  // e2
-    h_ang_.row(11) << (cx * cy * sz), (cx * cy * cz), 0.0f, 0.0f;    // e3
+    h_ang_.row(9) << (sy * sz), (sy * cz), 0.0f, 0.0f; // e1
+    h_ang_.row(10) << (-sx * cy * sz), (-sx * cy * cz), 0.0f, 0.0f; // e2
+    h_ang_.row(11) << (cx * cy * sz), (cx * cy * cz), 0.0f, 0.0f;  // e3
 
-    h_ang_.row(12) << (-cy * cz), (cy * sz), 0.0f, 0.0f;                                 // f1
+    h_ang_.row(12) << (-cy * cz), (cy * sz), 0.0f, 0.0f;  // f1
     h_ang_.row(13) << (-cx * sz - sx * sy * cz), (-cx * cz + sx * sy * sz), 0.0f, 0.0f;  // f2
     h_ang_.row(14) << (-sx * sz + cx * sy * cz), (-cx * sy * sz - sx * cz), 0.0f, 0.0f;  // f3
   }
@@ -532,7 +532,7 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computePoi
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 4, 6> &point_gradient, const Eigen::Matrix<double, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv, bool compute_hessian) const {
+double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<float, 4, 6> &point_gradient4, const Eigen::Matrix<float, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv, bool compute_hessian) const {
   Eigen::Matrix<float, 1, 4> x_trans4(x_trans[0], x_trans[1], x_trans[2], 0.0f);
   Eigen::Matrix4d c_inv4 = Eigen::Matrix4d::Zero();
 
