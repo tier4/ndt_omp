@@ -186,6 +186,7 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
   }
 
   Eigen::Transform<float, 3, Eigen::Affine, Eigen::ColMajor> eig_transformation;
+
   eig_transformation.matrix() = final_transformation_;
   transformation_array_.clear();
   transformation_array_.push_back(final_transformation_);
@@ -194,6 +195,7 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
   Eigen::Matrix<double, 6, 1> p, delta_p, score_gradient;
   Eigen::Vector3f init_translation = eig_transformation.translation();
   Eigen::Vector3f init_rotation = eig_transformation.rotation().eulerAngles(0, 1, 2);
+
   p << init_translation(0), init_translation(1), init_translation(2), init_rotation(0), init_rotation(1), init_rotation(2);
 
   Eigen::Matrix<double, 6, 6> hessian;
@@ -279,6 +281,7 @@ template<typename PointSource, typename PointTarget>
 double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, PointCloudSource &trans_cloud, Eigen::Matrix<double, 6, 1> &p, bool compute_hessian) {
   score_gradient.setZero();
   hessian.setZero();
+  
   double score = 0;
   int total_neighborhood_count = 0;
   double nearest_voxel_score = 0;
