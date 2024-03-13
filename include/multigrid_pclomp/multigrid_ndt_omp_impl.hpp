@@ -681,16 +681,6 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHes
   for(auto &th : t_hessians) {
     hessian += th;
   }
-
-  // Sum over t_hessians
-  for(auto &th : t_hessians) {
-    hessian += th;
-  }
-
-  // Sum over t_hessians
-  for(auto &th : t_hessians) {
-    hessian += th;
-  }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
