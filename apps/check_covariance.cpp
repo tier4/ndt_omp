@@ -102,8 +102,8 @@ int main(int argc, char** argv) {
 
   std::cout << std::fixed;
 
-  const std::vector<double> offset_x = {0.0, 0.0, 0.5, -0.5, 1.0, -1.0};
-  const std::vector<double> offset_y = {0.5, -0.5, 0.0, 0.0, 0.0, 0.0};
+  const std::vector<double> offset_x = {0.0, 0.0, 0.5, -0.5, 1.0, -1.0, 0.0, 0.0, 2.0, -2.0};
+  const std::vector<double> offset_y = {0.5, -0.5, 0.0, 0.0, 0.0, 0.0, 1.0, -1.0, 0.0, 0.0};
 
   // output result
   mkdir(output_dir.c_str(), 0777);

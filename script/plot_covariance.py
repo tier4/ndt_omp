@@ -69,8 +69,11 @@ if __name__ == "__main__":
     print(f"Saved: {save_path}")
     plt.close()
 
-    df_result["x"] -= df_result["x"].mean()
-    df_result["y"] -= df_result["y"].mean()
+    mean_x = df_result["x"].mean()
+    mean_y = df_result["y"].mean()
+
+    df_result["x"] -= mean_x
+    df_result["y"] -= mean_y
 
     cov_default = 0.0225 * np.eye(2)
 

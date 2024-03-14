@@ -131,7 +131,7 @@ std::vector<double> calc_weight_vec(const std::vector<double>& score_vec) {
   std::vector<double> exp_score_vec(n);
   double exp_score_sum = 0.0;
   for(int i = 0; i < n; i++) {
-    exp_score_vec[i] = std::exp(score_vec[i] - max_score);
+    exp_score_vec[i] = std::exp((score_vec[i] - max_score) / 0.1);
     exp_score_sum += exp_score_vec[i];
   }
   for(int i = 0; i < n; i++) {
