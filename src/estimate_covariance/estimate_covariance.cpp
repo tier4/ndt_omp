@@ -116,16 +116,16 @@ Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_r
   const int total_itr = primary_ndt_itr + n;
   const double max_score = *std::max_element(score_vec.begin(), score_vec.end());
   double sum_score = 0.0;
-  for (int i = 0; i < total_itr; i++) {
+  for(int i = 0; i < total_itr; i++) {
     score_vec[i] = std::exp(score_vec[i] - max_score);
     sum_score += score_vec[i];
   }
   Eigen::Vector2d mean = Eigen::Vector2d::Zero();
-  for (int i = 0; i < total_itr; i++) {
+  for(int i = 0; i < total_itr; i++) {
     mean += score_vec[i] / sum_score * ndt_pose_2d_vec[i];
   }
   Eigen::Matrix2d covariance = Eigen::Matrix2d::Zero();
-  for (int i = 0; i < total_itr; i++) {
+  for(int i = 0; i < total_itr; i++) {
     const Eigen::Vector2d diff = ndt_pose_2d_vec[i] - mean;
     covariance += score_vec[i] / sum_score * diff * diff.transpose();
   }
