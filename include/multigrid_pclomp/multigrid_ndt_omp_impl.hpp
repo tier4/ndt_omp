@@ -357,8 +357,7 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
     for(auto &cell : neighborhood) {
       // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
       // Update score, gradient and hessian, lines 19-21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13, respectively [Magnusson 2009]
-      double score_pt = updateDerivatives(score_gradient_pt, hessian_pt, point_gradient, point_hessian, 
-                                          x_trans - cell->getMean(), cell->getInverseCov(), compute_hessian);
+      double score_pt = updateDerivatives(score_gradient_pt, hessian_pt, point_gradient, point_hessian, x_trans - cell->getMean(), cell->getInverseCov(), compute_hessian);
 
       sum_score_pt += score_pt;
 

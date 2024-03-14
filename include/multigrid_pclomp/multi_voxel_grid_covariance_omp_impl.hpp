@@ -59,12 +59,7 @@
 namespace pclomp {
 
 template<typename PointT>
-MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(const MultiVoxelGridCovariance &other) 
-    : pcl::VoxelGrid<PointT>(other), 
-      sid_to_iid_(other.sid_to_iid_), 
-      grid_list_(other.grid_list_), 
-      kdtree_(other.kdtree_), 
-      leaf_indices_(other.leaf_indices_) {
+MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(const MultiVoxelGridCovariance &other) : pcl::VoxelGrid<PointT>(other), sid_to_iid_(other.sid_to_iid_), grid_list_(other.grid_list_), kdtree_(other.kdtree_), leaf_indices_(other.leaf_indices_) {
   min_points_per_voxel_ = other.min_points_per_voxel_;
   min_covar_eigvalue_mult_ = other.min_covar_eigvalue_mult_;
 
