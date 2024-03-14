@@ -100,7 +100,7 @@ if __name__ == "__main__":
         plot_ellipse([x, y], cov_default, "green", "Default", 10)
         plot_ellipse([x, y], cov_by_la, "blue", "Laplace Approximation", 100)
         plot_ellipse([x, y], cov_by_mndt, "red", "Multi NDT", 100)
-        plot_ellipse([x, y], cov_by_mndt_score, "green", "Multi NDT Score", 10)
+        plot_ellipse([x, y], cov_by_mndt_score, "orange", "Multi NDT Score", 10)
         plt.scatter(df_result["x"][0:i], df_result["y"][0:i], color="black", s=1)
         plt.legend(loc="upper center", bbox_to_anchor=(0.5, 1.15))
         plt.grid()
