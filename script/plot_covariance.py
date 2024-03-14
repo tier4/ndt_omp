@@ -72,6 +72,8 @@ if __name__ == "__main__":
     df_result["x"] -= df_result["x"].mean()
     df_result["y"] -= df_result["y"].mean()
 
+    cov_default = 0.0225 * np.eye(2)
+
     # plot each frame
     output_dir = result_csv.parent / "covariance_each_frame"
     output_dir.mkdir(exist_ok=True, parents=True)
@@ -95,6 +97,7 @@ if __name__ == "__main__":
             ]
         ].values.reshape(2, 2)
         x, y = row["x"], row["y"]
+        plot_ellipse([x, y], cov_default, "green", "Default", 10)
         plot_ellipse([x, y], cov_by_la, "blue", "Laplace Approximation", 100)
         plot_ellipse([x, y], cov_by_mndt, "red", "Multi NDT", 100)
         plot_ellipse([x, y], cov_by_mndt_score, "green", "Multi NDT Score", 10)
@@ -105,5 +108,6 @@ if __name__ == "__main__":
         plt.ylabel("y[m]")
         plt.xlim(x - 10, x + 10)
         plt.ylim(y - 10, y + 10)
+        plt.gca().set_aspect("equal", adjustable="box")
         plt.savefig(output_dir / f"{i:08d}.png", bbox_inches="tight", pad_inches=0.05)
         plt.close()

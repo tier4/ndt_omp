@@ -46,31 +46,11 @@
 #include <pcl/registration/registration.h>
 #include <pcl/search/impl/search.hpp>
 #include "voxel_grid_covariance_omp.h"
+#include "ndt_struct.hpp"
 
 #include <unsupported/Eigen/NonLinearOptimization>
 
 namespace pclomp {
-enum NeighborSearchMethod { KDTREE, DIRECT26, DIRECT7, DIRECT1 };
-
-struct NdtResult {
-  Eigen::Matrix4f pose;
-  float transform_probability;
-  float nearest_voxel_transformation_likelihood;
-  int iteration_num;
-  std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array;
-  Eigen::Matrix<double, 6, 6> hessian;
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};
-
-struct NdtParams {
-  double trans_epsilon;
-  double step_size;
-  double resolution;
-  int max_iterations;
-  pclomp::NeighborSearchMethod search_method;
-  int num_threads;
-  float regularization_scale_factor;
-};
 
 /** \brief A 3D Normal Distribution Transform registration implementation for point cloud data.
  * \note For more information please see
