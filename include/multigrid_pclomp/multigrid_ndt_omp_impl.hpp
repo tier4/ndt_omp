@@ -322,10 +322,9 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeD
     // Searching for neighbors of the current transformed point
     auto &x_trans_pt = trans_cloud[idx];
     std::vector<TargetGridLeafConstPtr> neighborhood;
-    std::vector<float> nn_distances;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, params_.resolution, neighborhood, nn_distances);
+    target_cells_.radiusSearch(x_trans_pt, params_.resolution, neighborhood);
 
     if(neighborhood.empty()) {
       continue;
@@ -602,7 +601,7 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHes
     std::vector<TargetGridLeafConstPtr> neighborhood;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, params_.resolution, neighborhood, distances);
+    target_cells_.radiusSearch(x_trans_pt, params_.resolution, neighborhood);
 
     if(neighborhood.empty()) {
       continue;
@@ -612,21 +611,6 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHes
     // For math
     Eigen::Vector3d x(x_pt.x, x_pt.y, x_pt.z);
     Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
-
-    auto &point_gradient = t_point_gradients[tid];
-    auto &point_hessian = t_point_hessians[tid];
-    auto &tmp_hessian = t_hessians[tid];
-
-    // Compute derivative of transform function w.r.t. transform vector, J_E and H_E in Equations 6.18 and 6.20 [Magnusson 2009]
-    computePointDerivatives(x, point_gradient, point_hessian);
-
-    if(neighborhood.empty()) {
-      continue;
-    }
-
-    auto &x_pt = (*input_)[idx];
-    // For math
-    Eigen::Vector3d x(x_pt.x, x_pt.y, x_pt.z);
 
     auto &point_gradient = t_point_gradients[tid];
     auto &point_hessian = t_point_hessians[tid];
@@ -942,10 +926,9 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculat
 
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
     std::vector<TargetGridLeafConstPtr> neighborhood;
-    std::vector<float> distances;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, params_.resolution, neighborhood, distances);
+    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood);
 
     if(neighborhood.empty()) {
       continue;
@@ -1002,13 +985,7 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculat
     std::vector<TargetGridLeafConstPtr> neighborhood;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, params_.resolution_, neighborhood);
-
-    if(neighborhood.empty()) {
-      continue;
-    }
-
-    double nearest_voxel_score_pt = 0;
+    target_cells_.radiusSearch(x_trans_pt, params_.resolution, neighborhood);
 
     if(neighborhood.empty()) {
       continue;
