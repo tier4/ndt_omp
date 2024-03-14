@@ -1,4 +1,6 @@
 #include "estimate_covariance/estimate_covariance.hpp"
+#include <fstream>
+#include <iomanip>
 
 namespace pclomp {
 
@@ -112,45 +114,57 @@ Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_r
   // set itr to original
   ndt_ptr->setMaximumIterations(original_max_itr);
 
+  // calculate the weights
+  const std::vector<double> weight_vec = calc_weight_vec(score_vec);
+
+  // for debug
+  output_pose_score_weight(ndt_pose_2d_vec, score_vec, weight_vec);
+
   // calculate the covariance matrix
-  const int total_itr = primary_ndt_itr + n;
-  const double max_score = *std::max_element(score_vec.begin(), score_vec.end());
-  double sum_score = 0.0;
-  for(int i = 0; i < total_itr; i++) {
-    score_vec[i] = std::exp(score_vec[i] - max_score);
-    sum_score += score_vec[i];
-  }
-  Eigen::Vector2d mean = Eigen::Vector2d::Zero();
-  for(int i = 0; i < total_itr; i++) {
-    mean += score_vec[i] / sum_score * ndt_pose_2d_vec[i];
-  }
-  Eigen::Matrix2d covariance = Eigen::Matrix2d::Zero();
-  for(int i = 0; i < total_itr; i++) {
-    const Eigen::Vector2d diff = ndt_pose_2d_vec[i] - mean;
-    covariance += score_vec[i] / sum_score * diff * diff.transpose();
-  }
+  const auto [mean, covariance] = calculate_weighted_mean_and_cov(ndt_pose_2d_vec, weight_vec);
   return covariance;
 }
 
-std::pair<Eigen::Vector2d, Eigen::Matrix2d> calculate_weighted_mean_and_cov(const std::vector<Eigen::Vector2d>& pose_2d_vec, const std::vector<double>& score_vec) {
-  const int total_itr = static_cast<int>(pose_2d_vec.size());
+std::vector<double> calc_weight_vec(const std::vector<double>& score_vec) {
+  const int n = static_cast<int>(score_vec.size());
   const double max_score = *std::max_element(score_vec.begin(), score_vec.end());
-  Eigen::Vector2d mean = Eigen::Vector2d::Zero();
-  std::vector<double> exp_score_vec(total_itr);
+  std::vector<double> exp_score_vec(n);
   double exp_score_sum = 0.0;
-  for(int i = 0; i < total_itr; i++) {
+  for(int i = 0; i < n; i++) {
     exp_score_vec[i] = std::exp(score_vec[i] - max_score);
     exp_score_sum += exp_score_vec[i];
   }
-  for(int i = 0; i < total_itr; i++) {
-    mean += exp_score_vec[i] / exp_score_sum * pose_2d_vec[i];
+  for(int i = 0; i < n; i++) {
+    exp_score_vec[i] /= exp_score_sum;
+  }
+  return exp_score_vec;
+}
+
+std::pair<Eigen::Vector2d, Eigen::Matrix2d> calculate_weighted_mean_and_cov(const std::vector<Eigen::Vector2d>& pose_2d_vec, const std::vector<double>& weight_vec) {
+  const int n = static_cast<int>(pose_2d_vec.size());
+  Eigen::Vector2d mean = Eigen::Vector2d::Zero();
+  for(int i = 0; i < n; i++) {
+    mean += weight_vec[i] * pose_2d_vec[i];
   }
   Eigen::Matrix2d covariance = Eigen::Matrix2d::Zero();
-  for(int i = 0; i < total_itr; i++) {
+  for(int i = 0; i < n; i++) {
     const Eigen::Vector2d diff = pose_2d_vec[i] - mean;
-    covariance += exp_score_vec[i] / exp_score_sum * diff * diff.transpose();
+    covariance += weight_vec[i] * diff * diff.transpose();
   }
   return {mean, covariance};
+}
+
+void output_pose_score_weight(const std::vector<Eigen::Vector2d>& pose_2d_vec, const std::vector<double>& score_vec, const std::vector<double>& weight_vec) {
+  static int counter = 0;
+  std::stringstream ss;
+  ss << "log" << std::setw(8) << std::setfill('0') << counter++ << ".csv";
+  std::ofstream ofs(ss.str());
+  ofs << std::fixed;
+  ofs << "x,y,score,weight" << std::endl;  // header
+  const int n = static_cast<int>(pose_2d_vec.size());
+  for(int i = 0; i < n; i++) {
+    ofs << pose_2d_vec[i].x() << "," << pose_2d_vec[i].y() << "," << score_vec[i] << "," << weight_vec[i] << std::endl;
+  }
 }
 
 }  // namespace pclomp
