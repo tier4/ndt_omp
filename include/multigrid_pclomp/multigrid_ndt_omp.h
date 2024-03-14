@@ -121,6 +121,8 @@ public:
 
   void setNumThreads(int n) {
     num_threads_ = n;
+
+    target_cells_.setThreadNum(num_threads_);
   }
 
   inline int getNumThreads() const {
