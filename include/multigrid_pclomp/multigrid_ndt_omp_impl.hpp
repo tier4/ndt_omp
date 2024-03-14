@@ -1047,13 +1047,8 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
   size_t found_neighborhood_voxel_num = 0;
 
   // Thread-wise results
-  std::vector<double> t_nvs(num_threads_);
-  std::vector<size_t> t_found_nnvn(num_threads_);
-
-  for(int i = 0; i < num_threads_; ++i) {
-    t_nvs[i] = 0;
-    t_found_nnvn[i] = 0;
-  }
+  std::vector<double> t_nvs(num_threads_, 0.0);
+  std::vector<size_t> t_found_nnvn(num_threads_, 0);
 
 #pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
   for(size_t idx = 0; idx < trans_cloud.size(); ++idx) {
