@@ -153,8 +153,7 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget> &pclomp:
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform()
-    : target_cells_(), outlier_ratio_(0.55), gauss_d1_(), gauss_d2_(), gauss_d3_(), trans_probability_(), regularization_pose_(boost::none) {
+pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform() : target_cells_(), outlier_ratio_(0.55), gauss_d1_(), gauss_d2_(), gauss_d3_(), trans_probability_(), regularization_pose_(boost::none) {
   reg_name_ = "MultiGridNormalDistributionsTransform";
 
   params_.trans_epsilon = 0.1;
