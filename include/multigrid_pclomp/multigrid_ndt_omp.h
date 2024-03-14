@@ -112,7 +112,7 @@ public:
 #endif
 
   /** \brief Constructor.
-   * Sets \ref outlier_ratio_ to 0.35, \ref step_size_ to 0.05 and \ref resolution_ to 1.0
+   * Sets \ref outlier_ratio_ to 0.35, \ref params_.step_size to 0.05 and \ref params_.resolution to 1.0
    */
   MultiGridNormalDistributionsTransform();
 
@@ -128,11 +128,11 @@ public:
   virtual ~MultiGridNormalDistributionsTransform() {}
 
   void setNumThreads(int n) {
-    num_threads_ = n;
+    params_.num_threads = n;
   }
 
   inline int getNumThreads() const {
-    return num_threads_;
+    return params_.num_threads;
   }
 
   inline void setInputSource(const PointCloudSourceConstPtr &input) {
@@ -157,7 +157,7 @@ public:
    */
   inline void addTarget(const PointCloudTargetConstPtr &cloud, const std::string &target_id) {
     pcl::Registration<PointSource, PointTarget>::setInputTarget(cloud);
-    target_cells_.setLeafSize(resolution_, resolution_, resolution_);
+    target_cells_.setLeafSize(params_.resolution, params_.resolution, params_.resolution);
     target_cells_.setInputCloudAndFilter(cloud, target_id);
   }
 
@@ -174,8 +174,8 @@ public:
    */
   inline void setResolution(float resolution) {
     // Prevents unnecessary voxel initiations
-    if(resolution_ != resolution) {
-      resolution_ = resolution;
+    if(params_.resolution != resolution) {
+      params_.resolution = resolution;
       if(input_) init();
     }
   }
@@ -184,21 +184,21 @@ public:
    * \return side length of voxels
    */
   inline float getResolution() const {
-    return (resolution_);
+    return (params_.resolution);
   }
 
   /** \brief Get the newton line search maximum step length.
    * \return maximum step length
    */
   inline double getStepSize() const {
-    return (step_size_);
+    return (params_.step_size);
   }
 
   /** \brief Set/change the newton line search maximum step length.
    * \param[in] step_size maximum step length
    */
   inline void setStepSize(double step_size) {
-    step_size_ = step_size;
+    params_.step_size = step_size;
   }
 
   /** \brief Get the point cloud outlier ratio.
@@ -268,7 +268,7 @@ public:
   double calculateNearestVoxelTransformationLikelihood(const PointCloudSource &cloud) const;
 
   inline void setRegularizationScaleFactor(float regularization_scale_factor) {
-    regularization_scale_factor_ = regularization_scale_factor;
+    params_.regularization_scale_factor = regularization_scale_factor;
   }
 
   inline void setRegularizationPose(Eigen::Matrix4f regularization_pose) {
@@ -290,24 +290,36 @@ public:
     return ndt_result;
   }
 
+  /** \brief Set the transformation epsilon (maximum allowable translation squared
+   * difference between two consecutive transformations) in order for an optimization to
+   * be considered as having converged to the final solution. \param[in] epsilon the
+   * transformation epsilon in order for an optimization to be considered as having
+   * converged to the final solution.
+   */
+  inline void setTransformationEpsilon(double epsilon) {
+    params_.trans_epsilon = epsilon;
+  }
+
+  /** \brief Get the transformation epsilon (maximum allowable translation squared
+   * difference between two consecutive transformations) as set by the user.
+   */
+  inline double getTransformationEpsilon() {
+    return (params_.trans_epsilon);
+  }
+
+  inline void setMaximumIterations(int max_iterations) {
+    params_.max_iterations = max_iterations;
+  }
+  inline int getMaxIterations() const {
+    return params_.max_iterations;
+  }
+
   void setParams(const NdtParams &ndt_params) {
-    this->setTransformationEpsilon(ndt_params.trans_epsilon);
-    this->setStepSize(ndt_params.step_size);
-    this->setResolution(ndt_params.resolution);
-    this->setMaximumIterations(ndt_params.max_iterations);
-    setRegularizationScaleFactor(ndt_params.regularization_scale_factor);
-    setNumThreads(ndt_params.num_threads);
+    params_ = ndt_params;
   }
 
   NdtParams getParams() const {
-    NdtParams ndt_params;
-    ndt_params.trans_epsilon = transformation_epsilon_;
-    ndt_params.step_size = getStepSize();
-    ndt_params.resolution = getResolution();
-    ndt_params.max_iterations = max_iterations_;
-    ndt_params.regularization_scale_factor = regularization_scale_factor_;
-    ndt_params.num_threads = num_threads_;
-    return ndt_params;
+    return params_;
   }
 
   pcl::PointCloud<PointTarget> getVoxelPCD() const {
@@ -323,11 +335,9 @@ protected:
   using pcl::Registration<PointSource, PointTarget>::input_;
   using pcl::Registration<PointSource, PointTarget>::target_;
   using pcl::Registration<PointSource, PointTarget>::nr_iterations_;
-  using pcl::Registration<PointSource, PointTarget>::max_iterations_;
   using pcl::Registration<PointSource, PointTarget>::previous_transformation_;
   using pcl::Registration<PointSource, PointTarget>::final_transformation_;
   using pcl::Registration<PointSource, PointTarget>::transformation_;
-  using pcl::Registration<PointSource, PointTarget>::transformation_epsilon_;
   using pcl::Registration<PointSource, PointTarget>::converged_;
 
   using pcl::Registration<PointSource, PointTarget>::update_visualizer_;
@@ -478,12 +488,6 @@ protected:
 
   // double fitness_epsilon_;
 
-  /** \brief The side length of voxels. */
-  float resolution_;
-
-  /** \brief The maximum step length. */
-  double step_size_;
-
   /** \brief The ratio of outliers of points w.r.t. a normal distribution, Equation 6.7 [Magnusson 2009]. */
   double outlier_ratio_;
 
@@ -508,15 +512,15 @@ protected:
   Eigen::Vector3d h_ang_a2_, h_ang_a3_, h_ang_b2_, h_ang_b3_, h_ang_c2_, h_ang_c3_, h_ang_d1_, h_ang_d2_, h_ang_d3_, h_ang_e1_, h_ang_e2_, h_ang_e3_, h_ang_f1_, h_ang_f2_, h_ang_f3_;
 
   Eigen::Matrix<float, 16, 4> h_ang;
-  int num_threads_;
 
   Eigen::Matrix<double, 6, 6> hessian_;
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array_;
   double nearest_voxel_transformation_likelihood_;
 
-  float regularization_scale_factor_;
   boost::optional<Eigen::Matrix4f> regularization_pose_;
   Eigen::Vector3f regularization_pose_translation_;
+
+  NdtParams params_;
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
