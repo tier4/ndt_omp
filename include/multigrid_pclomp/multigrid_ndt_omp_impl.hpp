@@ -334,8 +334,7 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
     target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, nn_distances);
 
-    if (neighborhood.empty())
-    {
+    if(neighborhood.empty()) {
       continue;
     }
 
@@ -367,7 +366,7 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
       double score_pt = updateDerivatives(score_gradient_pt, hessian_pt, point_gradient, point_hessian, x_trans, c_inv, compute_hessian);
 
       sum_score_pt += score_pt;
-      
+
       if(score_pt > nearest_voxel_score_pt) {
         nearest_voxel_score_pt = score_pt;
       }
@@ -676,7 +675,7 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
     for(auto &cell : neighborhood) {
       // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
       Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
-      
+
       // Uses precomputed covariance for speed.
       x_trans -= cell->getMean();
       auto c_inv = cell->getInverseCov();
