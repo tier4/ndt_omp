@@ -132,4 +132,25 @@ Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_r
   return covariance;
 }
 
+std::pair<Eigen::Vector2d, Eigen::Matrix2d> calculate_weighted_mean_and_cov(const std::vector<Eigen::Vector2d>& pose_2d_vec, const std::vector<double>& score_vec) {
+  const int total_itr = static_cast<int>(pose_2d_vec.size());
+  const double max_score = *std::max_element(score_vec.begin(), score_vec.end());
+  Eigen::Vector2d mean = Eigen::Vector2d::Zero();
+  std::vector<double> exp_score_vec(total_itr);
+  double exp_score_sum = 0.0;
+  for(int i = 0; i < total_itr; i++) {
+    exp_score_vec[i] = std::exp(score_vec[i] - max_score);
+    exp_score_sum += exp_score_vec[i];
+  }
+  for(int i = 0; i < total_itr; i++) {
+    mean += exp_score_vec[i] / exp_score_sum * pose_2d_vec[i];
+  }
+  Eigen::Matrix2d covariance = Eigen::Matrix2d::Zero();
+  for(int i = 0; i < total_itr; i++) {
+    const Eigen::Vector2d diff = pose_2d_vec[i] - mean;
+    covariance += exp_score_vec[i] / exp_score_sum * diff * diff.transpose();
+  }
+  return {mean, covariance};
+}
+
 }  // namespace pclomp
