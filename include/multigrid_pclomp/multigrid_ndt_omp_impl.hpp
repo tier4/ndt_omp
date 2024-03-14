@@ -354,7 +354,7 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeD
       double score_pt = updateDerivatives(score_gradient_pt, hessian_pt, point_gradient, point_hessian, x_trans - cell->getMean(), cell->getInverseCov(), compute_hessian);
 
       sum_score_pt += score_pt;
-      
+
       if(score_pt > nearest_voxel_score_pt) {
         nearest_voxel_score_pt = score_pt;
       }
