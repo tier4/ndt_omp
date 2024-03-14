@@ -329,10 +329,9 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
     auto &x_trans_pt = trans_cloud[idx];
 
     std::vector<TargetGridLeafConstPtr> neighborhood;
-    std::vector<float> nn_distances;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, nn_distances);
+    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood);
 
     if(neighborhood.empty()) {
       continue;
@@ -349,6 +348,7 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
     // Compute derivative of transform function w.r.t. transform vector, J_E and H_E in Equations 6.18 and 6.20 [Magnusson 2009]
     computePointDerivatives(x, point_gradient, point_hessian);
 
+    Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
     double sum_score_pt = 0;
     double nearest_voxel_score_pt = 0;
     auto &score_gradient_pt = score_gradients[tid];
@@ -356,14 +356,9 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 
     for(auto &cell : neighborhood) {
       // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
-      Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
-
-      x_trans -= cell->getMean();
-      // Uses precomputed covariance for speed.
-      auto c_inv = cell->getInverseCov();
-
       // Update score, gradient and hessian, lines 19-21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13, respectively [Magnusson 2009]
-      double score_pt = updateDerivatives(score_gradient_pt, hessian_pt, point_gradient, point_hessian, x_trans, c_inv, compute_hessian);
+      double score_pt = updateDerivatives(score_gradient_pt, hessian_pt, point_gradient, point_hessian, 
+                                          x_trans - cell->getMean(), cell->getInverseCov(), compute_hessian);
 
       sum_score_pt += score_pt;
 
@@ -372,9 +367,7 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
       }
     }
 
-    if(!neighborhood.empty()) {
-      ++found_neigborhood_voxel_nums[tid];
-    }
+    ++found_neigborhood_voxel_nums[tid];
 
     scores[tid] += sum_score_pt;
     nearest_voxel_scores[tid] += nearest_voxel_score_pt;
@@ -652,10 +645,9 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
 
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
     std::vector<TargetGridLeafConstPtr> neighborhood;
-    std::vector<float> distances;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood);
 
     if(neighborhood.empty()) {
       continue;
@@ -664,6 +656,7 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
     auto &x_pt = (*input_)[idx];
     // For math
     Eigen::Vector3d x(x_pt.x, x_pt.y, x_pt.z);
+    Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
 
     auto &point_gradient = t_point_gradients[tid];
     auto &point_hessian = t_point_hessians[tid];
@@ -674,14 +667,8 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
 
     for(auto &cell : neighborhood) {
       // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
-      Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
-
-      // Uses precomputed covariance for speed.
-      x_trans -= cell->getMean();
-      auto c_inv = cell->getInverseCov();
-
       // Update hessian, lines 21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13, respectively [Magnusson 2009]
-      updateHessian(tmp_hessian, point_gradient, point_hessian, x_trans, c_inv);
+      updateHessian(tmp_hessian, point_gradient, point_hessian, x_trans - cell->getMean(), cell->getInverseCov());
     }
   }
 
@@ -999,10 +986,9 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
     std::vector<TargetGridLeafConstPtr> neighborhood;
-    std::vector<float> distances;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood);
 
     if(neighborhood.empty()) {
       continue;
@@ -1015,11 +1001,9 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 
       // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
       x_trans -= cell->getMean();
-      // Uses precomputed covariance for speed.
-      Eigen::Matrix3d c_inv = cell->getInverseCov();
 
       // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
-      double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
+      double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(cell->getInverseCov() * x_trans) / 2);
       // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
       double score_inc = -gauss_d1_ * e_x_cov_x;
 
@@ -1062,10 +1046,9 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
     std::vector<TargetGridLeafConstPtr> neighborhood;
-    std::vector<float> distances;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood);
 
     if(neighborhood.empty()) {
       continue;
@@ -1078,11 +1061,9 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 
       // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
       x_trans -= cell->getMean();
-      // Uses precomputed covariance for speed.
-      Eigen::Matrix3d c_inv = cell->getInverseCov();
 
       // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
-      double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
+      double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(cell->getInverseCov() * x_trans) / 2);
       // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
       double score_inc = -gauss_d1_ * e_x_cov_x;
 
