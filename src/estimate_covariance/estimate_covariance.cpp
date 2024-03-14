@@ -79,7 +79,7 @@ Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_r
   std::vector<double> score_vec;
 
   const int primary_ndt_itr = ndt_result.transformation_array.size();
-  for (int i = 0; i < primary_ndt_itr; i++) {
+  for(int i = 0; i < primary_ndt_itr; i++) {
     const Eigen::Vector2d ndt_pose_2d(ndt_result.transformation_array[i](0, 3), ndt_result.transformation_array[i](1, 3));
     ndt_pose_2d_vec.emplace_back(ndt_pose_2d);
     score_vec.emplace_back(ndt_result.nearest_voxel_transformation_likelihood_array[i]);
