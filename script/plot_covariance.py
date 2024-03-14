@@ -28,6 +28,7 @@ def plot_ellipse(mean, cov, color, label, scale):
         angle=angle,
         color=color,
         alpha=0.5,
+        fill=False,
         label=f"{label}(scale={scale})",
     )
     plt.gca().add_patch(ellipse)
@@ -97,6 +98,6 @@ if __name__ == "__main__":
         plt.ylabel("y[m]")
         plt.xlim(x - 10, x + 10)
         plt.ylim(y - 10, y + 10)
-        plt.axis("equal")
+        plt.gca().set_aspect("equal", adjustable="box")
         plt.savefig(output_dir / f"{i:08d}.png", bbox_inches="tight", pad_inches=0.05)
         plt.close()
