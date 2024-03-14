@@ -363,24 +363,22 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
       // Uses precomputed covariance for speed.
       auto c_inv = cell->getInverseCov();
 
-      // Compute derivative of transform function w.r.t. transform vector, J_E and H_E in Equations 6.18 and 6.20 [Magnusson 2009]
-      computePointDerivatives(x, point_gradient, point_hessian);
       // Update score, gradient and hessian, lines 19-21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13, respectively [Magnusson 2009]
       double score_pt = updateDerivatives(score_gradient_pt, hessian_pt, point_gradient, point_hessian, x_trans, c_inv, compute_hessian);
+
       sum_score_pt += score_pt;
+      
       if(score_pt > nearest_voxel_score_pt) {
         nearest_voxel_score_pt = score_pt;
       }
     }
 
     if(!neighborhood.empty()) {
-      ++found_neigborhood_voxel_nums[idx];
+      ++found_neigborhood_voxel_nums[tid];
     }
 
     scores[tid] += sum_score_pt;
     nearest_voxel_scores[tid] += nearest_voxel_score_pt;
-    score_gradients[tid].noalias() += score_gradient_pt;
-    hessians[tid].noalias() += hessian_pt;
     neighborhood_counts[tid] += neighborhood.size();
   }
 
@@ -683,10 +681,8 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
       x_trans -= cell->getMean();
       auto c_inv = cell->getInverseCov();
 
-      // Compute derivative of transform function w.r.t. transform vector, J_E and H_E in Equations 6.18 and 6.20 [Magnusson 2009]
-      computePointDerivatives(x, point_gradient, point_hessian);
       // Update hessian, lines 21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13, respectively [Magnusson 2009]
-      updateHessian(hessian, point_gradient, point_hessian, x_trans, c_inv);
+      updateHessian(tmp_hessian, point_gradient, point_hessian, x_trans, c_inv);
     }
   }
 
