@@ -115,7 +115,7 @@ Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_r
   ndt_ptr->setMaximumIterations(original_max_itr);
 
   // calculate the weights
-  const std::vector<double> weight_vec = calc_weight_vec(score_vec);
+  const std::vector<double> weight_vec = calc_weight_vec(score_vec, 0.1);
 
   // for debug
   output_pose_score_weight(ndt_pose_2d_vec, score_vec, weight_vec);
@@ -125,13 +125,13 @@ Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_r
   return covariance;
 }
 
-std::vector<double> calc_weight_vec(const std::vector<double>& score_vec) {
+std::vector<double> calc_weight_vec(const std::vector<double>& score_vec, double temperature) {
   const int n = static_cast<int>(score_vec.size());
   const double max_score = *std::max_element(score_vec.begin(), score_vec.end());
   std::vector<double> exp_score_vec(n);
   double exp_score_sum = 0.0;
   for(int i = 0; i < n; i++) {
-    exp_score_vec[i] = std::exp((score_vec[i] - max_score) / 0.1);
+    exp_score_vec[i] = std::exp((score_vec[i] - max_score) / temperature);
     exp_score_sum += exp_score_vec[i];
   }
   for(int i = 0; i < n; i++) {
