@@ -122,7 +122,7 @@ MultiGridNormalDistributionsTransform<PointSource, PointTarget> &MultiGridNormal
 
   target_cells_ = std::move(other.target_cells_);
   params_ = std::move(other.params_);
-  
+
   outlier_ratio_ = other.outlier_ratio_;
   gauss_d1_ = other.gauss_d1_;
   gauss_d2_ = other.gauss_d2_;
@@ -317,7 +317,6 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeD
     int tid = omp_get_thread_num();
     // Searching for neighbors of the current transformed point
     auto &x_trans_pt = trans_cloud[idx];
-
     std::vector<TargetGridLeafConstPtr> neighborhood;
     std::vector<float> nn_distances;
 
@@ -1007,12 +1006,9 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculat
       // Uses precomputed covariance for speed.
       Eigen::Matrix3d c_inv = cell->getInverseCov();
 
-      // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
-      double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
       // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
-      double score_inc = -gauss_d1_ * e_x_cov_x;
-
-      score += score_inc;
+      // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
+      tmp_score -= gauss_d1_ * exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
     }
 
     t_scores[tid] += tmp_score;
