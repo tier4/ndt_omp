@@ -21,7 +21,7 @@ Eigen::Matrix2d estimate_xy_covariance_by_Laplace_approximation(const Eigen::Mat
 }
 
 Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt(const NdtResult& ndt_result, std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> ndt_ptr, const Eigen::Matrix4f& initial_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y) {
-  const std::vector<Eigen::Matrix4f> search_points = propose_search_points(ndt_result.hessian, ndt_result.pose, offset_x, offset_y);
+  const std::vector<Eigen::Matrix4f> poses_to_search = propose_poses_to_search(ndt_result.hessian, ndt_result.pose, offset_x, offset_y);
 
   // first result is added to mean
   const int n = static_cast<int>(offset_x.size()) + 1;
@@ -35,14 +35,14 @@ Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt(const NdtResult& ndt_result,
   std::vector<Eigen::Matrix4f> ndt_result_pose_vec = {ndt_result.pose};
 
   // multiple searches
-  for(const Eigen::Matrix4f& search_point : search_points) {
+  for(const Eigen::Matrix4f& curr_pose : poses_to_search) {
     auto sub_output_cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
-    ndt_ptr->align(*sub_output_cloud, search_point);
+    ndt_ptr->align(*sub_output_cloud, curr_pose);
     const Eigen::Matrix4f sub_ndt_result = ndt_ptr->getResult().pose;
     const Eigen::Vector2d sub_ndt_pose_2d = sub_ndt_result.topRightCorner<2, 1>().cast<double>();
     mean += sub_ndt_pose_2d;
     ndt_pose_2d_vec.emplace_back(sub_ndt_pose_2d);
-    initial_pose_vec.push_back(search_point);
+    initial_pose_vec.push_back(curr_pose);
     ndt_result_pose_vec.push_back(sub_ndt_result);
   }
 
@@ -58,7 +58,7 @@ Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt(const NdtResult& ndt_result,
 }
 
 Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_result, std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> ndt_ptr, const Eigen::Matrix4f& initial_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y) {
-  const std::vector<Eigen::Matrix4f> search_points = propose_search_points(ndt_result.hessian, ndt_result.pose, offset_x, offset_y);
+  const std::vector<Eigen::Matrix4f> poses_to_search = propose_poses_to_search(ndt_result.hessian, ndt_result.pose, offset_x, offset_y);
 
   std::vector<Eigen::Vector2d> ndt_pose_2d_vec;
   std::vector<double> score_vec;
@@ -75,10 +75,9 @@ Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_r
   ndt_ptr->setMaximumIterations(1);
 
   // multiple searches
-  const int n = static_cast<int>(offset_x.size());
-  for(const Eigen::Matrix4f& search_point : search_points) {
+  for(const Eigen::Matrix4f& curr_pose : poses_to_search) {
     auto sub_output_cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
-    ndt_ptr->align(*sub_output_cloud, search_point);
+    ndt_ptr->align(*sub_output_cloud, curr_pose);
     const NdtResult sub_ndt_result = ndt_ptr->getResult();
     const Eigen::Matrix4f sub_ndt_pose = sub_ndt_result.transformation_array[0];
     const Eigen::Vector2d sub_ndt_pose_2d(sub_ndt_pose(0, 3), sub_ndt_pose(1, 3));
@@ -100,20 +99,20 @@ Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_r
   return covariance;
 }
 
-std::vector<Eigen::Matrix4f> propose_search_points(const Eigen::Matrix<double, 6, 6>& hessian, const Eigen::Matrix4f& center_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y) {
+std::vector<Eigen::Matrix4f> propose_poses_to_search(const Eigen::Matrix<double, 6, 6>& hessian, const Eigen::Matrix4f& center_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y) {
   assert(offset_x.size() == offset_y.size());
   const Eigen::Matrix2d covariance = estimate_xy_covariance_by_Laplace_approximation(hessian);
   const Eigen::Matrix2d rot = find_rotation_matrix_aligning_covariance_to_principal_axes(-covariance);
-  std::vector<Eigen::Matrix4f> search_points;
+  std::vector<Eigen::Matrix4f> poses_to_search;
   for(int i = 0; i < static_cast<int>(offset_x.size()); i++) {
     const Eigen::Vector2d pose_offset(offset_x[i], offset_y[i]);
     const Eigen::Vector2d rotated_pose_offset_2d = rot * pose_offset;
-    Eigen::Matrix4f search_point = center_pose;
-    search_point(0, 3) += static_cast<float>(rotated_pose_offset_2d.x());
-    search_point(1, 3) += static_cast<float>(rotated_pose_offset_2d.y());
-    search_points.emplace_back(search_point);
+    Eigen::Matrix4f curr_pose = center_pose;
+    curr_pose(0, 3) += static_cast<float>(rotated_pose_offset_2d.x());
+    curr_pose(1, 3) += static_cast<float>(rotated_pose_offset_2d.y());
+    poses_to_search.emplace_back(curr_pose);
   }
-  return search_points;
+  return poses_to_search;
 }
 
 std::vector<double> calc_weight_vec(const std::vector<double>& score_vec, double temperature) {
