@@ -89,7 +89,10 @@ struct NdtParams {
   NeighborSearchMethod search_method;
   int num_threads;
   float regularization_scale_factor;
-  bool use_line_search;
+
+  // line search is false by default
+  // "use_lines_search = true" is not tested well
+  bool use_line_search = false;
 };
 
 }  // namespace pclomp
