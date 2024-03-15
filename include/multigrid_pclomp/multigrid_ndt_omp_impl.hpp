@@ -56,10 +56,11 @@
 #ifndef PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 #define PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 
+namespace pclomp {
+
 template<typename PointSource, typename PointTarget>
-pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform(const MultiGridNormalDistributionsTransform &other) : BaseRegType(other), target_cells_(other.target_cells_) {
-  resolution_ = other.resolution_;
-  step_size_ = other.step_size_;
+MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform(const MultiGridNormalDistributionsTransform &other) : BaseRegType(other), target_cells_(other.target_cells_) {
+  params_ = other.params_;
   outlier_ratio_ = other.outlier_ratio_;
   gauss_d1_ = other.gauss_d1_;
   gauss_d2_ = other.gauss_d2_;
@@ -67,64 +68,54 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGr
   trans_probability_ = other.trans_probability_;
   // No need to copy j_ang and h_ang, as those matrices are re-computed on every computeDerivatives() call
 
-  num_threads_ = other.num_threads_;
   hessian_ = other.hessian_;
   transformation_array_ = other.transformation_array_;
   transform_probability_array_ = other.transform_probability_array_;
   nearest_voxel_transformation_likelihood_array_ = other.nearest_voxel_transformation_likelihood_array_;
   nearest_voxel_transformation_likelihood_ = other.nearest_voxel_transformation_likelihood_;
 
-  regularization_scale_factor_ = other.regularization_scale_factor_;
   regularization_pose_ = other.regularization_pose_;
   regularization_pose_translation_ = other.regularization_pose_translation_;
 }
 
 template<typename PointSource, typename PointTarget>
-pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform(MultiGridNormalDistributionsTransform &&other) : BaseRegType(std::move(other)), target_cells_(std::move(other.target_cells_)) {
-  resolution_ = other.resolution_;
-  step_size_ = other.step_size_;
+MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform(MultiGridNormalDistributionsTransform &&other)
+    : BaseRegType(std::move(other)), target_cells_(std::move(other.target_cells_)), params_(std::move(other.params_)) {
   outlier_ratio_ = other.outlier_ratio_;
   gauss_d1_ = other.gauss_d1_;
   gauss_d2_ = other.gauss_d2_;
   gauss_d3_ = other.gauss_d3_;
   trans_probability_ = other.trans_probability_;
-  // No need to copy j_ang and h_ang, as those matrices are re-computed on every computeDerivatives() call
 
-  num_threads_ = other.num_threads_;
   hessian_ = other.hessian_;
   transformation_array_ = other.transformation_array_;
   transform_probability_array_ = other.transform_probability_array_;
   nearest_voxel_transformation_likelihood_array_ = other.nearest_voxel_transformation_likelihood_array_;
   nearest_voxel_transformation_likelihood_ = other.nearest_voxel_transformation_likelihood_;
 
-  regularization_scale_factor_ = other.regularization_scale_factor_;
   regularization_pose_ = other.regularization_pose_;
   regularization_pose_translation_ = other.regularization_pose_translation_;
 }
 
 template<typename PointSource, typename PointTarget>
-pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget> &pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::operator=(const MultiGridNormalDistributionsTransform &other) {
+MultiGridNormalDistributionsTransform<PointSource, PointTarget> &MultiGridNormalDistributionsTransform<PointSource, PointTarget>::operator=(const MultiGridNormalDistributionsTransform &other) {
   BaseRegType::operator=(other);
 
   target_cells_ = other.target_cells_;
+  params_ = other.params_;
 
-  resolution_ = other.resolution_;
-  step_size_ = other.step_size_;
   outlier_ratio_ = other.outlier_ratio_;
   gauss_d1_ = other.gauss_d1_;
   gauss_d2_ = other.gauss_d2_;
   gauss_d3_ = other.gauss_d3_;
   trans_probability_ = other.trans_probability_;
-  // No need to copy j_ang and h_ang, as those matrices are re-computed on every computeDerivatives() call
 
-  num_threads_ = other.num_threads_;
   hessian_ = other.hessian_;
   transformation_array_ = other.transformation_array_;
   transform_probability_array_ = other.transform_probability_array_;
   nearest_voxel_transformation_likelihood_array_ = other.nearest_voxel_transformation_likelihood_array_;
   nearest_voxel_transformation_likelihood_ = other.nearest_voxel_transformation_likelihood_;
 
-  regularization_scale_factor_ = other.regularization_scale_factor_;
   regularization_pose_ = other.regularization_pose_;
   regularization_pose_translation_ = other.regularization_pose_translation_;
 
@@ -132,27 +123,24 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget> &pclomp:
 }
 
 template<typename PointSource, typename PointTarget>
-pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget> &pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::operator=(MultiGridNormalDistributionsTransform &&other) {
+MultiGridNormalDistributionsTransform<PointSource, PointTarget> &MultiGridNormalDistributionsTransform<PointSource, PointTarget>::operator=(MultiGridNormalDistributionsTransform &&other) {
   BaseRegType::operator=(std::move(other));
 
   target_cells_ = std::move(other.target_cells_);
-  resolution_ = other.resolution_;
-  step_size_ = other.step_size_;
+  params_ = std::move(other.params_);
+
   outlier_ratio_ = other.outlier_ratio_;
   gauss_d1_ = other.gauss_d1_;
   gauss_d2_ = other.gauss_d2_;
   gauss_d3_ = other.gauss_d3_;
   trans_probability_ = other.trans_probability_;
-  // No need to copy j_ang and h_ang, as those matrices are re-computed on every computeDerivatives() call
 
-  num_threads_ = other.num_threads_;
   hessian_ = other.hessian_;
   transformation_array_ = other.transformation_array_;
   transform_probability_array_ = other.transform_probability_array_;
   nearest_voxel_transformation_likelihood_array_ = other.nearest_voxel_transformation_likelihood_array_;
   nearest_voxel_transformation_likelihood_ = other.nearest_voxel_transformation_likelihood_;
 
-  regularization_scale_factor_ = other.regularization_scale_factor_;
   regularization_pose_ = other.regularization_pose_;
   regularization_pose_translation_ = other.regularization_pose_translation_;
 
@@ -161,28 +149,31 @@ pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget> &pclomp:
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform()
-    : target_cells_(), resolution_(1.0f), step_size_(0.1), outlier_ratio_(0.55), gauss_d1_(), gauss_d2_(), gauss_d3_(), trans_probability_(), regularization_pose_(boost::none) {
+MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform() : target_cells_(), outlier_ratio_(0.55), gauss_d1_(), gauss_d2_(), gauss_d3_(), trans_probability_(), regularization_pose_(boost::none) {
   reg_name_ = "MultiGridNormalDistributionsTransform";
+
+  params_.trans_epsilon = 0.1;
+  params_.step_size = 0.1;
+  params_.resolution = 1.0f;
+  params_.max_iterations = 35;
+  params_.search_method = DIRECT7;
+  params_.num_threads = omp_get_max_threads();
+  params_.regularization_scale_factor = 0.0f;
+  params_.use_line_search = false;
 
   double gauss_c1, gauss_c2;
 
   // Initializes the gaussian fitting parameters (eq. 6.8) [Magnusson 2009]
   gauss_c1 = 10.0 * (1 - outlier_ratio_);
-  gauss_c2 = outlier_ratio_ / pow(resolution_, 3);
+  gauss_c2 = outlier_ratio_ / pow(params_.resolution, 3);
   gauss_d3_ = -log(gauss_c2);
   gauss_d1_ = -log(gauss_c1 + gauss_c2) - gauss_d3_;
   gauss_d2_ = -2 * log((-log(gauss_c1 * exp(-0.5) + gauss_c2) - gauss_d3_) / gauss_d1_);
-
-  transformation_epsilon_ = 0.1;
-  max_iterations_ = 35;
-
-  num_threads_ = omp_get_max_threads();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTransformation(PointCloudSource &output, const Eigen::Matrix4f &guess) {
+void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTransformation(PointCloudSource &output, const Eigen::Matrix4f &guess) {
   nr_iterations_ = 0;
   converged_ = false;
 
@@ -190,7 +181,7 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
 
   // Initializes the gaussian fitting parameters (eq. 6.8) [Magnusson 2009]
   gauss_c1 = 10 * (1 - outlier_ratio_);
-  gauss_c2 = outlier_ratio_ / pow(resolution_, 3);
+  gauss_c2 = outlier_ratio_ / pow(params_.resolution, 3);
   gauss_d3_ = -log(gauss_c2);
   gauss_d1_ = -log(gauss_c1 + gauss_c2) - gauss_d3_;
   gauss_d2_ = -2 * log((-log(gauss_c1 * exp(-0.5) + gauss_c2) - gauss_d3_) / gauss_d1_);
@@ -254,7 +245,7 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
     }
 
     delta_p.normalize();
-    delta_p_norm = computeStepLengthMT(p, delta_p, delta_p_norm, step_size_, transformation_epsilon_ / 2, score, score_gradient, hessian, output);
+    delta_p_norm = computeStepLengthMT(p, delta_p, delta_p_norm, params_.step_size, params_.trans_epsilon / 2, score, score_gradient, hessian, output);
     delta_p *= delta_p_norm;
 
     transformation_ = (Eigen::Translation<float, 3>(static_cast<float>(delta_p(0)), static_cast<float>(delta_p(1)), static_cast<float>(delta_p(2))) * Eigen::AngleAxis<float>(static_cast<float>(delta_p(3)), Eigen::Vector3f::UnitX()) * Eigen::AngleAxis<float>(static_cast<float>(delta_p(4)), Eigen::Vector3f::UnitY()) * Eigen::AngleAxis<float>(static_cast<float>(delta_p(5)), Eigen::Vector3f::UnitZ()))
@@ -269,7 +260,7 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
 
     nr_iterations_++;
 
-    if(nr_iterations_ >= max_iterations_ || (nr_iterations_ && (std::fabs(delta_p_norm) < transformation_epsilon_))) {
+    if(nr_iterations_ >= params_.max_iterations || (nr_iterations_ && (std::fabs(delta_p_norm) < params_.trans_epsilon))) {
       converged_ = true;
     }
   }
@@ -296,106 +287,102 @@ int omp_get_thread_num() {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, PointCloudSource &trans_cloud, Eigen::Matrix<double, 6, 1> &p, bool compute_hessian) {
+double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, PointCloudSource &trans_cloud, Eigen::Matrix<double, 6, 1> &p, bool compute_hessian) {
   score_gradient.setZero();
   hessian.setZero();
   double score = 0;
   int total_neighborhood_count = 0;
   double nearest_voxel_score = 0;
   size_t found_neigborhood_voxel_num = 0;
-  size_t input_size = input_->size();
 
-  std::vector<double> scores(input_size);
-  std::vector<double> nearest_voxel_scores(input_size);
-  std::vector<size_t> found_neigborhood_voxel_nums(input_size);
-  std::vector<Eigen::Matrix<double, 6, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 1>>> score_gradients(input_size);
-  std::vector<Eigen::Matrix<double, 6, 6>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 6>>> hessians(input_size);
-  std::vector<int> neighborhood_counts(input_size);
-  for(size_t i = 0; i < input_size; ++i) {
+  std::vector<double> scores(params_.num_threads);
+  std::vector<double> nearest_voxel_scores(params_.num_threads);
+  std::vector<size_t> found_neigborhood_voxel_nums(params_.num_threads);
+  std::vector<Eigen::Matrix<double, 6, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 1>>> score_gradients(params_.num_threads);
+  std::vector<Eigen::Matrix<double, 6, 6>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 6>>> hessians(params_.num_threads);
+  std::vector<int> neighborhood_counts(params_.num_threads);
+
+  // Pre-allocate thread-wise point derivative matrices to avoid reallocate too many times
+  std::vector<Eigen::Matrix<float, 4, 6>> t_point_gradients(params_.num_threads);
+  std::vector<Eigen::Matrix<float, 24, 6>> t_point_hessians(params_.num_threads);
+
+  for(size_t i = 0; i < params_.num_threads; ++i) {
     scores[i] = 0;
     nearest_voxel_scores[i] = 0;
     found_neigborhood_voxel_nums[i] = 0;
     score_gradients[i].setZero();
     hessians[i].setZero();
     neighborhood_counts[i] = 0;
+
+    // Initialize point derivatives
+    t_point_gradients[i].setZero();
+    t_point_gradients[i].block<3, 3>(0, 0).setIdentity();
+    t_point_hessians[i].setZero();
   }
 
   // Precompute Angular Derivatives (eq. 6.19 and 6.21)[Magnusson 2009]
   computeAngleDerivatives(p);
 
-  std::vector<std::vector<TargetGridLeafConstPtr>> neighborhoods(num_threads_);
-  std::vector<std::vector<float>> distancess(num_threads_);
-
   // Update gradient and hessian for each point, line 17 in Algorithm 2 [Magnusson 2009]
-#pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
-  for(size_t idx = 0; idx < input_size; ++idx) {
-    int thread_n = omp_get_thread_num();
-
-    // Original Point and Transformed Point
-    PointSource x_pt, x_trans_pt;
-    // Original Point and Transformed Point (for math)
-    Eigen::Vector3d x, x_trans;
-    // Occupied Voxel
-    TargetGridLeafConstPtr cell;
-    // Inverse Covariance of Occupied Voxel
-    Eigen::Matrix3d c_inv;
-
-    // Initialize Point Gradient and Hessian
-    Eigen::Matrix<float, 4, 6> point_gradient;
-    Eigen::Matrix<float, 24, 6> point_hessian;
-    point_gradient.setZero();
-    point_gradient.block<3, 3>(0, 0).setIdentity();
-    point_hessian.setZero();
-
-    x_trans_pt = trans_cloud[idx];
-
-    auto &neighborhood = neighborhoods[thread_n];
-    auto &distances = distancess[thread_n];
+#pragma omp parallel for num_threads(params_.num_threads) schedule(guided, 8)
+  for(size_t idx = 0; idx < input_->size(); ++idx) {
+    int tid = omp_get_thread_num();
+    // Searching for neighbors of the current transformed point
+    auto &x_trans_pt = trans_cloud[idx];
+    std::vector<TargetGridLeafConstPtr> neighborhood;
+    std::vector<float> nn_distances;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+    target_cells_.radiusSearch(x_trans_pt, params_.resolution, neighborhood, nn_distances);
+
+    if(neighborhood.empty()) {
+      continue;
+    }
+
+    // Original Point
+    auto &x_pt = (*input_)[idx];
+    // Original Point and Transformed Point (for math)
+    Eigen::Vector3d x(x_pt.x, x_pt.y, x_pt.z);
+    // Current Point Gradient and Hessian
+    auto &point_gradient = t_point_gradients[tid];
+    auto &point_hessian = t_point_hessians[tid];
+
+    // Compute derivative of transform function w.r.t. transform vector, J_E and H_E in Equations 6.18 and 6.20 [Magnusson 2009]
+    computePointDerivatives(x, point_gradient, point_hessian);
 
     double sum_score_pt = 0;
     double nearest_voxel_score_pt = 0;
-    Eigen::Matrix<double, 6, 1> score_gradient_pt = Eigen::Matrix<double, 6, 1>::Zero();
-    Eigen::Matrix<double, 6, 6> hessian_pt = Eigen::Matrix<double, 6, 6>::Zero();
-    int neighborhood_count = 0;
+    auto &score_gradient_pt = score_gradients[tid];
+    auto &hessian_pt = hessians[tid];
 
     for(auto &cell : neighborhood) {
-      x_pt = (*input_)[idx];
-      x = Eigen::Vector3d(x_pt.x, x_pt.y, x_pt.z);
-
-      x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
-
       // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
+      Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
+
       x_trans -= cell->getMean();
       // Uses precomputed covariance for speed.
-      c_inv = cell->getInverseCov();
+      auto c_inv = cell->getInverseCov();
 
-      // Compute derivative of transform function w.r.t. transform vector, J_E and H_E in Equations 6.18 and 6.20 [Magnusson 2009]
-      computePointDerivatives(x, point_gradient, point_hessian);
       // Update score, gradient and hessian, lines 19-21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13, respectively [Magnusson 2009]
       double score_pt = updateDerivatives(score_gradient_pt, hessian_pt, point_gradient, point_hessian, x_trans, c_inv, compute_hessian);
-      neighborhood_count++;
       sum_score_pt += score_pt;
+
       if(score_pt > nearest_voxel_score_pt) {
         nearest_voxel_score_pt = score_pt;
       }
     }
 
     if(!neighborhood.empty()) {
-      ++found_neigborhood_voxel_nums[idx];
+      ++found_neigborhood_voxel_nums[tid];
     }
 
-    scores[idx] = sum_score_pt;
-    nearest_voxel_scores[idx] = nearest_voxel_score_pt;
-    score_gradients[idx].noalias() = score_gradient_pt;
-    hessians[idx].noalias() = hessian_pt;
-    neighborhood_counts[idx] += neighborhood_count;
+    scores[tid] += sum_score_pt;
+    nearest_voxel_scores[tid] += nearest_voxel_score_pt;
+    neighborhood_counts[tid] += neighborhood.size();
   }
 
   // Ensure that the result is invariant against the summing up order
-  for(size_t i = 0; i < input_size; ++i) {
+  for(size_t i = 0; i < params_.num_threads; ++i) {
     score += scores[i];
     nearest_voxel_score += nearest_voxel_scores[i];
     found_neigborhood_voxel_num += found_neigborhood_voxel_nums[i];
@@ -416,14 +403,14 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
     const float longitudinal_distance = dy * sin_yaw + dx * cos_yaw;
     const auto neighborhood_count_weight = static_cast<float>(total_neighborhood_count);
 
-    regularization_score = -regularization_scale_factor_ * neighborhood_count_weight * longitudinal_distance * longitudinal_distance;
+    regularization_score = -params_.regularization_scale_factor * neighborhood_count_weight * longitudinal_distance * longitudinal_distance;
 
-    regularization_gradient(0, 0) = regularization_scale_factor_ * neighborhood_count_weight * 2.0f * cos_yaw * longitudinal_distance;
-    regularization_gradient(1, 0) = regularization_scale_factor_ * neighborhood_count_weight * 2.0f * sin_yaw * longitudinal_distance;
+    regularization_gradient(0, 0) = params_.regularization_scale_factor * neighborhood_count_weight * 2.0f * cos_yaw * longitudinal_distance;
+    regularization_gradient(1, 0) = params_.regularization_scale_factor * neighborhood_count_weight * 2.0f * sin_yaw * longitudinal_distance;
 
-    regularization_hessian(0, 0) = -regularization_scale_factor_ * neighborhood_count_weight * 2.0f * cos_yaw * cos_yaw;
-    regularization_hessian(0, 1) = -regularization_scale_factor_ * neighborhood_count_weight * 2.0f * cos_yaw * sin_yaw;
-    regularization_hessian(1, 1) = -regularization_scale_factor_ * neighborhood_count_weight * 2.0f * sin_yaw * sin_yaw;
+    regularization_hessian(0, 0) = -params_.regularization_scale_factor * neighborhood_count_weight * 2.0f * cos_yaw * cos_yaw;
+    regularization_hessian(0, 1) = -params_.regularization_scale_factor * neighborhood_count_weight * 2.0f * cos_yaw * sin_yaw;
+    regularization_hessian(1, 1) = -params_.regularization_scale_factor * neighborhood_count_weight * 2.0f * sin_yaw * sin_yaw;
     regularization_hessian(1, 0) = regularization_hessian(0, 1);
 
     score += regularization_score;
@@ -449,7 +436,7 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeAngleDerivatives(Eigen::Matrix<double, 6, 1> &p, bool compute_hessian) {
+void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeAngleDerivatives(Eigen::Matrix<double, 6, 1> &p, bool compute_hessian) {
   // Simplified math for near 0 angles
   double cx, cy, cz, sx, sy, sz;
   if(fabs(p(3)) < 10e-5) {
@@ -517,7 +504,7 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<float, 4, 6> &point_gradient, Eigen::Matrix<float, 24, 6> &point_hessian, bool compute_hessian) const {
+void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<float, 4, 6> &point_gradient, Eigen::Matrix<float, 24, 6> &point_hessian, bool compute_hessian) const {
   Eigen::Vector4f x4(x[0], x[1], x[2], 0.0f);
 
   // Calculate first derivative of Transformation Equation 6.17 w.r.t. transform vector p.
@@ -560,7 +547,7 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<double, 3, 6> &point_gradient, Eigen::Matrix<double, 18, 6> &point_hessian, bool compute_hessian) const {
+void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<double, 3, 6> &point_gradient, Eigen::Matrix<double, 18, 6> &point_hessian, bool compute_hessian) const {
   // Calculate first derivative of Transformation Equation 6.17 w.r.t. transform vector p.
   // Derivative w.r.t. ith element of transform vector corresponds to column i, Equation 6.18 and 6.19 [Magnusson 2009]
   point_gradient(1, 3) = x.dot(j_ang_a_);
@@ -599,7 +586,7 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::co
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<float, 4, 6> &point_gradient4, const Eigen::Matrix<float, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv, bool compute_hessian) const {
+double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<float, 4, 6> &point_gradient4, const Eigen::Matrix<float, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv, bool compute_hessian) const {
   Eigen::Matrix<float, 1, 4> x_trans4(x_trans[0], x_trans[1], x_trans[2], 0.0f);
   Eigen::Matrix4f c_inv4 = Eigen::Matrix4f::Zero();
   c_inv4.topLeftCorner(3, 3) = c_inv.cast<float>();
@@ -646,60 +633,74 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHessian(Eigen::Matrix<double, 6, 6> &hessian, PointCloudSource &trans_cloud, Eigen::Matrix<double, 6, 1> &) {
-  // Original Point and Transformed Point
-  PointSource x_pt, x_trans_pt;
-  // Original Point and Transformed Point (for math)
-  Eigen::Vector3d x, x_trans;
-  // Occupied Voxel
-  TargetGridLeafConstPtr cell;
-  // Inverse Covariance of Occupied Voxel
-  Eigen::Matrix3d c_inv;
-
+void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHessian(Eigen::Matrix<double, 6, 6> &hessian, PointCloudSource &trans_cloud, Eigen::Matrix<double, 6, 1> &) {
   // Initialize Point Gradient and Hessian
-  Eigen::Matrix<double, 3, 6> point_gradient;
-  Eigen::Matrix<double, 18, 6> point_hessian;
-  point_gradient.setZero();
-  point_gradient.block<3, 3>(0, 0).setIdentity();
-  point_hessian.setZero();
+  // Pre-allocate thread-wise point gradients and point hessians
+  std::vector<Eigen::Matrix<double, 3, 6>> t_point_gradients(params_.num_threads);
+  std::vector<Eigen::Matrix<double, 18, 6>> t_point_hessians(params_.num_threads);
+  std::vector<Eigen::Matrix<double, 6, 6>> t_hessians(params_.num_threads);
+
+  for(int i = 0; i < params_.num_threads; ++i) {
+    t_point_gradients[i].setZero();
+    t_point_gradients[i].block<3, 3>(0, 0).setIdentity();
+    t_point_hessians[i].setZero();
+    t_hessians[i].setZero();
+  }
 
   hessian.setZero();
 
   // Precompute Angular Derivatives unnecessary because only used after regular derivative calculation
 
   // Update hessian for each point, line 17 in Algorithm 2 [Magnusson 2009]
+#pragma omp parallel for num_threads(params_.num_threads) schedule(guided, 8)
   for(size_t idx = 0; idx < input_->size(); ++idx) {
-    x_trans_pt = trans_cloud[idx];
+    int tid = omp_get_thread_num();
+    auto &x_trans_pt = trans_cloud[idx];
 
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
     std::vector<TargetGridLeafConstPtr> neighborhood;
     std::vector<float> distances;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+    target_cells_.radiusSearch(x_trans_pt, params_.resolution, neighborhood, distances);
+
+    if(neighborhood.empty()) {
+      continue;
+    }
+
+    auto &x_pt = (*input_)[idx];
+    // For math
+    Eigen::Vector3d x(x_pt.x, x_pt.y, x_pt.z);
+
+    auto &point_gradient = t_point_gradients[tid];
+    auto &point_hessian = t_point_hessians[tid];
+    auto &tmp_hessian = t_hessians[tid];
+
+    // Compute derivative of transform function w.r.t. transform vector, J_E and H_E in Equations 6.18 and 6.20 [Magnusson 2009]
+    computePointDerivatives(x, point_gradient, point_hessian);
 
     for(auto &cell : neighborhood) {
-      x_pt = (*input_)[idx];
-      x = Eigen::Vector3d(x_pt.x, x_pt.y, x_pt.z);
-
-      x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
-
       // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
-      x_trans -= cell->getMean();
-      // Uses precomputed covariance for speed.
-      c_inv = cell->getInverseCov();
+      Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
 
-      // Compute derivative of transform function w.r.t. transform vector, J_E and H_E in Equations 6.18 and 6.20 [Magnusson 2009]
-      computePointDerivatives(x, point_gradient, point_hessian);
+      // Uses precomputed covariance for speed.
+      x_trans -= cell->getMean();
+      auto c_inv = cell->getInverseCov();
+
       // Update hessian, lines 21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13, respectively [Magnusson 2009]
-      updateHessian(hessian, point_gradient, point_hessian, x_trans, c_inv);
+      updateHessian(tmp_hessian, point_gradient, point_hessian, x_trans, c_inv);
     }
+  }
+
+  // Sum over t_hessians
+  for(auto &th : t_hessians) {
+    hessian += th;
   }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateHessian(Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 3, 6> &point_gradient, const Eigen::Matrix<double, 18, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv) const {
+void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateHessian(Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 3, 6> &point_gradient, const Eigen::Matrix<double, 18, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv) const {
   Eigen::Vector3d cov_dxd_pi;
   // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
   double e_x_cov_x = gauss_d2_ * exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
@@ -723,7 +724,7 @@ void pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::up
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-bool pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateIntervalMT(double &a_l, double &f_l, double &g_l, double &a_u, double &f_u, double &g_u, double a_t, double f_t, double g_t) {
+bool MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateIntervalMT(double &a_l, double &f_l, double &g_l, double &a_u, double &f_u, double &g_u, double a_t, double f_t, double g_t) {
   // Case U1 in Update Algorithm and Case a in Modified Update Algorithm [More, Thuente 1994]
   if(f_t > f_l) {
     a_u = a_t;
@@ -756,7 +757,7 @@ bool pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::up
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::trialValueSelectionMT(double a_l, double f_l, double g_l, double a_u, double f_u, double g_u, double a_t, double f_t, double g_t) {
+double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::trialValueSelectionMT(double a_l, double f_l, double g_l, double a_u, double f_u, double g_u, double a_t, double f_t, double g_t) {
   // Case 1 in Trial Value Selection [More, Thuente 1994]
   if(f_t > f_l) {
     // Calculate the minimizer of the cubic that interpolates f_l, f_t, g_l and g_t
@@ -830,7 +831,7 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeStepLengthMT(const Eigen::Matrix<double, 6, 1> &x, Eigen::Matrix<double, 6, 1> &step_dir, double step_init, double step_max, double step_min, double &score, Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, PointCloudSource &trans_cloud) {
+double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeStepLengthMT(const Eigen::Matrix<double, 6, 1> &x, Eigen::Matrix<double, 6, 1> &step_dir, double step_init, double step_max, double step_min, double &score, Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, PointCloudSource &trans_cloud) {
   // Set the value of phi(0), Equation 1.3 [More, Thuente 1994]
   double phi_0 = -score;
   // Set the value of phi'(0), Equation 1.3 [More, Thuente 1994]
@@ -897,91 +898,75 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
   // If you have any suggestions on how to solve these issues, we would appreciate it if you could contribute.
   // --------------------------------------------------------------------------------------------------------------------------------
 
-  // // Calculate phi(alpha_t)
-  // double phi_t = -score;
-  // // Calculate phi'(alpha_t)
-  // double d_phi_t = -(score_gradient.dot (step_dir));
+  if(params_.use_line_search) {
+    // Calculate phi(alpha_t)
+    double phi_t = -score;
+    // Calculate phi'(alpha_t)
+    double d_phi_t = -(score_gradient.dot(step_dir));
 
-  // // Calculate psi(alpha_t)
-  // double psi_t = auxiliaryFunction_PsiMT (a_t, phi_t, phi_0, d_phi_0, mu);
-  // // Calculate psi'(alpha_t)
-  // double d_psi_t = auxiliaryFunction_dPsiMT (d_phi_t, d_phi_0, mu);
+    // Calculate psi(alpha_t)
+    double psi_t = auxiliaryFunction_PsiMT(a_t, phi_t, phi_0, d_phi_0, mu);
+    // Calculate psi'(alpha_t)
+    double d_psi_t = auxiliaryFunction_dPsiMT(d_phi_t, d_phi_0, mu);
 
-  // // Iterate until max number of iterations, interval convergence or a value satisfies the sufficient decrease, Equation 1.1, and curvature condition, Equation 1.2 [More, Thuente 1994]
-  // while (!interval_converged && step_iterations < max_step_iterations && !(psi_t <= 0 /*Sufficient Decrease*/ && d_phi_t <= -nu * d_phi_0 /*Curvature Condition*/))
-  // {
-  //   // Use auxiliary function if interval I is not closed
-  //   if (open_interval)
-  //   {
-  //     a_t = trialValueSelectionMT (a_l, f_l, g_l,
-  //                                  a_u, f_u, g_u,
-  //                                  a_t, psi_t, d_psi_t);
-  //   }
-  //   else
-  //   {
-  //     a_t = trialValueSelectionMT (a_l, f_l, g_l,
-  //                                  a_u, f_u, g_u,
-  //                                  a_t, phi_t, d_phi_t);
-  //   }
+    // Iterate until max number of iterations, interval convergence or a value satisfies the sufficient decrease, Equation 1.1, and curvature condition, Equation 1.2 [More, Thuente 1994]
+    while(!interval_converged && step_iterations < max_step_iterations && !(psi_t <= 0 /*Sufficient Decrease*/ && d_phi_t <= -nu * d_phi_0 /*Curvature Condition*/)) {
+      // Use auxiliary function if interval I is not closed
+      if(open_interval) {
+        a_t = trialValueSelectionMT(a_l, f_l, g_l, a_u, f_u, g_u, a_t, psi_t, d_psi_t);
+      } else {
+        a_t = trialValueSelectionMT(a_l, f_l, g_l, a_u, f_u, g_u, a_t, phi_t, d_phi_t);
+      }
 
-  //   a_t = std::min (a_t, step_max);
-  //   a_t = std::max (a_t, step_min);
+      a_t = std::min(a_t, step_max);
+      a_t = std::max(a_t, step_min);
 
-  //   x_t = x + step_dir * a_t;
+      x_t = x + step_dir * a_t;
 
-  //   final_transformation_ = (Eigen::Translation<float, 3> (static_cast<float> (x_t (0)), static_cast<float> (x_t (1)), static_cast<float> (x_t (2))) *
-  //                            Eigen::AngleAxis<float> (static_cast<float> (x_t (3)), Eigen::Vector3f::UnitX ()) *
-  //                            Eigen::AngleAxis<float> (static_cast<float> (x_t (4)), Eigen::Vector3f::UnitY ()) *
-  //                            Eigen::AngleAxis<float> (static_cast<float> (x_t (5)), Eigen::Vector3f::UnitZ ())).matrix ();
+      final_transformation_ = (Eigen::Translation<float, 3>(static_cast<float>(x_t(0)), static_cast<float>(x_t(1)), static_cast<float>(x_t(2))) * Eigen::AngleAxis<float>(static_cast<float>(x_t(3)), Eigen::Vector3f::UnitX()) * Eigen::AngleAxis<float>(static_cast<float>(x_t(4)), Eigen::Vector3f::UnitY()) * Eigen::AngleAxis<float>(static_cast<float>(x_t(5)), Eigen::Vector3f::UnitZ()))
+                                  .matrix();
 
-  //   // New transformed point cloud
-  //   // Done on final cloud to prevent wasted computation
-  //   transformPointCloud (*input_, trans_cloud, final_transformation_);
+      // New transformed point cloud
+      // Done on final cloud to prevent wasted computation
+      transformPointCloud(*input_, trans_cloud, final_transformation_);
 
-  //   // Updates score, gradient. Values stored to prevent wasted computation.
-  //   score = computeDerivatives (score_gradient, hessian, trans_cloud, x_t, false);
+      // Updates score, gradient. Values stored to prevent wasted computation.
+      score = computeDerivatives(score_gradient, hessian, trans_cloud, x_t, false);
 
-  //   // Calculate phi(alpha_t+)
-  //   phi_t = -score;
-  //   // Calculate phi'(alpha_t+)
-  //   d_phi_t = -(score_gradient.dot (step_dir));
+      // Calculate phi(alpha_t+)
+      phi_t = -score;
+      // Calculate phi'(alpha_t+)
+      d_phi_t = -(score_gradient.dot(step_dir));
 
-  //   // Calculate psi(alpha_t+)
-  //   psi_t = auxiliaryFunction_PsiMT (a_t, phi_t, phi_0, d_phi_0, mu);
-  //   // Calculate psi'(alpha_t+)
-  //   d_psi_t = auxiliaryFunction_dPsiMT (d_phi_t, d_phi_0, mu);
+      // Calculate psi(alpha_t+)
+      psi_t = auxiliaryFunction_PsiMT(a_t, phi_t, phi_0, d_phi_0, mu);
+      // Calculate psi'(alpha_t+)
+      d_psi_t = auxiliaryFunction_dPsiMT(d_phi_t, d_phi_0, mu);
 
-  //   // Check if I is now a closed interval
-  //   if (open_interval && (psi_t <= 0 && d_psi_t >= 0))
-  //   {
-  //     open_interval = false;
+      // Check if I is now a closed interval
+      if(open_interval && (psi_t <= 0 && d_psi_t >= 0)) {
+        open_interval = false;
 
-  //     // Converts f_l and g_l from psi to phi
-  //     f_l = f_l + phi_0 - mu * d_phi_0 * a_l;
-  //     g_l = g_l + mu * d_phi_0;
+        // Converts f_l and g_l from psi to phi
+        f_l = f_l + phi_0 - mu * d_phi_0 * a_l;
+        g_l = g_l + mu * d_phi_0;
 
-  //     // Converts f_u and g_u from psi to phi
-  //     f_u = f_u + phi_0 - mu * d_phi_0 * a_u;
-  //     g_u = g_u + mu * d_phi_0;
-  //   }
+        // Converts f_u and g_u from psi to phi
+        f_u = f_u + phi_0 - mu * d_phi_0 * a_u;
+        g_u = g_u + mu * d_phi_0;
+      }
 
-  //   if (open_interval)
-  //   {
-  //     // Update interval end points using Updating Algorithm [More, Thuente 1994]
-  //     interval_converged = updateIntervalMT (a_l, f_l, g_l,
-  //                                            a_u, f_u, g_u,
-  //                                            a_t, psi_t, d_psi_t);
-  //   }
-  //   else
-  //   {
-  //     // Update interval end points using Modified Updating Algorithm [More, Thuente 1994]
-  //     interval_converged = updateIntervalMT (a_l, f_l, g_l,
-  //                                            a_u, f_u, g_u,
-  //                                            a_t, phi_t, d_phi_t);
-  //   }
+      if(open_interval) {
+        // Update interval end points using Updating Algorithm [More, Thuente 1994]
+        interval_converged = updateIntervalMT(a_l, f_l, g_l, a_u, f_u, g_u, a_t, psi_t, d_psi_t);
+      } else {
+        // Update interval end points using Modified Updating Algorithm [More, Thuente 1994]
+        interval_converged = updateIntervalMT(a_l, f_l, g_l, a_u, f_u, g_u, a_t, phi_t, d_phi_t);
+      }
 
-  //   step_iterations++;
-  // }
+      step_iterations++;
+    }
+  }
 
   // If inner loop was run then hessian needs to be calculated.
   // Hessian is unnecessary for step length determination but gradients are required
@@ -992,10 +977,15 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 }
 
 template<typename PointSource, typename PointTarget>
-double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculateScore(const PointCloudSource &trans_cloud) const {
+double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculateTransformationProbability(const PointCloudSource &trans_cloud) const {
   double score = 0;
 
+  // Score per thread
+  std::vector<double> t_scores(params_.num_threads, 0);
+
+#pragma omp parallel for num_threads(params_.num_threads) schedule(guided, 8)
   for(size_t idx = 0; idx < trans_cloud.size(); ++idx) {
+    int tid = omp_get_thread_num();
     PointSource x_trans_pt = trans_cloud[idx];
 
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
@@ -1003,23 +993,33 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
     std::vector<float> distances;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+    target_cells_.radiusSearch(x_trans_pt, params_.resolution, neighborhood, distances);
+
+    if(neighborhood.empty()) {
+      continue;
+    }
+
+    double tmp_score = 0;
 
     for(auto &cell : neighborhood) {
-      Eigen::Vector3d x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
+      Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
 
       // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
       x_trans -= cell->getMean();
       // Uses precomputed covariance for speed.
       Eigen::Matrix3d c_inv = cell->getInverseCov();
 
-      // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
-      double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
       // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
-      double score_inc = -gauss_d1_ * e_x_cov_x - gauss_d3_;
-
-      score += score_inc / neighborhood.size();
+      // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
+      tmp_score -= gauss_d1_ * exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
     }
+
+    t_scores[tid] += tmp_score;
+  }
+
+  // Sum the point-wise scores
+  for(auto &ts : t_scores) {
+    score += ts;
   }
 
   double output_score = 0;
@@ -1030,50 +1030,22 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 }
 
 template<typename PointSource, typename PointTarget>
-double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculateTransformationProbability(const PointCloudSource &trans_cloud) const {
-  double score = 0;
-
-  for(size_t idx = 0; idx < trans_cloud.size(); ++idx) {
-    PointSource x_trans_pt = trans_cloud[idx];
-
-    // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
-    std::vector<TargetGridLeafConstPtr> neighborhood;
-    std::vector<float> distances;
-
-    // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
-
-    for(auto &cell : neighborhood) {
-      Eigen::Vector3d x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
-
-      // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
-      x_trans -= cell->getMean();
-      // Uses precomputed covariance for speed.
-      Eigen::Matrix3d c_inv = cell->getInverseCov();
-
-      // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
-      double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
-      // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
-      double score_inc = -gauss_d1_ * e_x_cov_x;
-
-      score += score_inc;
-    }
-  }
-
-  double output_score = 0;
-  if(!trans_cloud.empty()) {
-    output_score = (score) / static_cast<double>(trans_cloud.size());
-  }
-  return output_score;
-}
-
-template<typename PointSource, typename PointTarget>
-double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculateNearestVoxelTransformationLikelihood(const PointCloudSource &trans_cloud) const {
+double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculateNearestVoxelTransformationLikelihood(const PointCloudSource &trans_cloud) const {
   double nearest_voxel_score = 0;
   size_t found_neighborhood_voxel_num = 0;
 
+  // Thread-wise results
+  std::vector<double> t_nvs(params_.num_threads);
+  std::vector<size_t> t_found_nnvn(params_.num_threads);
+
+  for(int i = 0; i < params_.num_threads; ++i) {
+    t_nvs[i] = 0;
+    t_found_nnvn[i] = 0;
+  }
+
+#pragma omp parallel for num_threads(params_.num_threads) schedule(guided, 8)
   for(size_t idx = 0; idx < trans_cloud.size(); ++idx) {
-    double nearest_voxel_score_pt = 0;
+    int tid = omp_get_thread_num();
     PointSource x_trans_pt = trans_cloud[idx];
 
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
@@ -1081,10 +1053,16 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
     std::vector<float> distances;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+    target_cells_.radiusSearch(x_trans_pt, params_.resolution, neighborhood, distances);
+
+    if(neighborhood.empty()) {
+      continue;
+    }
+
+    double nearest_voxel_score_pt = 0;
 
     for(auto &cell : neighborhood) {
-      Eigen::Vector3d x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
+      Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
 
       // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
       x_trans -= cell->getMean();
@@ -1101,17 +1079,24 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
       }
     }
 
-    if(!neighborhood.empty()) {
-      ++found_neighborhood_voxel_num;
-      nearest_voxel_score += nearest_voxel_score_pt;
-    }
+    t_nvs[tid] += nearest_voxel_score_pt;
+    ++t_found_nnvn[tid];
+  }
+
+  // Sum up point-wise scores
+  for(size_t idx = 0; idx < params_.num_threads; ++idx) {
+    found_neighborhood_voxel_num += t_nvs[idx];
+    nearest_voxel_score += t_found_nnvn[idx];
   }
 
   double output_score = 0;
+
   if(found_neighborhood_voxel_num != 0) {
     output_score = nearest_voxel_score / static_cast<double>(found_neighborhood_voxel_num);
   }
   return output_score;
 }
+
+}  // namespace pclomp
 
 #endif  // PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_

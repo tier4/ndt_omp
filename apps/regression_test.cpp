@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
 
   // prepare ndt
   pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr mg_ndt_omp(new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
-  mg_ndt_omp->setResolution(1.0);
+  mg_ndt_omp->setResolution(2.0);
   mg_ndt_omp->setNumThreads(4);
   mg_ndt_omp->setInputTarget(target_cloud);
   mg_ndt_omp->setMaximumIterations(30);
@@ -58,7 +58,8 @@ int main(int argc, char** argv) {
 
   // prepare results
   std::vector<double> elapsed_milliseconds;
-  std::vector<double> scores;
+  std::vector<double> nvtl_scores;
+  std::vector<double> tp_scores;
 
   // load kinematic_state.csv
   /*
@@ -116,18 +117,20 @@ int main(int argc, char** argv) {
     const pclomp::NdtResult ndt_result = mg_ndt_omp->getResult();
     auto t2 = std::chrono::system_clock::now();
     const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000.0;
-    const double score = ndt_result.nearest_voxel_transformation_likelihood;
+    const double tp = ndt_result.transform_probability;
+    const double nvtl = ndt_result.nearest_voxel_transformation_likelihood;
     elapsed_milliseconds.push_back(elapsed);
-    scores.push_back(score);
-    std::cout << source_pcd << ", num=" << std::setw(4) << source_cloud->size() << " points, time=" << elapsed << " [msec], score=" << score << std::endl;
+    nvtl_scores.push_back(nvtl);
+    tp_scores.push_back(tp);
+    std::cout << source_pcd << ", num=" << std::setw(4) << source_cloud->size() << " points, time=" << elapsed << " [msec], nvtl=" << nvtl << ", tp = " << tp << std::endl;
   }
 
   // output result
   mkdir(output_dir.c_str(), 0777);
   std::ofstream ofs(output_dir + "/result.csv");
-  ofs << "elapsed_milliseconds,score" << std::endl;
+  ofs << "elapsed_milliseconds,nvtl_score,tp_score" << std::endl;
   ofs << std::fixed;
   for(size_t i = 0; i < elapsed_milliseconds.size(); i++) {
-    ofs << elapsed_milliseconds[i] << "," << scores[i] << std::endl;
+    ofs << elapsed_milliseconds[i] << "," << nvtl_scores[i] << "," << tp_scores[i] << std::endl;
   }
 }
