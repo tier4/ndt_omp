@@ -89,6 +89,7 @@ struct NdtParams {
   NeighborSearchMethod search_method;
   int num_threads;
   float regularization_scale_factor;
+  bool use_line_search;
 };
 
 }  // namespace pclomp
