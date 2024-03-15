@@ -84,7 +84,6 @@ MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormal
   gauss_d2_ = other.gauss_d2_;
   gauss_d3_ = other.gauss_d3_;
   trans_probability_ = other.trans_probability_;
-  // No need to copy j_ang and h_ang, as those matrices are re-computed on every computeDerivatives() call
 
   hessian_ = other.hessian_;
   transformation_array_ = other.transformation_array_;
@@ -106,7 +105,6 @@ MultiGridNormalDistributionsTransform<PointSource, PointTarget> &MultiGridNormal
   gauss_d2_ = other.gauss_d2_;
   gauss_d3_ = other.gauss_d3_;
   trans_probability_ = other.trans_probability_;
-  // No need to copy j_ang and h_ang, as those matrices are re-computed on every computeDerivatives() call
 
   hessian_ = other.hessian_;
   transformation_array_ = other.transformation_array_;
@@ -130,7 +128,6 @@ MultiGridNormalDistributionsTransform<PointSource, PointTarget> &MultiGridNormal
   gauss_d2_ = other.gauss_d2_;
   gauss_d3_ = other.gauss_d3_;
   trans_probability_ = other.trans_probability_;
-  // No need to copy j_ang and h_ang, as those matrices are re-computed on every computeDerivatives() call
 
   hessian_ = other.hessian_;
   transformation_array_ = other.transformation_array_;
