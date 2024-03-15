@@ -56,8 +56,7 @@
 #ifndef PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 #define PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 
-namespace pclomp
-{
+namespace pclomp {
 
 template<typename PointSource, typename PointTarget>
 MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform(const MultiGridNormalDistributionsTransform &other) : BaseRegType(other), target_cells_(other.target_cells_) {
@@ -78,7 +77,8 @@ MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormal
 }
 
 template<typename PointSource, typename PointTarget>
-MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform(MultiGridNormalDistributionsTransform &&other) : BaseRegType(std::move(other)), target_cells_(std::move(other.target_cells_)), params_(std::move(other.params_)) {
+MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormalDistributionsTransform(MultiGridNormalDistributionsTransform &&other)
+    : BaseRegType(std::move(other)), target_cells_(std::move(other.target_cells_)), params_(std::move(other.params_)) {
   outlier_ratio_ = other.outlier_ratio_;
   gauss_d1_ = other.gauss_d1_;
   gauss_d2_ = other.gauss_d2_;
@@ -1094,6 +1094,6 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculat
   return output_score;
 }
 
-}
+}  // namespace pclomp
 
 #endif  // PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
