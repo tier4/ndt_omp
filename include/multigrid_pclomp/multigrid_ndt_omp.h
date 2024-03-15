@@ -89,9 +89,6 @@ protected:
   typedef typename PointCloudTarget::Ptr PointCloudTargetPtr;
   typedef typename PointCloudTarget::ConstPtr PointCloudTargetConstPtr;
 
-  typedef pcl::PointIndices::Ptr PointIndicesPtr;
-  typedef pcl::PointIndices::ConstPtr PointIndicesConstPtr;
-
   /** \brief Typename of searchable voxel grid containing mean and covariance. */
   typedef pclomp::MultiVoxelGridCovariance<PointTarget> TargetGrid;
   /** \brief Typename of const pointer to searchable voxel grid leaf. */
@@ -258,7 +255,6 @@ public:
 
   // negative log likelihood function
   // lower is better
-  double calculateScore(const PointCloudSource &cloud) const;
   double calculateTransformationProbability(const PointCloudSource &cloud) const;
   double calculateNearestVoxelTransformationLikelihood(const PointCloudSource &cloud) const;
 
