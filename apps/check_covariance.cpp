@@ -133,7 +133,7 @@ int main(int argc, char** argv) {
     std::cout << source_pcd << ", num=" << std::setw(4) << source_cloud->size() << " points, time=" << elapsed << " [msec], score=" << score << std::endl;
 
     // estimate covariance
-    const Eigen::Matrix2d cov_by_la = pclomp::estimate_xy_covariance_by_Laplace_approximation(ndt_result);
+    const Eigen::Matrix2d cov_by_la = pclomp::estimate_xy_covariance_by_Laplace_approximation(ndt_result.hessian);
     const Eigen::Matrix2d cov_by_mndt = pclomp::estimate_xy_covariance_by_multi_ndt(ndt_result, mg_ndt_omp, initial_pose, offset_x, offset_y);
     const Eigen::Matrix2d cov_by_mndt_score = pclomp::estimate_xy_covariance_by_multi_ndt_score(ndt_result, mg_ndt_omp, initial_pose, offset_x, offset_y);
 

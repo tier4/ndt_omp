@@ -14,15 +14,14 @@ Eigen::Matrix2d find_rotation_matrix_aligning_covariance_to_principal_axes(const
   throw std::runtime_error("Eigen solver failed. Return output_pose_covariance value.");
 }
 
-Eigen::Matrix2d estimate_xy_covariance_by_Laplace_approximation(const NdtResult& ndt_result) {
-  const Eigen::Matrix<double, 6, 6>& hessian = ndt_result.hessian;
+Eigen::Matrix2d estimate_xy_covariance_by_Laplace_approximation(const Eigen::Matrix<double, 6, 6>& hessian) {
   const Eigen::Matrix2d hessian_xy = hessian.block<2, 2>(0, 0);
   const Eigen::Matrix2d covariance_xy = -hessian_xy.inverse();
   return covariance_xy;
 }
 
 Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt(const NdtResult& ndt_result, std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> ndt_ptr, const Eigen::Matrix4f& initial_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y) {
-  const Eigen::Matrix2d cov_by_la = estimate_xy_covariance_by_Laplace_approximation(ndt_result);
+  const Eigen::Matrix2d cov_by_la = estimate_xy_covariance_by_Laplace_approximation(ndt_result.hessian);
   const Eigen::Matrix2d rot = find_rotation_matrix_aligning_covariance_to_principal_axes(-cov_by_la);
 
   assert(offset_x.size() == offset_y.size());
@@ -72,7 +71,7 @@ Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt(const NdtResult& ndt_result,
 }
 
 Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_result, std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> ndt_ptr, const Eigen::Matrix4f& initial_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y) {
-  const Eigen::Matrix2d cov_by_la = estimate_xy_covariance_by_Laplace_approximation(ndt_result);
+  const Eigen::Matrix2d cov_by_la = estimate_xy_covariance_by_Laplace_approximation(ndt_result.hessian);
   const Eigen::Matrix2d rot = find_rotation_matrix_aligning_covariance_to_principal_axes(-cov_by_la);
 
   assert(offset_x.size() == offset_y.size());
@@ -123,6 +122,22 @@ Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_r
   // calculate the covariance matrix
   const auto [mean, covariance] = calculate_weighted_mean_and_cov(ndt_pose_2d_vec, weight_vec);
   return covariance;
+}
+
+std::vector<Eigen::Matrix4f> propose_search_points(const Eigen::Matrix<double, 6, 6>& hessian, const Eigen::Matrix4f& center_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y) {
+  assert(offset_x.size() == offset_y.size());
+  const Eigen::Matrix2d covariance = estimate_xy_covariance_by_Laplace_approximation(hessian);
+  const Eigen::Matrix2d rot = find_rotation_matrix_aligning_covariance_to_principal_axes(-covariance);
+  std::vector<Eigen::Matrix4f> search_points;
+  for(int i = 0; i < static_cast<int>(offset_x.size()); i++) {
+    const Eigen::Vector2d pose_offset(offset_x[i], offset_y[i]);
+    const Eigen::Vector2d rotated_pose_offset_2d = rot * pose_offset;
+    Eigen::Matrix4f search_point = center_pose;
+    search_point(0, 3) += static_cast<float>(rotated_pose_offset_2d.x());
+    search_point(1, 3) += static_cast<float>(rotated_pose_offset_2d.y());
+    search_points.emplace_back(search_point);
+  }
+  return search_points;
 }
 
 std::vector<double> calc_weight_vec(const std::vector<double>& score_vec, double temperature) {
