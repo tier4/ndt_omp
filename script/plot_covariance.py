@@ -42,12 +42,26 @@ if __name__ == "__main__":
 
     """
     df_result
-    index,elapsed_milliseconds,score,x,y,cov_by_la_00,cov_by_la_01,cov_by_la_10,cov_by_la_11,cov_by_mndt_00,cov_by_mndt_01,cov_by_mndt_10,cov_by_mndt_11,cov_by_mndt_score_00,cov_by_mndt_score_01,cov_by_mndt_score_10,cov_by_mndt_score_11
-    0,576.501000,3.429885,81377.359375,49916.902344,0.000110,0.000007,0.000007,0.000116,0.000017,-0.000002,-0.000002,0.000002,0.106793,0.080732,0.080732,0.177989
-    1,2.180000,3.412068,81377.359375,49916.902344,0.000111,0.000007,0.000007,0.000117,0.000009,0.000004,0.000004,0.000009,0.108240,0.080859,0.080859,0.179305
-    2,1.885000,3.424125,81377.359375,49916.902344,0.000109,0.000007,0.000007,0.000116,0.000000,0.000000,0.000000,0.000009,0.106697,0.080186,0.080186,0.179408
+    index,score,x,y,elapsed_la,cov_by_la_00,cov_by_la_01,cov_by_la_10,cov_by_la_11,elapsed_mndt,cov_by_mndt_00,cov_by_mndt_01,cov_by_mndt_10,cov_by_mndt_11,elapsed_mndt_score,cov_by_mndt_score_00,cov_by_mndt_score_01,cov_by_mndt_score_10,cov_by_mndt_score_11
+    0,3.429885,81377.359375,49916.902344,0.000000,0.000110,0.000007,0.000007,0.000116,112.322000,0.000017,0.000000,0.000000,0.000003,12.878000,0.002066,0.000650,0.000650,0.002814
+    1,3.412068,81377.359375,49916.902344,0.000000,0.000111,0.000007,0.000007,0.000117,62.720000,0.187296,0.104792,0.104792,0.226846,12.767000,0.002203,0.000831,0.000831,0.003018
+    2,3.424125,81377.359375,49916.902344,0.000000,0.000109,0.000007,0.000007,0.000116,61.792000,0.161584,0.092505,0.092505,0.237047,12.803000,0.002010,0.000674,0.000674,0.002697
     ...
     """
+
+    # plot time
+    plt.figure()
+    plt.plot(df_result["elapsed_la"], label="Laplace Approximation")
+    plt.plot(df_result["elapsed_mndt"], label="Multi NDT")
+    plt.plot(df_result["elapsed_mndt_score"], label="Multi NDT Score")
+    plt.xlabel("Frame")
+    plt.ylabel("Time [msec]")
+    plt.legend()
+    plt.tight_layout()
+    save_path = result_csv.parent / "time.png"
+    plt.savefig(save_path, bbox_inches="tight", pad_inches=0.05)
+    print(f"Saved: {save_path}")
+    plt.close()
 
     cov_by_la = df_result[
         ["cov_by_la_00", "cov_by_la_01", "cov_by_la_10", "cov_by_la_11"]

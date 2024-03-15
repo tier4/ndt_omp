@@ -58,10 +58,6 @@ int main(int argc, char** argv) {
   const std::string source_pcd_dir = input_dir + "/sensor_pcd/";
   std::vector<std::string> source_pcd_list = glob(source_pcd_dir);
 
-  // prepare results
-  std::vector<double> elapsed_milliseconds;
-  std::vector<double> scores;
-
   // load kinematic_state.csv
   /*
   timestamp,pose_x,pose_y,pose_z,quat_w,quat_x,quat_y,quat_z,twist_linear_x,twist_linear_y,twist_linear_z,twist_angular_x,twist_angular_y,twist_angular_z
@@ -109,7 +105,10 @@ int main(int argc, char** argv) {
   mkdir(output_dir.c_str(), 0777);
   std::ofstream ofs(output_dir + "/result.csv");
   ofs << std::fixed;
-  ofs << "index,elapsed_milliseconds,score,x,y,cov_by_la_00,cov_by_la_01,cov_by_la_10,cov_by_la_11,cov_by_mndt_00,cov_by_mndt_01,cov_by_mndt_10,cov_by_mndt_11,cov_by_mndt_score_00,cov_by_mndt_score_01,cov_by_mndt_score_10,cov_by_mndt_score_11" << std::endl;
+  ofs << "index,score,x,y,elapsed_la,cov_by_la_00,cov_by_la_01,cov_by_la_10,cov_by_la_11,elapsed_mndt,cov_by_mndt_00,cov_by_mndt_01,cov_by_mndt_10,cov_by_mndt_11,elapsed_mndt_score,cov_by_mndt_score_00,cov_by_mndt_score_01,cov_by_mndt_score_10,cov_by_mndt_score_11" << std::endl;
+
+  auto t1 = std::chrono::system_clock::now();
+  auto t2 = std::chrono::system_clock::now();
 
   // execute align
   for(int64_t i = 0; i < n_data; i++) {
@@ -122,24 +121,33 @@ int main(int argc, char** argv) {
     }
     mg_ndt_omp->setInputSource(source_cloud);
     pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>());
-    auto t1 = std::chrono::system_clock::now();
     mg_ndt_omp->align(*aligned, initial_pose);
     const pclomp::NdtResult ndt_result = mg_ndt_omp->getResult();
-    auto t2 = std::chrono::system_clock::now();
-    const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000.0;
     const double score = ndt_result.nearest_voxel_transformation_likelihood;
-    elapsed_milliseconds.push_back(elapsed);
-    scores.push_back(score);
-    std::cout << source_pcd << ", num=" << std::setw(4) << source_cloud->size() << " points, time=" << elapsed << " [msec], score=" << score << std::endl;
+    std::cout << source_pcd << ", num=" << std::setw(4) << source_cloud->size() << " points, score=" << score << std::endl;
 
     // estimate covariance
+    // (1) Laplace approximation
+    t1 = std::chrono::system_clock::now();
     const Eigen::Matrix2d cov_by_la = pclomp::estimate_xy_covariance_by_Laplace_approximation(ndt_result.hessian);
-    const Eigen::Matrix2d cov_by_mndt = pclomp::estimate_xy_covariance_by_multi_ndt(ndt_result, mg_ndt_omp, initial_pose, offset_x, offset_y);
-    const Eigen::Matrix2d cov_by_mndt_score = pclomp::estimate_xy_covariance_by_multi_ndt_score(ndt_result, mg_ndt_omp, initial_pose, offset_x, offset_y);
+    t2 = std::chrono::system_clock::now();
+    const auto elapsed_la = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000.0;
 
-    ofs << i << "," << elapsed << "," << score << "," << initial_pose(0, 3) << "," << initial_pose(1, 3);
-    ofs << "," << cov_by_la(0, 0) << "," << cov_by_la(0, 1) << "," << cov_by_la(1, 0) << "," << cov_by_la(1, 1);
-    ofs << "," << cov_by_mndt(0, 0) << "," << cov_by_mndt(0, 1) << "," << cov_by_mndt(1, 0) << "," << cov_by_mndt(1, 1);
-    ofs << "," << cov_by_mndt_score(0, 0) << "," << cov_by_mndt_score(0, 1) << "," << cov_by_mndt_score(1, 0) << "," << cov_by_mndt_score(1, 1) << std::endl;
+    // (2) Multi NDT
+    t1 = std::chrono::system_clock::now();
+    const Eigen::Matrix2d cov_by_mndt = pclomp::estimate_xy_covariance_by_multi_ndt(ndt_result, mg_ndt_omp, initial_pose, offset_x, offset_y);
+    t2 = std::chrono::system_clock::now();
+    const auto elapsed_mndt = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000.0;
+
+    // (3) Multi NDT with score
+    t1 = std::chrono::system_clock::now();
+    const Eigen::Matrix2d cov_by_mndt_score = pclomp::estimate_xy_covariance_by_multi_ndt_score(ndt_result, mg_ndt_omp, initial_pose, offset_x, offset_y);
+    t2 = std::chrono::system_clock::now();
+    const auto elapsed_mndt_score = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000.0;
+
+    ofs << i << "," << score << "," << initial_pose(0, 3) << "," << initial_pose(1, 3);
+    ofs << "," << elapsed_la << "," << cov_by_la(0, 0) << "," << cov_by_la(0, 1) << "," << cov_by_la(1, 0) << "," << cov_by_la(1, 1);
+    ofs << "," << elapsed_mndt << "," << cov_by_mndt(0, 0) << "," << cov_by_mndt(0, 1) << "," << cov_by_mndt(1, 0) << "," << cov_by_mndt(1, 1);
+    ofs << "," << elapsed_mndt_score << "," << cov_by_mndt_score(0, 0) << "," << cov_by_mndt_score(0, 1) << "," << cov_by_mndt_score(1, 0) << "," << cov_by_mndt_score(1, 1) << std::endl;
   }
 }
