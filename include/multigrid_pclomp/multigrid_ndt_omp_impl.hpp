@@ -1001,12 +1001,9 @@ double pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
       // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
       x_trans -= cell->getMean();
 
-      // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
-      double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(cell->getInverseCov() * x_trans) / 2);
       // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
-      double score_inc = -gauss_d1_ * e_x_cov_x;
-
-      score += score_inc;
+      // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
+      tmp_score -= gauss_d1_ * exp(-gauss_d2_ * x_trans.dot(cell->getInverseCov() * x_trans) / 2);
     }
 
     t_scores[tid] += tmp_score;
