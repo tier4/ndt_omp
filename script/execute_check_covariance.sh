@@ -13,9 +13,16 @@ function make_movie() {
            ${TARGET_DIR}/../movie.mp4
 }
 
+#
+# execute
+#
 cd $(dirname $0)/../build
 
 make -j8
+./check_covariance ../check_covariance_data/input_awsim_nishishinjuku_flat/ ../check_covariance_data/output_awsim_nishishinjuku_flat
+python3 ../script/plot_covariance.py ../check_covariance_data/output_awsim_nishishinjuku_flat/result.csv
+make_movie ../check_covariance_data/output_awsim_nishishinjuku_flat/covariance_each_frame
+
 ./check_covariance ../check_covariance_data/input_awsim_nishishinjuku/ ../check_covariance_data/output_awsim_nishishinjuku
 python3 ../script/plot_covariance.py ../check_covariance_data/output_awsim_nishishinjuku/result.csv
 make_movie ../check_covariance_data/output_awsim_nishishinjuku/covariance_each_frame
