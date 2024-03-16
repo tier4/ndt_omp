@@ -83,11 +83,11 @@ if __name__ == "__main__":
     print(f"Saved: {save_path}")
     plt.close()
 
-    mean_x = df_result["x"].mean()
-    mean_y = df_result["y"].mean()
+    mean_x = df_result["initial_x"].mean()
+    mean_y = df_result["initial_y"].mean()
 
-    df_result["x"] -= mean_x
-    df_result["y"] -= mean_y
+    df_result["initial_x"] -= mean_x
+    df_result["initial_y"] -= mean_y
 
     cov_default = 0.0225 * np.eye(2)
 
@@ -113,12 +113,14 @@ if __name__ == "__main__":
                 "cov_by_mndt_score_11",
             ]
         ].values.reshape(2, 2)
-        x, y = row["x"], row["y"]
+        x, y = row["initial_x"], row["initial_y"]
         plot_ellipse([x, y], cov_default, "green", "Default", 10)
         plot_ellipse([x, y], cov_by_la, "blue", "Laplace Approximation", 100)
         plot_ellipse([x, y], cov_by_mndt, "red", "Multi NDT", 10)
         plot_ellipse([x, y], cov_by_mndt_score, "orange", "Multi NDT Score", 10)
-        plt.scatter(df_result["x"][0:i], df_result["y"][0:i], color="black", s=1)
+        plt.scatter(
+            df_result["initial_x"][0:i], df_result["initial_y"][0:i], color="black", s=1
+        )
         plt.legend(loc="lower left", bbox_to_anchor=(0.0, 1.0))
         plt.grid()
         plt.xlabel("x[m]")

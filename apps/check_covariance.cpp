@@ -102,10 +102,15 @@ int main(int argc, char** argv) {
   const std::vector<double> offset_y = {0.5, -0.5, 0.0, 0.0, 0.0, 0.0, 1.0, -1.0, 0.0, 0.0};
 
   // output result
-  mkdir(output_dir.c_str(), 0777);
+  std::filesystem::create_directories(output_dir);
   std::ofstream ofs(output_dir + "/result.csv");
   ofs << std::fixed;
-  ofs << "index,score,x,y,elapsed_la,cov_by_la_00,cov_by_la_01,cov_by_la_10,cov_by_la_11,elapsed_mndt,cov_by_mndt_00,cov_by_mndt_01,cov_by_mndt_10,cov_by_mndt_11,elapsed_mndt_score,cov_by_mndt_score_00,cov_by_mndt_score_01,cov_by_mndt_score_10,cov_by_mndt_score_11" << std::endl;
+  ofs << "index,score,initial_x,initial_y,result_x,result_y,elapsed_la,cov_by_la_00,cov_by_la_01,cov_by_la_10,cov_by_la_11,elapsed_mndt,cov_by_mndt_00,cov_by_mndt_01,cov_by_mndt_10,cov_by_mndt_11,elapsed_mndt_score,cov_by_mndt_score_00,cov_by_mndt_score_01,cov_by_mndt_score_10,cov_by_mndt_score_11" << std::endl;
+
+  const std::string multi_ndt_dir = output_dir + "/multi_ndt";
+  std::filesystem::create_directories(multi_ndt_dir);
+  const std::string multi_ndt_score_dir = output_dir + "/multi_ndt_score";
+  std::filesystem::create_directories(multi_ndt_score_dir);
 
   auto t1 = std::chrono::system_clock::now();
   auto t2 = std::chrono::system_clock::now();
@@ -147,9 +152,45 @@ int main(int argc, char** argv) {
     t2 = std::chrono::system_clock::now();
     const auto elapsed_mndt_score = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000.0;
 
-    ofs << i << "," << score << "," << initial_pose(0, 3) << "," << initial_pose(1, 3);
+    // output result
+    const auto result_x = ndt_result.pose(0, 3);
+    const auto result_y = ndt_result.pose(1, 3);
+    ofs << i << "," << score << "," << initial_pose(0, 3) << "," << initial_pose(1, 3) << "," << result_x << "," << result_y;
     ofs << "," << elapsed_la << "," << cov_by_la(0, 0) << "," << cov_by_la(0, 1) << "," << cov_by_la(1, 0) << "," << cov_by_la(1, 1);
     ofs << "," << elapsed_mndt << "," << cov_by_mndt(0, 0) << "," << cov_by_mndt(0, 1) << "," << cov_by_mndt(1, 0) << "," << cov_by_mndt(1, 1);
     ofs << "," << elapsed_mndt_score << "," << cov_by_mndt_score(0, 0) << "," << cov_by_mndt_score(0, 1) << "," << cov_by_mndt_score(1, 0) << "," << cov_by_mndt_score(1, 1) << std::endl;
+
+    std::stringstream filename_ss;
+    filename_ss << std::setw(8) << std::setfill('0') << i << ".csv";
+
+    // output multi ndt result
+    std::ofstream ofs_mndt(multi_ndt_dir + "/" + filename_ss.str());
+    const int n_mndt = result_of_mndt.ndt_results.size();
+    ofs_mndt << "index,score,initial_x,initial_y,result_x,result_y" << std::endl;
+    ofs_mndt << std::fixed;
+    for(int j = 0; j < n_mndt; j++) {
+      const pclomp::NdtResult& ndt_result = result_of_mndt.ndt_results[j];
+      const auto nvtl = ndt_result.nearest_voxel_transformation_likelihood;
+      const auto initial_x = result_of_mndt.ndt_initial_poses[j](0, 3);
+      const auto initial_y = result_of_mndt.ndt_initial_poses[j](1, 3);
+      const auto result_x = ndt_result.pose(0, 3);
+      const auto result_y = ndt_result.pose(1, 3);
+      ofs_mndt << j << "," << nvtl << "," << initial_x << "," << initial_y << "," << result_x << "," << result_y << std::endl;
+    }
+
+    // output multi ndt score result
+    std::ofstream ofs_mndt_score(multi_ndt_score_dir + "/" + filename_ss.str());
+    const int n_mndt_score = result_of_mndt_score.ndt_results.size();
+    ofs_mndt_score << "index,score,initial_x,initial_y,result_x,result_y" << std::endl;
+    ofs_mndt_score << std::fixed;
+    for(int j = 0; j < n_mndt_score; j++) {
+      const pclomp::NdtResult& ndt_result = result_of_mndt_score.ndt_results[j];
+      const auto nvtl = ndt_result.nearest_voxel_transformation_likelihood;
+      const auto initial_x = result_of_mndt_score.ndt_initial_poses[j](0, 3);
+      const auto initial_y = result_of_mndt_score.ndt_initial_poses[j](1, 3);
+      const auto result_x = ndt_result.pose(0, 3);
+      const auto result_y = ndt_result.pose(1, 3);
+      ofs_mndt_score << j << "," << nvtl << "," << initial_x << "," << initial_y << "," << result_x << "," << result_y << std::endl;
+    }
   }
 }
