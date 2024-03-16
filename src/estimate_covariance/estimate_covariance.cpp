@@ -4,16 +4,6 @@
 
 namespace pclomp {
 
-Eigen::Matrix2d find_rotation_matrix_aligning_covariance_to_principal_axes(const Eigen::Matrix2d& matrix) {
-  const Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigensolver(matrix);
-  if(eigensolver.info() == Eigen::Success) {
-    const Eigen::Vector2d eigen_vec = eigensolver.eigenvectors().col(0);
-    const double th = std::atan2(eigen_vec.y(), eigen_vec.x());
-    return Eigen::Rotation2Dd(th).toRotationMatrix();
-  }
-  throw std::runtime_error("Eigen solver failed. Return output_pose_covariance value.");
-}
-
 Eigen::Matrix2d estimate_xy_covariance_by_Laplace_approximation(const Eigen::Matrix<double, 6, 6>& hessian) {
   const Eigen::Matrix2d hessian_xy = hessian.block<2, 2>(0, 0);
   const Eigen::Matrix2d covariance_xy = -hessian_xy.inverse();
@@ -97,6 +87,16 @@ Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_r
   // calculate the covariance matrix
   const auto [mean, covariance] = calculate_weighted_mean_and_cov(ndt_pose_2d_vec, weight_vec);
   return covariance;
+}
+
+Eigen::Matrix2d find_rotation_matrix_aligning_covariance_to_principal_axes(const Eigen::Matrix2d& matrix) {
+  const Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigensolver(matrix);
+  if(eigensolver.info() == Eigen::Success) {
+    const Eigen::Vector2d eigen_vec = eigensolver.eigenvectors().col(0);
+    const double th = std::atan2(eigen_vec.y(), eigen_vec.x());
+    return Eigen::Rotation2Dd(th).toRotationMatrix();
+  }
+  throw std::runtime_error("Eigen solver failed. Return output_pose_covariance value.");
 }
 
 std::vector<Eigen::Matrix4f> propose_poses_to_search(const Eigen::Matrix<double, 6, 6>& hessian, const Eigen::Matrix4f& center_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y) {

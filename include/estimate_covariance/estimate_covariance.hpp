@@ -6,10 +6,17 @@
 
 namespace pclomp {
 
-Eigen::Matrix2d find_rotation_matrix_aligning_covariance_to_principal_axes(const Eigen::Matrix2d& matrix);
+/** \brief Estimate functions */
 Eigen::Matrix2d estimate_xy_covariance_by_Laplace_approximation(const Eigen::Matrix<double, 6, 6>& hessian);
 Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt(const NdtResult& ndt_result, std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> ndt_ptr, const Eigen::Matrix4f& initial_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y);
 Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_result, std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> ndt_ptr, const Eigen::Matrix4f& initial_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y);
+
+/** \brief Find rotation matrix aligning covariance to principal axes
+ * (1) Compute eigenvalues and eigenvectors
+ * (2) Compute angle for first eigenvector
+ * (3) Return rotation matrix
+ */
+Eigen::Matrix2d find_rotation_matrix_aligning_covariance_to_principal_axes(const Eigen::Matrix2d& matrix);
 
 /** \brief Propose poses to search.
  * (1) Compute covariance by Laplace approximation
