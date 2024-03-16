@@ -6,10 +6,17 @@
 
 namespace pclomp {
 
+struct ResultOfMultiNdtCovarianceEstimation {
+  Eigen::Vector2d mean;
+  Eigen::Matrix2d covariance;
+  std::vector<Eigen::Matrix4f> ndt_initial_poses;
+  std::vector<NdtResult> ndt_results;
+};
+
 /** \brief Estimate functions */
 Eigen::Matrix2d estimate_xy_covariance_by_Laplace_approximation(const Eigen::Matrix<double, 6, 6>& hessian);
-Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt(const NdtResult& ndt_result, std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> ndt_ptr, const Eigen::Matrix4f& initial_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y);
-Eigen::Matrix2d estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_result, std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> ndt_ptr, const Eigen::Matrix4f& initial_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y);
+ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt(const NdtResult& ndt_result, std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> ndt_ptr, const Eigen::Matrix4f& initial_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y);
+ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_result, std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> ndt_ptr, const Eigen::Matrix4f& initial_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y);
 
 /** \brief Find rotation matrix aligning covariance to principal axes
  * (1) Compute eigenvalues and eigenvectors
@@ -30,9 +37,6 @@ std::vector<double> calc_weight_vec(const std::vector<double>& score_vec, double
 
 /** \brief Calculate weighted mean and covariance */
 std::pair<Eigen::Vector2d, Eigen::Matrix2d> calculate_weighted_mean_and_cov(const std::vector<Eigen::Vector2d>& pose_2d_vec, const std::vector<double>& weight_vec);
-
-/** \brief Output pose, score and weight for debug */
-void output_pose_score_weight(const std::vector<Eigen::Vector2d>& pose_2d_vec, const std::vector<double>& score_vec, const std::vector<double>& weight_vec);
 
 }  // namespace pclomp
 
