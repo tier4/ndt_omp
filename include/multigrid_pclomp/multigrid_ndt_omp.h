@@ -492,13 +492,13 @@ protected:
    *
    * The precomputed angular derivatives for the jacobian of a transformation vector, Equation 6.19 [Magnusson 2009].
    */
-  Eigen::Matrix<float, 8, 4> j_ang_;
+  Eigen::Matrix<double, 8, 4> j_ang_;
 
   /** \brief Precomputed Angular Hessian
    *
    * The precomputed angular derivatives for the hessian of a transformation vector, Equation 6.19 [Magnusson 2009].
    */
-  Eigen::Matrix<float, 16, 4> h_ang_;
+  Eigen::Matrix<double, 16, 4> h_ang_;
 
   Eigen::Matrix<double, 6, 6> hessian_;
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array_;

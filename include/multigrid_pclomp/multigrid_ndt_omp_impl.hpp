@@ -56,6 +56,8 @@
 #ifndef PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 #define PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 
+#include <fstream>
+
 namespace pclomp {
 
 template<typename PointSource, typename PointTarget>
@@ -212,6 +214,12 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
   // Calculate derivatives of initial transform vector, subsequent derivative calculations are done in the step length determination.
   score = computeDerivatives(score_gradient, hessian, output, p);
 
+  // For debug
+  std::ofstream test("/home/anh/Work/autoware/score_test.txt");
+  test << score << std::endl;
+  exit(0);
+  // End
+
   while(!converged_) {
     // Store previous transformation
     previous_transformation_ = transformation_;
@@ -296,8 +304,8 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeD
   std::vector<int> neighborhood_counts(params_.num_threads);
 
   // Pre-allocate thread-wise point derivative matrices to avoid reallocate too many times
-  std::vector<Eigen::Matrix<float, 4, 6>> t_point_gradients(params_.num_threads);
-  std::vector<Eigen::Matrix<float, 24, 6>> t_point_hessians(params_.num_threads);
+  std::vector<Eigen::Matrix<double, 4, 6>> t_point_gradients(params_.num_threads);
+  std::vector<Eigen::Matrix<double, 24, 6>> t_point_hessians(params_.num_threads);
 
   for(size_t i = 0; i < params_.num_threads; ++i) {
     scores[i] = 0;
@@ -492,12 +500,12 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeAng
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<float, 4, 6> &point_gradient, Eigen::Matrix<float, 24, 6> &point_hessian, bool compute_hessian) const {
-  Eigen::Vector4f x4(x[0], x[1], x[2], 0.0f);
+void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<double, 4, 6> &point_gradient, Eigen::Matrix<double, 24, 6> &point_hessian, bool compute_hessian) const {
+  Eigen::Vector4d x4(x[0], x[1], x[2], 0.0f);
 
   // Calculate first derivative of Transformation Equation 6.17 w.r.t. transform vector p.
   // Derivative w.r.t. ith element of transform vector corresponds to column i, Equation 6.18 and 6.19 [Magnusson 2009]
-  Eigen::Matrix<double, 8, 1> x_j_ang = j_ang_ * x4;
+  auto x_j_ang = j_ang_ * x4;
 
   point_gradient(1, 3) = x_j_ang[0];
   point_gradient(2, 3) = x_j_ang[1];
@@ -509,12 +517,12 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computePoi
   point_gradient(2, 5) = x_j_ang[7];
 
   if(compute_hessian) {
-    Eigen::Matrix<double, 16, 1> x_h_ang = h_ang_ * x4;
+    auto x_h_ang = h_ang_ * x4;
 
     // Vectors from Equation 6.21 [Magnusson 2009]
-    Eigen::Vector4d a(0.0, x_h_ang[0], x_h_ang[1], 0.0f);
-    Eigen::Vector4d b(0.0, x_h_ang[2], x_h_ang[3], 0.0f);
-    Eigen::Vector4d c(0.0, x_h_ang[4], x_h_ang[5], 0.0f);
+    Eigen::Vector4d a(0.0f, x_h_ang[0], x_h_ang[1], 0.0f);
+    Eigen::Vector4d b(0.0f, x_h_ang[2], x_h_ang[3], 0.0f);
+    Eigen::Vector4d c(0.0f, x_h_ang[4], x_h_ang[5], 0.0f);
     Eigen::Vector4d d(x_h_ang[6], x_h_ang[7], x_h_ang[8], 0.0f);
     Eigen::Vector4d e(x_h_ang[9], x_h_ang[10], x_h_ang[11], 0.0f);
     Eigen::Vector4d f(x_h_ang[12], x_h_ang[13], x_h_ang[14], 0.0f);
@@ -535,11 +543,11 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computePoi
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<float, 4, 6> &point_gradient4, const Eigen::Matrix<float, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv, bool compute_hessian) const {
-  Eigen::Matrix<float, 1, 4> x_trans4(x_trans[0], x_trans[1], x_trans[2], 0.0f);
+double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 4, 6> &point_gradient, const Eigen::Matrix<double, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv, bool compute_hessian) const {
+  Eigen::Matrix<double, 1, 4> x_trans4(x_trans[0], x_trans[1], x_trans[2], 0.0f);
   Eigen::Matrix4d c_inv4 = Eigen::Matrix4d::Zero();
 
-  c_inv4.topLeftCorner(3, 3) = c_inv.cast<double>();
+  c_inv4.topLeftCorner(3, 3) = c_inv;
 
   double gauss_d2 = gauss_d2_;
 
@@ -586,8 +594,8 @@ template<typename PointSource, typename PointTarget>
 void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHessian(Eigen::Matrix<double, 6, 6> &hessian, PointCloudSource &trans_cloud, Eigen::Matrix<double, 6, 1> &) {
   // Initialize Point Gradient and Hessian
   // Pre-allocate thread-wise point gradients and point hessians
-  std::vector<Eigen::Matrix<double, 3, 6>> t_point_gradients(params_.num_threads);
-  std::vector<Eigen::Matrix<double, 18, 6>> t_point_hessians(params_.num_threads);
+  std::vector<Eigen::Matrix<double, 4, 6>> t_point_gradients(params_.num_threads);
+  std::vector<Eigen::Matrix<double, 24, 6>> t_point_hessians(params_.num_threads);
   std::vector<Eigen::Matrix<double, 6, 6>> t_hessians(params_.num_threads);
 
   for(int i = 0; i < params_.num_threads; ++i) {
@@ -650,7 +658,7 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHes
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateHessian(Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 3, 6> &point_gradient, const Eigen::Matrix<double, 18, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv) const {
+void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateHessian(Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 4, 6> &point_gradient, const Eigen::Matrix<double, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv) const {
   Eigen::Vector3d cov_dxd_pi;
   // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
   double e_x_cov_x = gauss_d2_ * exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
@@ -963,7 +971,7 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculat
 
       // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
       // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
-      tmp_score -= gauss_d1_ * exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
+      tmp_score -= gauss_d1_ * exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2.0);
     }
 
     t_scores[tid] += tmp_score;
@@ -1022,7 +1030,7 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculat
       Eigen::Matrix3d c_inv = cell->getInverseCov();
 
       // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
-      double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
+      double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2.0);
       // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
       double score_inc = -gauss_d1_ * e_x_cov_x;
 
