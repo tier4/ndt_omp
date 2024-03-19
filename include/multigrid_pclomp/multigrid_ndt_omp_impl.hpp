@@ -287,18 +287,18 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeD
   double nearest_voxel_score = 0;
   size_t found_neigborhood_voxel_num = 0;
 
-  std::vector<double> scores(num_threads_);
-  std::vector<double> nearest_voxel_scores(num_threads_);
-  std::vector<size_t> found_neigborhood_voxel_nums(num_threads_);
-  std::vector<Eigen::Matrix<double, 6, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 1>>> score_gradients(num_threads_);
-  std::vector<Eigen::Matrix<double, 6, 6>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 6>>> hessians(num_threads_);
-  std::vector<int> neighborhood_counts(num_threads_);
+  std::vector<double> scores(params_.num_threads);
+  std::vector<double> nearest_voxel_scores(params_.num_threads);
+  std::vector<size_t> found_neigborhood_voxel_nums(params_.num_threads);
+  std::vector<Eigen::Matrix<double, 6, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 1>>> score_gradients(params_.num_threads);
+  std::vector<Eigen::Matrix<double, 6, 6>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 6>>> hessians(params_.num_threads);
+  std::vector<int> neighborhood_counts(params_.num_threads);
 
   // Pre-allocate thread-wise point derivative matrices to avoid reallocate too many times
   std::vector<Eigen::Matrix<double, 4, 6>> t_point_gradients(params_.num_threads);
   std::vector<Eigen::Matrix<double, 24, 6>> t_point_hessians(params_.num_threads);
 
-  for(size_t i = 0; i < num_threads_; ++i) {
+  for(size_t i = 0; i < params_.num_threads; ++i) {
     scores[i] = 0;
     nearest_voxel_scores[i] = 0;
     found_neigborhood_voxel_nums[i] = 0;
@@ -928,7 +928,7 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculat
     std::vector<TargetGridLeafConstPtr> neighborhood;
 
     // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
-    target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood);
+    target_cells_.radiusSearch(x_trans_pt, params_.resolution, neighborhood);
 
     if(neighborhood.empty()) {
       continue;
