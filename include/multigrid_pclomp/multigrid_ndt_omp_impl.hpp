@@ -66,7 +66,7 @@ MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormal
   gauss_d2_ = other.gauss_d2_;
   gauss_d3_ = other.gauss_d3_;
   trans_probability_ = other.trans_probability_;
-  // No need to copy j_ang and h_ang, as those matrices are re-computed on every computeDerivatives() call
+  // No need to copy j_ang_ and h_ang_, as those matrices are re-computed on every computeDerivatives() call
 
   hessian_ = other.hessian_;
   transformation_array_ = other.transformation_array_;
@@ -176,7 +176,7 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
   gauss_c2 = outlier_ratio_ / pow(params_.resolution, 3);
   gauss_d3_ = -log(gauss_c2);
   gauss_d1_ = -log(gauss_c1 + gauss_c2) - gauss_d3_;
-  gauss_d2_ = -2 * log((-log(gauss_c1 * exp(-0.5) + gauss_c2) - gauss_d3_) / gauss_d1_);
+  gauss_d2_ = -2.0 * log((-log(gauss_c1 * exp(-0.5) + gauss_c2) - gauss_d3_) / gauss_d1_);
 
   if(guess != Eigen::Matrix4f::Identity()) {
     // Initialise final transformation to the guessed one
@@ -186,6 +186,7 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
   }
 
   Eigen::Transform<float, 3, Eigen::Affine, Eigen::ColMajor> eig_transformation;
+
   eig_transformation.matrix() = final_transformation_;
   transformation_array_.clear();
   transformation_array_.push_back(final_transformation_);
@@ -194,6 +195,7 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
   Eigen::Matrix<double, 6, 1> p, delta_p, score_gradient;
   Eigen::Vector3f init_translation = eig_transformation.translation();
   Eigen::Vector3f init_rotation = eig_transformation.rotation().eulerAngles(0, 1, 2);
+
   p << init_translation(0), init_translation(1), init_translation(2), init_rotation(0), init_rotation(1), init_rotation(2);
 
   Eigen::Matrix<double, 6, 6> hessian;
@@ -234,7 +236,7 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
     }
 
     delta_p.normalize();
-    delta_p_norm = computeStepLengthMT(p, delta_p, delta_p_norm, params_.step_size, params_.trans_epsilon / 2, score, score_gradient, hessian, output);
+    delta_p_norm = computeStepLengthMT(p, delta_p, delta_p_norm, params_.step_size, params_.trans_epsilon / 2.0, score, score_gradient, hessian, output);
     delta_p *= delta_p_norm;
 
     transformation_ = (Eigen::Translation<float, 3>(static_cast<float>(delta_p(0)), static_cast<float>(delta_p(1)), static_cast<float>(delta_p(2))) * Eigen::AngleAxis<float>(static_cast<float>(delta_p(3)), Eigen::Vector3f::UnitX()) * Eigen::AngleAxis<float>(static_cast<float>(delta_p(4)), Eigen::Vector3f::UnitY()) * Eigen::AngleAxis<float>(static_cast<float>(delta_p(5)), Eigen::Vector3f::UnitZ()))
@@ -279,6 +281,7 @@ template<typename PointSource, typename PointTarget>
 double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, PointCloudSource &trans_cloud, Eigen::Matrix<double, 6, 1> &p, bool compute_hessian) {
   score_gradient.setZero();
   hessian.setZero();
+
   double score = 0;
   int total_neighborhood_count = 0;
   double nearest_voxel_score = 0;
@@ -292,8 +295,8 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeD
   std::vector<int> neighborhood_counts(params_.num_threads);
 
   // Pre-allocate thread-wise point derivative matrices to avoid reallocate too many times
-  std::vector<Eigen::Matrix<float, 4, 6>> t_point_gradients(params_.num_threads);
-  std::vector<Eigen::Matrix<float, 24, 6>> t_point_hessians(params_.num_threads);
+  std::vector<Eigen::Matrix<double, 4, 6>> t_point_gradients(params_.num_threads);
+  std::vector<Eigen::Matrix<double, 24, 6>> t_point_hessians(params_.num_threads);
 
   for(size_t i = 0; i < params_.num_threads; ++i) {
     scores[i] = 0;
@@ -448,50 +451,52 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeAng
   }
 
   // Precomputed angular gradiant components. Letters correspond to Equation 6.19 [Magnusson 2009]
-  j_ang.setZero();
-  j_ang.row(0).noalias() = Eigen::Vector4f((-sx * sz + cx * sy * cz), (-sx * cz - cx * sy * sz), (-cx * cy), 0.0f);
-  j_ang.row(1).noalias() = Eigen::Vector4f((cx * sz + sx * sy * cz), (cx * cz - sx * sy * sz), (-sx * cy), 0.0f);
-  j_ang.row(2).noalias() = Eigen::Vector4f((-sy * cz), sy * sz, cy, 0.0f);
-  j_ang.row(3).noalias() = Eigen::Vector4f(sx * cy * cz, (-sx * cy * sz), sx * sy, 0.0f);
-  j_ang.row(4).noalias() = Eigen::Vector4f((-cx * cy * cz), cx * cy * sz, (-cx * sy), 0.0f);
-  j_ang.row(5).noalias() = Eigen::Vector4f((-cy * sz), (-cy * cz), 0, 0.0f);
-  j_ang.row(6).noalias() = Eigen::Vector4f((cx * cz - sx * sy * sz), (-cx * sz - sx * sy * cz), 0, 0.0f);
-  j_ang.row(7).noalias() = Eigen::Vector4f((sx * cz + cx * sy * sz), (cx * sy * cz - sx * sz), 0, 0.0f);
+  j_ang_.setZero();
+
+  j_ang_.row(0) << (-sx * sz + cx * sy * cz), (-sx * cz - cx * sy * sz), (-cx * cy), 0.0f;
+  j_ang_.row(1) << (cx * sz + sx * sy * cz), (cx * cz - sx * sy * sz), (-sx * cy), 0.0f;
+  j_ang_.row(2) << (-sy * cz), sy * sz, cy, 0.0f;
+  j_ang_.row(3) << sx * cy * cz, (-sx * cy * sz), sx * sy, 0.0f;
+  j_ang_.row(4) << (-cx * cy * cz), cx * cy * sz, (-cx * sy), 0.0f;
+  j_ang_.row(5) << (-cy * sz), (-cy * cz), 0.0f, 0.0f;
+  j_ang_.row(6) << (cx * cz - sx * sy * sz), (-cx * sz - sx * sy * cz), 0.0f, 0.0f;
+  j_ang_.row(7) << (sx * cz + cx * sy * sz), (cx * sy * cz - sx * sz), 0.0f, 0.0f;
 
   if(compute_hessian) {
     // Precomputed angular hessian components. Letters correspond to Equation 6.21 and numbers correspond to row index [Magnusson 2009]
-    h_ang.setZero();
-    h_ang.row(0).noalias() = Eigen::Vector4f((-cx * sz - sx * sy * cz), (-cx * cz + sx * sy * sz), sx * cy, 0.0f);     // a2
-    h_ang.row(1).noalias() = Eigen::Vector4f((-sx * sz + cx * sy * cz), (-cx * sy * sz - sx * cz), (-cx * cy), 0.0f);  // a3
+    h_ang_.setZero();
 
-    h_ang.row(2).noalias() = Eigen::Vector4f((cx * cy * cz), (-cx * cy * sz), (cx * sy), 0.0f);  // b2
-    h_ang.row(3).noalias() = Eigen::Vector4f((sx * cy * cz), (-sx * cy * sz), (sx * sy), 0.0f);  // b3
+    h_ang_.row(0) << (-cx * sz - sx * sy * cz), (-cx * cz + sx * sy * sz), sx * cy, 0.0f;     // a2
+    h_ang_.row(1) << (-sx * sz + cx * sy * cz), (-cx * sy * sz - sx * cz), (-cx * cy), 0.0f;  // a3
 
-    h_ang.row(4).noalias() = Eigen::Vector4f((-sx * cz - cx * sy * sz), (sx * sz - cx * sy * cz), 0, 0.0f);  // c2
-    h_ang.row(5).noalias() = Eigen::Vector4f((cx * cz - sx * sy * sz), (-sx * sy * cz - cx * sz), 0, 0.0f);  // c3
+    h_ang_.row(2) << (cx * cy * cz), (-cx * cy * sz), (cx * sy), 0.0f;  // b2
+    h_ang_.row(3) << (sx * cy * cz), (-sx * cy * sz), (sx * sy), 0.0f;  // b3
 
-    h_ang.row(6).noalias() = Eigen::Vector4f((-cy * cz), (cy * sz), (sy), 0.0f);                  // d1
-    h_ang.row(7).noalias() = Eigen::Vector4f((-sx * sy * cz), (sx * sy * sz), (sx * cy), 0.0f);   // d2
-    h_ang.row(8).noalias() = Eigen::Vector4f((cx * sy * cz), (-cx * sy * sz), (-cx * cy), 0.0f);  // d3
+    h_ang_.row(4) << (-sx * cz - cx * sy * sz), (sx * sz - cx * sy * cz), 0.0f, 0.0f;  // c2
+    h_ang_.row(5) << (cx * cz - sx * sy * sz), (-sx * sy * cz - cx * sz), 0.0f, 0.0f;  // c3
 
-    h_ang.row(9).noalias() = Eigen::Vector4f((sy * sz), (sy * cz), 0, 0.0f);               // e1
-    h_ang.row(10).noalias() = Eigen::Vector4f((-sx * cy * sz), (-sx * cy * cz), 0, 0.0f);  // e2
-    h_ang.row(11).noalias() = Eigen::Vector4f((cx * cy * sz), (cx * cy * cz), 0, 0.0f);    // e3
+    h_ang_.row(6) << (-cy * cz), (cy * sz), (sy), 0.0f;                  // d1
+    h_ang_.row(7) << (-sx * sy * cz), (sx * sy * sz), (sx * cy), 0.0f;   // d2
+    h_ang_.row(8) << (cx * sy * cz), (-cx * sy * sz), (-cx * cy), 0.0f;  // d3
 
-    h_ang.row(12).noalias() = Eigen::Vector4f((-cy * cz), (cy * sz), 0, 0.0f);                                 // f1
-    h_ang.row(13).noalias() = Eigen::Vector4f((-cx * sz - sx * sy * cz), (-cx * cz + sx * sy * sz), 0, 0.0f);  // f2
-    h_ang.row(14).noalias() = Eigen::Vector4f((-sx * sz + cx * sy * cz), (-cx * sy * sz - sx * cz), 0, 0.0f);  // f3
+    h_ang_.row(9) << (sy * sz), (sy * cz), 0.0f, 0.0f;               // e1
+    h_ang_.row(10) << (-sx * cy * sz), (-sx * cy * cz), 0.0f, 0.0f;  // e2
+    h_ang_.row(11) << (cx * cy * sz), (cx * cy * cz), 0.0f, 0.0f;    // e3
+
+    h_ang_.row(12) << (-cy * cz), (cy * sz), 0.0f, 0.0f;                                 // f1
+    h_ang_.row(13) << (-cx * sz - sx * sy * cz), (-cx * cz + sx * sy * sz), 0.0f, 0.0f;  // f2
+    h_ang_.row(14) << (-sx * sz + cx * sy * cz), (-cx * sy * sz - sx * cz), 0.0f, 0.0f;  // f3
   }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<float, 4, 6> &point_gradient, Eigen::Matrix<float, 24, 6> &point_hessian, bool compute_hessian) const {
-  Eigen::Vector4f x4(x[0], x[1], x[2], 0.0f);
+void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<double, 4, 6> &point_gradient, Eigen::Matrix<double, 24, 6> &point_hessian, bool compute_hessian) const {
+  Eigen::Vector4d x4(x[0], x[1], x[2], 0.0f);
 
   // Calculate first derivative of Transformation Equation 6.17 w.r.t. transform vector p.
   // Derivative w.r.t. ith element of transform vector corresponds to column i, Equation 6.18 and 6.19 [Magnusson 2009]
-  Eigen::Matrix<float, 8, 1> x_j_ang = j_ang * x4;
+  auto x_j_ang = j_ang_ * x4;
 
   point_gradient(1, 3) = x_j_ang[0];
   point_gradient(2, 3) = x_j_ang[1];
@@ -503,84 +508,44 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computePoi
   point_gradient(2, 5) = x_j_ang[7];
 
   if(compute_hessian) {
-    Eigen::Matrix<float, 16, 1> x_h_ang = h_ang * x4;
+    auto x_h_ang = h_ang_ * x4;
 
     // Vectors from Equation 6.21 [Magnusson 2009]
-    Eigen::Vector4f a(0, x_h_ang[0], x_h_ang[1], 0.0f);
-    Eigen::Vector4f b(0, x_h_ang[2], x_h_ang[3], 0.0f);
-    Eigen::Vector4f c(0, x_h_ang[4], x_h_ang[5], 0.0f);
-    Eigen::Vector4f d(x_h_ang[6], x_h_ang[7], x_h_ang[8], 0.0f);
-    Eigen::Vector4f e(x_h_ang[9], x_h_ang[10], x_h_ang[11], 0.0f);
-    Eigen::Vector4f f(x_h_ang[12], x_h_ang[13], x_h_ang[14], 0.0f);
+    Eigen::Vector4d a(0.0f, x_h_ang[0], x_h_ang[1], 0.0f);
+    Eigen::Vector4d b(0.0f, x_h_ang[2], x_h_ang[3], 0.0f);
+    Eigen::Vector4d c(0.0f, x_h_ang[4], x_h_ang[5], 0.0f);
+    Eigen::Vector4d d(x_h_ang[6], x_h_ang[7], x_h_ang[8], 0.0f);
+    Eigen::Vector4d e(x_h_ang[9], x_h_ang[10], x_h_ang[11], 0.0f);
+    Eigen::Vector4d f(x_h_ang[12], x_h_ang[13], x_h_ang[14], 0.0f);
 
     // Calculate second derivative of Transformation Equation 6.17 w.r.t. transform vector p.
     // Derivative w.r.t. ith and jth elements of transform vector corresponds to the 3x1 block matrix starting at (3i,j), Equation 6.20 and 6.21 [Magnusson 2009]
-    point_hessian.block<4, 1>((9 / 3) * 4, 3) = a;
-    point_hessian.block<4, 1>((12 / 3) * 4, 3) = b;
-    point_hessian.block<4, 1>((15 / 3) * 4, 3) = c;
-    point_hessian.block<4, 1>((9 / 3) * 4, 4) = b;
-    point_hessian.block<4, 1>((12 / 3) * 4, 4) = d;
-    point_hessian.block<4, 1>((15 / 3) * 4, 4) = e;
-    point_hessian.block<4, 1>((9 / 3) * 4, 5) = c;
-    point_hessian.block<4, 1>((12 / 3) * 4, 5) = e;
-    point_hessian.block<4, 1>((15 / 3) * 4, 5) = f;
+    point_hessian.block<4, 1>(12, 3) = a;
+    point_hessian.block<4, 1>(16, 3) = b;
+    point_hessian.block<4, 1>(20, 3) = c;
+    point_hessian.block<4, 1>(12, 4) = b;
+    point_hessian.block<4, 1>(16, 4) = d;
+    point_hessian.block<4, 1>(20, 4) = e;
+    point_hessian.block<4, 1>(12, 5) = c;
+    point_hessian.block<4, 1>(16, 5) = e;
+    point_hessian.block<4, 1>(20, 5) = f;
   }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<double, 3, 6> &point_gradient, Eigen::Matrix<double, 18, 6> &point_hessian, bool compute_hessian) const {
-  // Calculate first derivative of Transformation Equation 6.17 w.r.t. transform vector p.
-  // Derivative w.r.t. ith element of transform vector corresponds to column i, Equation 6.18 and 6.19 [Magnusson 2009]
-  point_gradient(1, 3) = x.dot(j_ang_a_);
-  point_gradient(2, 3) = x.dot(j_ang_b_);
-  point_gradient(0, 4) = x.dot(j_ang_c_);
-  point_gradient(1, 4) = x.dot(j_ang_d_);
-  point_gradient(2, 4) = x.dot(j_ang_e_);
-  point_gradient(0, 5) = x.dot(j_ang_f_);
-  point_gradient(1, 5) = x.dot(j_ang_g_);
-  point_gradient(2, 5) = x.dot(j_ang_h_);
+double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 4, 6> &point_gradient, const Eigen::Matrix<double, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv, bool compute_hessian) const {
+  Eigen::Matrix<double, 1, 4> x_trans4(x_trans[0], x_trans[1], x_trans[2], 0.0f);
+  Eigen::Matrix4d c_inv4 = Eigen::Matrix4d::Zero();
 
-  if(compute_hessian) {
-    // Vectors from Equation 6.21 [Magnusson 2009]
-    Eigen::Vector3d a, b, c, d, e, f;
-
-    a << 0, x.dot(h_ang_a2_), x.dot(h_ang_a3_);
-    b << 0, x.dot(h_ang_b2_), x.dot(h_ang_b3_);
-    c << 0, x.dot(h_ang_c2_), x.dot(h_ang_c3_);
-    d << x.dot(h_ang_d1_), x.dot(h_ang_d2_), x.dot(h_ang_d3_);
-    e << x.dot(h_ang_e1_), x.dot(h_ang_e2_), x.dot(h_ang_e3_);
-    f << x.dot(h_ang_f1_), x.dot(h_ang_f2_), x.dot(h_ang_f3_);
-
-    // Calculate second derivative of Transformation Equation 6.17 w.r.t. transform vector p.
-    // Derivative w.r.t. ith and jth elements of transform vector corresponds to the 3x1 block matrix starting at (3i,j), Equation 6.20 and 6.21 [Magnusson 2009]
-    point_hessian.block<3, 1>(9, 3) = a;
-    point_hessian.block<3, 1>(12, 3) = b;
-    point_hessian.block<3, 1>(15, 3) = c;
-    point_hessian.block<3, 1>(9, 4) = b;
-    point_hessian.block<3, 1>(12, 4) = d;
-    point_hessian.block<3, 1>(15, 4) = e;
-    point_hessian.block<3, 1>(9, 5) = c;
-    point_hessian.block<3, 1>(12, 5) = e;
-    point_hessian.block<3, 1>(15, 5) = f;
-  }
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename PointSource, typename PointTarget>
-double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<float, 4, 6> &point_gradient4, const Eigen::Matrix<float, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv, bool compute_hessian) const {
-  Eigen::Matrix<float, 1, 4> x_trans4(x_trans[0], x_trans[1], x_trans[2], 0.0f);
-  Eigen::Matrix4f c_inv4 = Eigen::Matrix4f::Zero();
-  c_inv4.topLeftCorner(3, 3) = c_inv.cast<float>();
-
-  float gauss_d2 = gauss_d2_;
+  c_inv4.topLeftCorner(3, 3) = c_inv;
 
   // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
-  float e_x_cov_x = exp(-gauss_d2 * x_trans4.dot(x_trans4 * c_inv4) * 0.5f);
+  double e_x_cov_x = exp(-gauss_d2_ * x_trans4.dot(x_trans4 * c_inv4) * 0.5f);
   // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
-  float score_inc = -gauss_d1_ * e_x_cov_x;
+  double score_inc = -gauss_d1_ * e_x_cov_x;
 
-  e_x_cov_x = gauss_d2 * e_x_cov_x;
+  e_x_cov_x = gauss_d2_ * e_x_cov_x;
 
   // Error checking for invalid values.
   if(e_x_cov_x > 1 || e_x_cov_x < 0 || e_x_cov_x != e_x_cov_x) return (0);
@@ -588,24 +553,24 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateDe
   // Reusable portion of Equation 6.12 and 6.13 [Magnusson 2009]
   e_x_cov_x *= gauss_d1_;
 
-  Eigen::Matrix<float, 4, 6> c_inv4_x_point_gradient4 = c_inv4 * point_gradient4;
-  Eigen::Matrix<float, 6, 1> x_trans4_dot_c_inv4_x_point_gradient4 = x_trans4 * c_inv4_x_point_gradient4;
+  Eigen::Matrix<double, 4, 6> c_inv4_x_point_gradient4 = c_inv4 * point_gradient;
+  Eigen::Matrix<double, 6, 1> x_trans4_dot_c_inv4_x_point_gradient4 = x_trans4 * c_inv4_x_point_gradient4;
 
   score_gradient.noalias() += (e_x_cov_x * x_trans4_dot_c_inv4_x_point_gradient4).cast<double>();
 
   if(compute_hessian) {
-    Eigen::Matrix<float, 1, 4> x_trans4_x_c_inv4 = x_trans4 * c_inv4;
-    Eigen::Matrix<float, 6, 6> point_gradient4_colj_dot_c_inv4_x_point_gradient4_col_i = point_gradient4.transpose() * c_inv4_x_point_gradient4;
-    Eigen::Matrix<float, 6, 1> x_trans4_dot_c_inv4_x_ext_point_hessian4ij;
+    Eigen::Matrix<double, 1, 4> x_trans4_x_c_inv4 = x_trans4 * c_inv4;
+    Eigen::Matrix<double, 6, 6> point_gradient4_colj_dot_c_inv4_x_point_gradient4_col_i = point_gradient.transpose() * c_inv4_x_point_gradient4;
+    Eigen::Matrix<double, 6, 1> x_trans4_dot_c_inv4_x_ext_point_hessian_4ij;
 
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 6; ++i) {
       // Sigma_k^-1 d(T(x,p))/dpi, Reusable portion of Equation 6.12 and 6.13 [Magnusson 2009]
       // Update gradient, Equation 6.12 [Magnusson 2009]
-      x_trans4_dot_c_inv4_x_ext_point_hessian4ij.noalias() = x_trans4_x_c_inv4 * point_hessian.block<4, 6>(i * 4, 0);
+      x_trans4_dot_c_inv4_x_ext_point_hessian_4ij.noalias() = x_trans4_x_c_inv4 * point_hessian.block<4, 6>(i * 4, 0);
 
       for(int j = 0; j < hessian.cols(); j++) {
         // Update hessian, Equation 6.13 [Magnusson 2009]
-        hessian(i, j) += e_x_cov_x * (-gauss_d2 * x_trans4_dot_c_inv4_x_point_gradient4(i) * x_trans4_dot_c_inv4_x_point_gradient4(j) + x_trans4_dot_c_inv4_x_ext_point_hessian4ij(j) + point_gradient4_colj_dot_c_inv4_x_point_gradient4_col_i(j, i));
+        hessian(i, j) += e_x_cov_x * (-gauss_d2_ * x_trans4_dot_c_inv4_x_point_gradient4(i) * x_trans4_dot_c_inv4_x_point_gradient4(j) + x_trans4_dot_c_inv4_x_ext_point_hessian_4ij(j) + point_gradient4_colj_dot_c_inv4_x_point_gradient4_col_i(j, i));
       }
     }
   }
@@ -618,8 +583,8 @@ template<typename PointSource, typename PointTarget>
 void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHessian(Eigen::Matrix<double, 6, 6> &hessian, PointCloudSource &trans_cloud, Eigen::Matrix<double, 6, 1> &) {
   // Initialize Point Gradient and Hessian
   // Pre-allocate thread-wise point gradients and point hessians
-  std::vector<Eigen::Matrix<double, 3, 6>> t_point_gradients(params_.num_threads);
-  std::vector<Eigen::Matrix<double, 18, 6>> t_point_hessians(params_.num_threads);
+  std::vector<Eigen::Matrix<double, 4, 6>> t_point_gradients(params_.num_threads);
+  std::vector<Eigen::Matrix<double, 24, 6>> t_point_hessians(params_.num_threads);
   std::vector<Eigen::Matrix<double, 6, 6>> t_hessians(params_.num_threads);
 
   for(int i = 0; i < params_.num_threads; ++i) {
@@ -682,7 +647,7 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHes
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
-void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateHessian(Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 3, 6> &point_gradient, const Eigen::Matrix<double, 18, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv) const {
+void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateHessian(Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 4, 6> &point_gradient, const Eigen::Matrix<double, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv) const {
   Eigen::Vector3d cov_dxd_pi;
   // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
   double e_x_cov_x = gauss_d2_ * exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
@@ -693,13 +658,15 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateHess
   // Reusable portion of Equation 6.12 and 6.13 [Magnusson 2009]
   e_x_cov_x *= gauss_d1_;
 
-  for(int i = 0; i < 6; i++) {
+  for(int i = 0; i < 6; ++i) {
     // Sigma_k^-1 d(T(x,p))/dpi, Reusable portion of Equation 6.12 and 6.13 [Magnusson 2009]
-    cov_dxd_pi = c_inv * point_gradient.col(i);
+    cov_dxd_pi = c_inv * point_gradient.block<3, 1>(0, i);
 
     for(int j = 0; j < hessian.cols(); j++) {
       // Update hessian, Equation 6.13 [Magnusson 2009]
-      hessian(i, j) += e_x_cov_x * (-gauss_d2_ * x_trans.dot(cov_dxd_pi) * x_trans.dot(c_inv * point_gradient.col(j)) + x_trans.dot(c_inv * point_hessian.block<3, 1>(3 * i, j)) + point_gradient.col(j).dot(cov_dxd_pi));
+      Eigen::Vector3d pg_col = point_gradient.block<3, 1>(0, j);
+
+      hessian(i, j) += e_x_cov_x * (-gauss_d2_ * x_trans.dot(cov_dxd_pi) * x_trans.dot(c_inv * pg_col) + x_trans.dot(c_inv * point_hessian.block<3, 1>(3 * i, j)) + pg_col.dot(cov_dxd_pi));
     }
   }
 }
@@ -993,7 +960,7 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculat
 
       // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
       // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
-      tmp_score -= gauss_d1_ * exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
+      tmp_score -= gauss_d1_ * exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2.0);
     }
 
     t_scores[tid] += tmp_score;
@@ -1052,7 +1019,7 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculat
       Eigen::Matrix3d c_inv = cell->getInverseCov();
 
       // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
-      double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2);
+      double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(c_inv * x_trans) / 2.0);
       // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
       double score_inc = -gauss_d1_ * e_x_cov_x;
 

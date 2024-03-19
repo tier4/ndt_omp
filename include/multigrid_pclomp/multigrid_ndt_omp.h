@@ -300,13 +300,20 @@ public:
 
   inline void setMaximumIterations(int max_iterations) {
     params_.max_iterations = max_iterations;
+    max_iterations_ = params_.max_iterations;
   }
+
   inline int getMaxIterations() const {
+    return params_.max_iterations;
+  }
+
+  inline int getMaxIterations() {
     return params_.max_iterations;
   }
 
   void setParams(const NdtParams &ndt_params) {
     params_ = ndt_params;
+    max_iterations_ = params_.max_iterations;
   }
 
   NdtParams getParams() const {
@@ -369,7 +376,7 @@ protected:
    * \param[in] c_inv covariance of occupied covariance voxel
    * \param[in] compute_hessian flag to calculate hessian, unnecessary for step calculation.
    */
-  double updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<float, 4, 6> &point_gradient, const Eigen::Matrix<float, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv, bool compute_hessian = true) const;
+  double updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 4, 6> &point_gradient, const Eigen::Matrix<double, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv, bool compute_hessian = true) const;
 
   /** \brief Precompute angular components of derivatives.
    * \note Equation 6.19 and 6.21 [Magnusson 2009].
@@ -383,9 +390,7 @@ protected:
    * \param[in] x point from the input cloud
    * \param[in] compute_hessian flag to calculate hessian, unnecessary for step calculation.
    */
-  void computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<double, 3, 6> &point_gradient, Eigen::Matrix<double, 18, 6> &point_hessian, bool compute_hessian = true) const;
-
-  void computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<float, 4, 6> &point_gradient, Eigen::Matrix<float, 24, 6> &point_hessian, bool compute_hessian = true) const;
+  void computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<double, 4, 6> &point_gradient, Eigen::Matrix<double, 24, 6> &point_hessian, bool compute_hessian = true) const;
 
   /** \brief Compute hessian of probability function w.r.t. the transformation vector.
    * \note Equation 6.13 [Magnusson 2009].
@@ -401,7 +406,7 @@ protected:
    * \param[in] x_trans transformed point minus mean of occupied covariance voxel
    * \param[in] c_inv covariance of occupied covariance voxel
    */
-  void updateHessian(Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 3, 6> &point_gradient, const Eigen::Matrix<double, 18, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv) const;
+  void updateHessian(Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 4, 6> &point_gradient, const Eigen::Matrix<double, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv) const;
 
   /** \brief Compute line search step length and update transform and probability derivatives using More-Thuente method.
    * \note Search Algorithm [More, Thuente 1994]
@@ -494,17 +499,13 @@ protected:
    *
    * The precomputed angular derivatives for the jacobian of a transformation vector, Equation 6.19 [Magnusson 2009].
    */
-  Eigen::Vector3d j_ang_a_, j_ang_b_, j_ang_c_, j_ang_d_, j_ang_e_, j_ang_f_, j_ang_g_, j_ang_h_;
-
-  Eigen::Matrix<float, 8, 4> j_ang;
+  Eigen::Matrix<double, 8, 4> j_ang_;
 
   /** \brief Precomputed Angular Hessian
    *
    * The precomputed angular derivatives for the hessian of a transformation vector, Equation 6.19 [Magnusson 2009].
    */
-  Eigen::Vector3d h_ang_a2_, h_ang_a3_, h_ang_b2_, h_ang_b3_, h_ang_c2_, h_ang_c3_, h_ang_d1_, h_ang_d2_, h_ang_d3_, h_ang_e1_, h_ang_e2_, h_ang_e3_, h_ang_f1_, h_ang_f2_, h_ang_f3_;
-
-  Eigen::Matrix<float, 16, 4> h_ang;
+  Eigen::Matrix<double, 16, 4> h_ang_;
 
   Eigen::Matrix<double, 6, 6> hessian_;
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array_;
