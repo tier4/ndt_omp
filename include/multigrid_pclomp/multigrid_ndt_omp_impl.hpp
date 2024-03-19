@@ -541,11 +541,11 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateDe
   c_inv4.topLeftCorner(3, 3) = c_inv;
 
   // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
-  double e_x_cov_x = exp(-gauss_d2 * x_trans4.dot(x_trans4 * c_inv4) * 0.5f);
+  double e_x_cov_x = exp(-gauss_d2_ * x_trans4.dot(x_trans4 * c_inv4) * 0.5f);
   // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
   double score_inc = -gauss_d1_ * e_x_cov_x;
 
-  e_x_cov_x = gauss_d2 * e_x_cov_x;
+  e_x_cov_x = gauss_d2_ * e_x_cov_x;
 
   // Error checking for invalid values.
   if(e_x_cov_x > 1 || e_x_cov_x < 0 || e_x_cov_x != e_x_cov_x) return (0);
@@ -570,7 +570,7 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateDe
 
       for(int j = 0; j < hessian.cols(); j++) {
         // Update hessian, Equation 6.13 [Magnusson 2009]
-        hessian(i, j) += e_x_cov_x * (-gauss_d2 * x_trans4_dot_c_inv4_x_point_gradient4(i) * x_trans4_dot_c_inv4_x_point_gradient4(j) + x_trans4_dot_c_inv4_x_ext_point_hessian_4ij(j) + point_gradient4_colj_dot_c_inv4_x_point_gradient4_col_i(j, i));
+        hessian(i, j) += e_x_cov_x * (-gauss_d2_ * x_trans4_dot_c_inv4_x_point_gradient4(i) * x_trans4_dot_c_inv4_x_point_gradient4(j) + x_trans4_dot_c_inv4_x_ext_point_hessian_4ij(j) + point_gradient4_colj_dot_c_inv4_x_point_gradient4_col_i(j, i));
       }
     }
   }
