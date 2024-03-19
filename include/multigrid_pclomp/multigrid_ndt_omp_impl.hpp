@@ -178,7 +178,7 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
   gauss_c2 = outlier_ratio_ / pow(params_.resolution, 3);
   gauss_d3_ = -log(gauss_c2);
   gauss_d1_ = -log(gauss_c1 + gauss_c2) - gauss_d3_;
-  gauss_d2_ = -2 * log((-log(gauss_c1 * exp(-0.5) + gauss_c2) - gauss_d3_) / gauss_d1_);
+  gauss_d2_ = -2.0 * log((-log(gauss_c1 * exp(-0.5) + gauss_c2) - gauss_d3_) / gauss_d1_);
 
   if(guess != Eigen::Matrix4f::Identity()) {
     // Initialise final transformation to the guessed one
@@ -213,12 +213,6 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
 
   // Calculate derivatives of initial transform vector, subsequent derivative calculations are done in the step length determination.
   score = computeDerivatives(score_gradient, hessian, output, p);
-
-  // For debug
-  std::ofstream test("/home/anh/Work/autoware/score_test.txt");
-  test << score << std::endl;
-  exit(0);
-  // End
 
   while(!converged_) {
     // Store previous transformation
@@ -289,12 +283,11 @@ template<typename PointSource, typename PointTarget>
 double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, PointCloudSource &trans_cloud, Eigen::Matrix<double, 6, 1> &p, bool compute_hessian) {
   score_gradient.setZero();
   hessian.setZero();
-  
+
   double score = 0;
   int total_neighborhood_count = 0;
   double nearest_voxel_score = 0;
   size_t found_neigborhood_voxel_num = 0;
-  size_t input_size = input_->size();
 
   std::vector<double> scores(params_.num_threads);
   std::vector<double> nearest_voxel_scores(params_.num_threads);
@@ -475,24 +468,24 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeAng
     // Precomputed angular hessian components. Letters correspond to Equation 6.21 and numbers correspond to row index [Magnusson 2009]
     h_ang_.setZero();
 
-    h_ang_.row(0) << (-cx * sz - sx * sy * cz), (-cx * cz + sx * sy * sz), sx * cy, 0.0f; // a2
+    h_ang_.row(0) << (-cx * sz - sx * sy * cz), (-cx * cz + sx * sy * sz), sx * cy, 0.0f;     // a2
     h_ang_.row(1) << (-sx * sz + cx * sy * cz), (-cx * sy * sz - sx * cz), (-cx * cy), 0.0f;  // a3
 
     h_ang_.row(2) << (cx * cy * cz), (-cx * cy * sz), (cx * sy), 0.0f;  // b2
     h_ang_.row(3) << (sx * cy * cz), (-sx * cy * sz), (sx * sy), 0.0f;  // b3
 
     h_ang_.row(4) << (-sx * cz - cx * sy * sz), (sx * sz - cx * sy * cz), 0.0f, 0.0f;  // c2
-    h_ang_.row(5) << (cx * cz - sx * sy * sz), (-sx * sy * cz - cx * sz), 0.0f, 0.0f; // c3
+    h_ang_.row(5) << (cx * cz - sx * sy * sz), (-sx * sy * cz - cx * sz), 0.0f, 0.0f;  // c3
 
-    h_ang_.row(6) << (-cy * cz), (cy * sz), (sy), 0.0f; // d1
-    h_ang_.row(7) << (-sx * sy * cz), (sx * sy * sz), (sx * cy), 0.0f;  // d2
+    h_ang_.row(6) << (-cy * cz), (cy * sz), (sy), 0.0f;                  // d1
+    h_ang_.row(7) << (-sx * sy * cz), (sx * sy * sz), (sx * cy), 0.0f;   // d2
     h_ang_.row(8) << (cx * sy * cz), (-cx * sy * sz), (-cx * cy), 0.0f;  // d3
 
-    h_ang_.row(9) << (sy * sz), (sy * cz), 0.0f, 0.0f; // e1
-    h_ang_.row(10) << (-sx * cy * sz), (-sx * cy * cz), 0.0f, 0.0f; // e2
-    h_ang_.row(11) << (cx * cy * sz), (cx * cy * cz), 0.0f, 0.0f;  // e3
+    h_ang_.row(9) << (sy * sz), (sy * cz), 0.0f, 0.0f;               // e1
+    h_ang_.row(10) << (-sx * cy * sz), (-sx * cy * cz), 0.0f, 0.0f;  // e2
+    h_ang_.row(11) << (cx * cy * sz), (cx * cy * cz), 0.0f, 0.0f;    // e3
 
-    h_ang_.row(12) << (-cy * cz), (cy * sz), 0.0f, 0.0f;  // f1
+    h_ang_.row(12) << (-cy * cz), (cy * sz), 0.0f, 0.0f;                                 // f1
     h_ang_.row(13) << (-cx * sz - sx * sy * cz), (-cx * cz + sx * sy * sz), 0.0f, 0.0f;  // f2
     h_ang_.row(14) << (-sx * sz + cx * sy * cz), (-cx * sy * sz - sx * cz), 0.0f, 0.0f;  // f3
   }

@@ -300,13 +300,20 @@ public:
 
   inline void setMaximumIterations(int max_iterations) {
     params_.max_iterations = max_iterations;
+    max_iterations_ = params_.max_iterations;
   }
+
   inline int getMaxIterations() const {
+    return params_.max_iterations;
+  }
+
+  inline int getMaxIterations() {
     return params_.max_iterations;
   }
 
   void setParams(const NdtParams &ndt_params) {
     params_ = ndt_params;
+    max_iterations_ = params_.max_iterations;
   }
 
   NdtParams getParams() const {
