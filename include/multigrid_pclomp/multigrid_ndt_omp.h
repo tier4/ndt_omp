@@ -302,7 +302,7 @@ public:
     params_.max_iterations = max_iterations;
     max_iterations_ = params_.max_iterations;
   }
-  
+
   inline int getMaxIterations() const {
     return params_.max_iterations;
   }
