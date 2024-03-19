@@ -56,8 +56,6 @@
 #ifndef PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 #define PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 
-#include <fstream>
-
 namespace pclomp {
 
 template<typename PointSource, typename PointTarget>
@@ -541,8 +539,6 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateDe
   Eigen::Matrix4d c_inv4 = Eigen::Matrix4d::Zero();
 
   c_inv4.topLeftCorner(3, 3) = c_inv;
-
-  double gauss_d2 = gauss_d2_;
 
   // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
   double e_x_cov_x = exp(-gauss_d2 * x_trans4.dot(x_trans4 * c_inv4) * 0.5f);
