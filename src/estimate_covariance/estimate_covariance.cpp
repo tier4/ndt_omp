@@ -92,7 +92,8 @@ std::vector<Eigen::Matrix4f> propose_poses_to_search(const NdtResult& ndt_result
   const Eigen::Matrix<double, 6, 6>& hessian = ndt_result.hessian;
   const Eigen::Matrix4f& center_pose = ndt_result.pose;
   const Eigen::Matrix2d covariance = estimate_xy_covariance_by_Laplace_approximation(hessian);
-  const Eigen::Matrix2d rot = find_rotation_matrix_aligning_covariance_to_principal_axes(-covariance);
+  // const Eigen::Matrix2d rot = find_rotation_matrix_aligning_covariance_to_principal_axes(-covariance);
+  const Eigen::Matrix2d rot = ndt_result.pose.topLeftCorner<2, 2>().cast<double>();
   std::vector<Eigen::Matrix4f> poses_to_search;
   for(int i = 0; i < static_cast<int>(offset_x.size()); i++) {
     const Eigen::Vector2d pose_offset(offset_x[i], offset_y[i]);
