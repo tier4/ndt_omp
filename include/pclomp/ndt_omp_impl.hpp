@@ -45,23 +45,26 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointSource, typename PointTarget>
 pclomp::NormalDistributionsTransform<PointSource, PointTarget>::NormalDistributionsTransform()
-    : target_cells_(), resolution_(1.0f), step_size_(0.1), outlier_ratio_(0.55), gauss_d1_(), gauss_d2_(), gauss_d3_(), trans_probability_(), regularization_pose_(boost::none), j_ang_a_(), j_ang_b_(), j_ang_c_(), j_ang_d_(), j_ang_e_(), j_ang_f_(), j_ang_g_(), j_ang_h_(), h_ang_a2_(), h_ang_a3_(), h_ang_b2_(), h_ang_b3_(), h_ang_c2_(), h_ang_c3_(), h_ang_d1_(), h_ang_d2_(), h_ang_d3_(), h_ang_e1_(), h_ang_e2_(), h_ang_e3_(), h_ang_f1_(), h_ang_f2_(), h_ang_f3_() {
+    : target_cells_(), outlier_ratio_(0.55), gauss_d1_(), gauss_d2_(), gauss_d3_(), trans_probability_(), regularization_pose_(boost::none), j_ang_a_(), j_ang_b_(), j_ang_c_(), j_ang_d_(), j_ang_e_(), j_ang_f_(), j_ang_g_(), j_ang_h_(), h_ang_a2_(), h_ang_a3_(), h_ang_b2_(), h_ang_b3_(), h_ang_c2_(), h_ang_c3_(), h_ang_d1_(), h_ang_d2_(), h_ang_d3_(), h_ang_e1_(), h_ang_e2_(), h_ang_e3_(), h_ang_f1_(), h_ang_f2_(), h_ang_f3_() {
   reg_name_ = "NormalDistributionsTransform";
+
+  params_.trans_epsilon = 0.1;
+  params_.step_size = 0.1;
+  params_.resolution = 1.0f;
+  params_.max_iterations = 35;
+  params_.search_method = DIRECT7;
+  params_.num_threads = omp_get_max_threads();
+  params_.regularization_scale_factor = 0.0f;
+  params_.use_line_search = false;
 
   double gauss_c1, gauss_c2;
 
   // Initializes the gaussian fitting parameters (eq. 6.8) [Magnusson 2009]
   gauss_c1 = 10.0 * (1 - outlier_ratio_);
-  gauss_c2 = outlier_ratio_ / pow(resolution_, 3);
+  gauss_c2 = outlier_ratio_ / pow(params_.resolution, 3);
   gauss_d3_ = -log(gauss_c2);
   gauss_d1_ = -log(gauss_c1 + gauss_c2) - gauss_d3_;
   gauss_d2_ = -2 * log((-log(gauss_c1 * exp(-0.5) + gauss_c2) - gauss_d3_) / gauss_d1_);
-
-  transformation_epsilon_ = 0.1;
-  max_iterations_ = 35;
-
-  search_method = DIRECT7;
-  num_threads_ = omp_get_max_threads();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -74,7 +77,7 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeTran
 
   // Initializes the gaussian fitting parameters (eq. 6.8) [Magnusson 2009]
   gauss_c1 = 10 * (1 - outlier_ratio_);
-  gauss_c2 = outlier_ratio_ / pow(resolution_, 3);
+  gauss_c2 = outlier_ratio_ / pow(params_.resolution, 3);
   gauss_d3_ = -log(gauss_c2);
   gauss_d1_ = -log(gauss_c1 + gauss_c2) - gauss_d3_;
   gauss_d2_ = -2 * log((-log(gauss_c1 * exp(-0.5) + gauss_c2) - gauss_d3_) / gauss_d1_);
@@ -135,7 +138,7 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeTran
     }
 
     delta_p.normalize();
-    delta_p_norm = computeStepLengthMT(p, delta_p, delta_p_norm, step_size_, transformation_epsilon_ / 2, score, score_gradient, hessian, output);
+    delta_p_norm = computeStepLengthMT(p, delta_p, delta_p_norm, params_.step_size, params_.trans_epsilon / 2, score, score_gradient, hessian, output);
     delta_p *= delta_p_norm;
 
     transformation_ = (Eigen::Translation<float, 3>(static_cast<float>(delta_p(0)), static_cast<float>(delta_p(1)), static_cast<float>(delta_p(2))) * Eigen::AngleAxis<float>(static_cast<float>(delta_p(3)), Eigen::Vector3f::UnitX()) * Eigen::AngleAxis<float>(static_cast<float>(delta_p(4)), Eigen::Vector3f::UnitY()) * Eigen::AngleAxis<float>(static_cast<float>(delta_p(5)), Eigen::Vector3f::UnitZ()))
@@ -148,7 +151,7 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeTran
     // Update Visualizer (untested)
     if(update_visualizer_ != 0) update_visualizer_(output, std::vector<int>(), *target_, std::vector<int>());
 
-    if(nr_iterations_ > max_iterations_ || (nr_iterations_ && (std::fabs(delta_p_norm) < transformation_epsilon_))) {
+    if(nr_iterations_ > params_.max_iterations || (nr_iterations_ && (std::fabs(delta_p_norm) < params_.trans_epsilon))) {
       converged_ = true;
     }
 
@@ -203,11 +206,11 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeDe
   // Precompute Angular Derivatives (eq. 6.19 and 6.21)[Magnusson 2009]
   computeAngleDerivatives(p);
 
-  std::vector<std::vector<TargetGridLeafConstPtr>> neighborhoods(num_threads_);
-  std::vector<std::vector<float>> distancess(num_threads_);
+  std::vector<std::vector<TargetGridLeafConstPtr>> neighborhoods(params_.num_threads);
+  std::vector<std::vector<float>> distancess(params_.num_threads);
 
   // Update gradient and hessian for each point, line 17 in Algorithm 2 [Magnusson 2009]
-#pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
+#pragma omp parallel for num_threads(params_.num_threads) schedule(guided, 8)
   for(std::size_t idx = 0; idx < input_->points.size(); idx++) {
     int thread_n = omp_get_thread_num();
 
@@ -233,9 +236,9 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeDe
     auto &distances = distancess[thread_n];
 
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
-    switch(search_method) {
+    switch(params_.search_method) {
       case KDTREE:
-        target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+        target_cells_.radiusSearch(x_trans_pt, params_.resolution, neighborhood, distances);
         break;
       case DIRECT26:
         target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
@@ -311,14 +314,14 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeDe
     const float longitudinal_distance = dy * sin_yaw + dx * cos_yaw;
     const auto neighborhood_count_weight = static_cast<float>(total_neighborhood_count);
 
-    regularization_score = -regularization_scale_factor_ * neighborhood_count_weight * longitudinal_distance * longitudinal_distance;
+    regularization_score = -params_.regularization_scale_factor * neighborhood_count_weight * longitudinal_distance * longitudinal_distance;
 
-    regularization_gradient(0, 0) = regularization_scale_factor_ * neighborhood_count_weight * 2.0f * cos_yaw * longitudinal_distance;
-    regularization_gradient(1, 0) = regularization_scale_factor_ * neighborhood_count_weight * 2.0f * sin_yaw * longitudinal_distance;
+    regularization_gradient(0, 0) = params_.regularization_scale_factor * neighborhood_count_weight * 2.0f * cos_yaw * longitudinal_distance;
+    regularization_gradient(1, 0) = params_.regularization_scale_factor * neighborhood_count_weight * 2.0f * sin_yaw * longitudinal_distance;
 
-    regularization_hessian(0, 0) = -regularization_scale_factor_ * neighborhood_count_weight * 2.0f * cos_yaw * cos_yaw;
-    regularization_hessian(0, 1) = -regularization_scale_factor_ * neighborhood_count_weight * 2.0f * cos_yaw * sin_yaw;
-    regularization_hessian(1, 1) = -regularization_scale_factor_ * neighborhood_count_weight * 2.0f * sin_yaw * sin_yaw;
+    regularization_hessian(0, 0) = -params_.regularization_scale_factor * neighborhood_count_weight * 2.0f * cos_yaw * cos_yaw;
+    regularization_hessian(0, 1) = -params_.regularization_scale_factor * neighborhood_count_weight * 2.0f * cos_yaw * sin_yaw;
+    regularization_hessian(1, 1) = -params_.regularization_scale_factor * neighborhood_count_weight * 2.0f * sin_yaw * sin_yaw;
     regularization_hessian(1, 0) = regularization_hessian(0, 1);
 
     score += regularization_score;
@@ -592,9 +595,9 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeHess
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
     std::vector<TargetGridLeafConstPtr> neighborhood;
     std::vector<float> distances;
-    switch(search_method) {
+    switch(params_.search_method) {
       case KDTREE:
-        target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+        target_cells_.radiusSearch(x_trans_pt, params_.resolution, neighborhood, distances);
         break;
       case DIRECT26:
         target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
@@ -831,91 +834,75 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeSt
   // If you have any suggestions on how to solve these issues, we would appreciate it if you could contribute.
   // --------------------------------------------------------------------------------------------------------------------------------
 
-  // // Calculate phi(alpha_t)
-  // double phi_t = -score;
-  // // Calculate phi'(alpha_t)
-  // double d_phi_t = -(score_gradient.dot (step_dir));
+  if(params_.use_line_search) {
+    // Calculate phi(alpha_t)
+    double phi_t = -score;
+    // Calculate phi'(alpha_t)
+    double d_phi_t = -(score_gradient.dot(step_dir));
 
-  // // Calculate psi(alpha_t)
-  // double psi_t = auxiliaryFunction_PsiMT (a_t, phi_t, phi_0, d_phi_0, mu);
-  // // Calculate psi'(alpha_t)
-  // double d_psi_t = auxiliaryFunction_dPsiMT (d_phi_t, d_phi_0, mu);
+    // Calculate psi(alpha_t)
+    double psi_t = auxiliaryFunction_PsiMT(a_t, phi_t, phi_0, d_phi_0, mu);
+    // Calculate psi'(alpha_t)
+    double d_psi_t = auxiliaryFunction_dPsiMT(d_phi_t, d_phi_0, mu);
 
-  // // Iterate until max number of iterations, interval convergence or a value satisfies the sufficient decrease, Equation 1.1, and curvature condition, Equation 1.2 [More, Thuente 1994]
-  // while (!interval_converged && step_iterations < max_step_iterations && !(psi_t <= 0 /*Sufficient Decrease*/ && d_phi_t <= -nu * d_phi_0 /*Curvature Condition*/))
-  // {
-  //   // Use auxiliary function if interval I is not closed
-  //   if (open_interval)
-  //   {
-  //     a_t = trialValueSelectionMT (a_l, f_l, g_l,
-  //                                  a_u, f_u, g_u,
-  //                                  a_t, psi_t, d_psi_t);
-  //   }
-  //   else
-  //   {
-  //     a_t = trialValueSelectionMT (a_l, f_l, g_l,
-  //                                  a_u, f_u, g_u,
-  //                                  a_t, phi_t, d_phi_t);
-  //   }
+    // Iterate until max number of iterations, interval convergence or a value satisfies the sufficient decrease, Equation 1.1, and curvature condition, Equation 1.2 [More, Thuente 1994]
+    while(!interval_converged && step_iterations < max_step_iterations && !(psi_t <= 0 /*Sufficient Decrease*/ && d_phi_t <= -nu * d_phi_0 /*Curvature Condition*/)) {
+      // Use auxiliary function if interval I is not closed
+      if(open_interval) {
+        a_t = trialValueSelectionMT(a_l, f_l, g_l, a_u, f_u, g_u, a_t, psi_t, d_psi_t);
+      } else {
+        a_t = trialValueSelectionMT(a_l, f_l, g_l, a_u, f_u, g_u, a_t, phi_t, d_phi_t);
+      }
 
-  //   a_t = std::min (a_t, step_max);
-  //   a_t = std::max (a_t, step_min);
+      a_t = std::min(a_t, step_max);
+      a_t = std::max(a_t, step_min);
 
-  //   x_t = x + step_dir * a_t;
+      x_t = x + step_dir * a_t;
 
-  //   final_transformation_ = (Eigen::Translation<float, 3> (static_cast<float> (x_t (0)), static_cast<float> (x_t (1)), static_cast<float> (x_t (2))) *
-  //                            Eigen::AngleAxis<float> (static_cast<float> (x_t (3)), Eigen::Vector3f::UnitX ()) *
-  //                            Eigen::AngleAxis<float> (static_cast<float> (x_t (4)), Eigen::Vector3f::UnitY ()) *
-  //                            Eigen::AngleAxis<float> (static_cast<float> (x_t (5)), Eigen::Vector3f::UnitZ ())).matrix ();
+      final_transformation_ = (Eigen::Translation<float, 3>(static_cast<float>(x_t(0)), static_cast<float>(x_t(1)), static_cast<float>(x_t(2))) * Eigen::AngleAxis<float>(static_cast<float>(x_t(3)), Eigen::Vector3f::UnitX()) * Eigen::AngleAxis<float>(static_cast<float>(x_t(4)), Eigen::Vector3f::UnitY()) * Eigen::AngleAxis<float>(static_cast<float>(x_t(5)), Eigen::Vector3f::UnitZ()))
+                                  .matrix();
 
-  //   // New transformed point cloud
-  //   // Done on final cloud to prevent wasted computation
-  //   transformPointCloud (*input_, trans_cloud, final_transformation_);
+      // New transformed point cloud
+      // Done on final cloud to prevent wasted computation
+      transformPointCloud(*input_, trans_cloud, final_transformation_);
 
-  //   // Updates score, gradient. Values stored to prevent wasted computation.
-  //   score = computeDerivatives (score_gradient, hessian, trans_cloud, x_t, false);
+      // Updates score, gradient. Values stored to prevent wasted computation.
+      score = computeDerivatives(score_gradient, hessian, trans_cloud, x_t, false);
 
-  //   // Calculate phi(alpha_t+)
-  //   phi_t = -score;
-  //   // Calculate phi'(alpha_t+)
-  //   d_phi_t = -(score_gradient.dot (step_dir));
+      // Calculate phi(alpha_t+)
+      phi_t = -score;
+      // Calculate phi'(alpha_t+)
+      d_phi_t = -(score_gradient.dot(step_dir));
 
-  //   // Calculate psi(alpha_t+)
-  //   psi_t = auxiliaryFunction_PsiMT (a_t, phi_t, phi_0, d_phi_0, mu);
-  //   // Calculate psi'(alpha_t+)
-  //   d_psi_t = auxiliaryFunction_dPsiMT (d_phi_t, d_phi_0, mu);
+      // Calculate psi(alpha_t+)
+      psi_t = auxiliaryFunction_PsiMT(a_t, phi_t, phi_0, d_phi_0, mu);
+      // Calculate psi'(alpha_t+)
+      d_psi_t = auxiliaryFunction_dPsiMT(d_phi_t, d_phi_0, mu);
 
-  //   // Check if I is now a closed interval
-  //   if (open_interval && (psi_t <= 0 && d_psi_t >= 0))
-  //   {
-  //     open_interval = false;
+      // Check if I is now a closed interval
+      if(open_interval && (psi_t <= 0 && d_psi_t >= 0)) {
+        open_interval = false;
 
-  //     // Converts f_l and g_l from psi to phi
-  //     f_l = f_l + phi_0 - mu * d_phi_0 * a_l;
-  //     g_l = g_l + mu * d_phi_0;
+        // Converts f_l and g_l from psi to phi
+        f_l = f_l + phi_0 - mu * d_phi_0 * a_l;
+        g_l = g_l + mu * d_phi_0;
 
-  //     // Converts f_u and g_u from psi to phi
-  //     f_u = f_u + phi_0 - mu * d_phi_0 * a_u;
-  //     g_u = g_u + mu * d_phi_0;
-  //   }
+        // Converts f_u and g_u from psi to phi
+        f_u = f_u + phi_0 - mu * d_phi_0 * a_u;
+        g_u = g_u + mu * d_phi_0;
+      }
 
-  //   if (open_interval)
-  //   {
-  //     // Update interval end points using Updating Algorithm [More, Thuente 1994]
-  //     interval_converged = updateIntervalMT (a_l, f_l, g_l,
-  //                                            a_u, f_u, g_u,
-  //                                            a_t, psi_t, d_psi_t);
-  //   }
-  //   else
-  //   {
-  //     // Update interval end points using Modified Updating Algorithm [More, Thuente 1994]
-  //     interval_converged = updateIntervalMT (a_l, f_l, g_l,
-  //                                            a_u, f_u, g_u,
-  //                                            a_t, phi_t, d_phi_t);
-  //   }
+      if(open_interval) {
+        // Update interval end points using Updating Algorithm [More, Thuente 1994]
+        interval_converged = updateIntervalMT(a_l, f_l, g_l, a_u, f_u, g_u, a_t, psi_t, d_psi_t);
+      } else {
+        // Update interval end points using Modified Updating Algorithm [More, Thuente 1994]
+        interval_converged = updateIntervalMT(a_l, f_l, g_l, a_u, f_u, g_u, a_t, phi_t, d_phi_t);
+      }
 
-  //   step_iterations++;
-  // }
+      step_iterations++;
+    }
+  }
 
   // If inner loop was run then hessian needs to be calculated.
   // Hessian is unnecessary for step length determination but gradients are required
@@ -935,9 +922,9 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
     std::vector<TargetGridLeafConstPtr> neighborhood;
     std::vector<float> distances;
-    switch(search_method) {
+    switch(params_.search_method) {
       case KDTREE:
-        target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+        target_cells_.radiusSearch(x_trans_pt, params_.resolution, neighborhood, distances);
         break;
       case DIRECT26:
         target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
@@ -987,9 +974,9 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
     std::vector<TargetGridLeafConstPtr> neighborhood;
     std::vector<float> distances;
-    switch(search_method) {
+    switch(params_.search_method) {
       case KDTREE:
-        target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+        target_cells_.radiusSearch(x_trans_pt, params_.resolution, neighborhood, distances);
         break;
       case DIRECT26:
         target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
@@ -1041,9 +1028,9 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
     // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
     std::vector<TargetGridLeafConstPtr> neighborhood;
     std::vector<float> distances;
-    switch(search_method) {
+    switch(params_.search_method) {
       case KDTREE:
-        target_cells_.radiusSearch(x_trans_pt, resolution_, neighborhood, distances);
+        target_cells_.radiusSearch(x_trans_pt, params_.resolution, neighborhood, distances);
         break;
       case DIRECT26:
         target_cells_.getNeighborhoodAtPoint(x_trans_pt, neighborhood);
