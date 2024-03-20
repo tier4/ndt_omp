@@ -131,7 +131,7 @@ int main(int argc, char** argv) {
     const double score = ndt_result.nearest_voxel_transformation_likelihood;
     std::cout << source_pcd << ", num=" << std::setw(4) << source_cloud->size() << " points, score=" << score << std::endl;
 
-    const std::vector<Eigen::Matrix4f> poses_to_search = pclomp::propose_poses_to_search(ndt_result.hessian, ndt_result.pose, offset_x, offset_y);
+    const std::vector<Eigen::Matrix4f> poses_to_search = pclomp::propose_poses_to_search(ndt_result, offset_x, offset_y);
 
     // estimate covariance
     // (1) Laplace approximation

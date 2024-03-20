@@ -30,7 +30,7 @@ Eigen::Matrix2d find_rotation_matrix_aligning_covariance_to_principal_axes(const
  * (2) Find rotation matrix aligning covariance to principal axes
  * (3) Propose search points by adding offset_x and offset_y to the center_pose
  */
-std::vector<Eigen::Matrix4f> propose_poses_to_search(const Eigen::Matrix<double, 6, 6>& hessian, const Eigen::Matrix4f& center_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y);
+std::vector<Eigen::Matrix4f> propose_poses_to_search(const NdtResult& ndt_result, const std::vector<double>& offset_x, const std::vector<double>& offset_y);
 
 /** \brief Calculate weights by exponential */
 std::vector<double> calc_weight_vec(const std::vector<double>& score_vec, double temperature);

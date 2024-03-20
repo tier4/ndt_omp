@@ -82,8 +82,10 @@ Eigen::Matrix2d find_rotation_matrix_aligning_covariance_to_principal_axes(const
   throw std::runtime_error("Eigen solver failed. Return output_pose_covariance value.");
 }
 
-std::vector<Eigen::Matrix4f> propose_poses_to_search(const Eigen::Matrix<double, 6, 6>& hessian, const Eigen::Matrix4f& center_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y) {
+std::vector<Eigen::Matrix4f> propose_poses_to_search(const NdtResult& ndt_result, const std::vector<double>& offset_x, const std::vector<double>& offset_y) {
   assert(offset_x.size() == offset_y.size());
+  const Eigen::Matrix<double, 6, 6>& hessian = ndt_result.hessian;
+  const Eigen::Matrix4f& center_pose = ndt_result.pose;
   const Eigen::Matrix2d covariance = estimate_xy_covariance_by_Laplace_approximation(hessian);
   const Eigen::Matrix2d rot = find_rotation_matrix_aligning_covariance_to_principal_axes(-covariance);
   std::vector<Eigen::Matrix4f> poses_to_search;
