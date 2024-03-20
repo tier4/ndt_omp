@@ -13,6 +13,9 @@ from tqdm import tqdm
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("result_csv", type=pathlib.Path)
+    parser.add_argument(
+        "--plot_ndt_result", action="store_true", help="It takes about 10 minutes."
+    )
     return parser.parse_args()
 
 
@@ -57,15 +60,19 @@ def plot_ndt_result(df: pd.DataFrame, x: float, y: float, cov: np.ndarray):
             row["result_y"],
             label="result",
             marker=markers[j],
-            color="tab:orange",
+            c=row["score"],
+            cmap="autumn_r",
+            vmin=2.0,
+            vmax=2.5,
         )
     plot_ellipse([x, y], cov, "red", "Multi NDT", 10)
     plt.grid()
     plt.xlabel("x[m]")
     plt.ylabel("y[m]")
-    plt.xlim(x - 5, x + 5)
-    plt.ylim(y - 5, y + 5)
+    plt.xlim(x - 4, x + 4)
+    plt.ylim(y - 4, y + 4)
     plt.gca().set_aspect("equal", adjustable="box")
+    plt.colorbar(label="Score")
 
 
 if __name__ == "__main__":
@@ -166,7 +173,7 @@ if __name__ == "__main__":
         plt.savefig(output_dir / f"{i:08d}.png", bbox_inches="tight", pad_inches=0.05)
         plt.close()
 
-        if False:
+        if args.plot_ndt_result:
             df_mndt = pd.read_csv(
                 result_csv.parent / "multi_ndt" / f"{i:08d}.csv", index_col=0
             )
