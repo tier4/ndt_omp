@@ -129,17 +129,4 @@ std::pair<Eigen::Vector2d, Eigen::Matrix2d> calculate_weighted_mean_and_cov(cons
   return {mean, covariance};
 }
 
-void output_pose_score_weight(const std::vector<Eigen::Vector2d>& pose_2d_vec, const std::vector<double>& score_vec, const std::vector<double>& weight_vec) {
-  static int counter = 0;
-  std::stringstream ss;
-  ss << "log" << std::setw(8) << std::setfill('0') << counter++ << ".csv";
-  std::ofstream ofs(ss.str());
-  ofs << std::fixed;
-  ofs << "x,y,score,weight" << std::endl;  // header
-  const int n = static_cast<int>(pose_2d_vec.size());
-  for(int i = 0; i < n; i++) {
-    ofs << pose_2d_vec[i].x() << "," << pose_2d_vec[i].y() << "," << score_vec[i] << "," << weight_vec[i] << std::endl;
-  }
-}
-
 }  // namespace pclomp
