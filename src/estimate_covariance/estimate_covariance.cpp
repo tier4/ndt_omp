@@ -16,13 +16,10 @@ ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt(const N
   // first result is added to mean
   const int n = static_cast<int>(offset_x.size()) + 1;
   const Eigen::Vector2d ndt_pose_2d(ndt_result.pose(0, 3), ndt_result.pose(1, 3));
-  Eigen::Vector2d mean = ndt_pose_2d;
+
   std::vector<Eigen::Vector2d> ndt_pose_2d_vec;
   ndt_pose_2d_vec.reserve(n);
   ndt_pose_2d_vec.emplace_back(ndt_pose_2d);
-
-  std::vector<Eigen::Matrix4f> initial_pose_vec = {initial_pose};
-  std::vector<Eigen::Matrix4f> ndt_result_pose_vec = {ndt_result.pose};
 
   // multiple searches
   std::vector<NdtResult> ndt_results;
@@ -32,21 +29,18 @@ ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt(const N
     ndt_results.push_back(ndt_ptr->getResult());
     const Eigen::Matrix4f sub_ndt_result = ndt_ptr->getResult().pose;
     const Eigen::Vector2d sub_ndt_pose_2d = sub_ndt_result.topRightCorner<2, 1>().cast<double>();
-    mean += sub_ndt_pose_2d;
     ndt_pose_2d_vec.emplace_back(sub_ndt_pose_2d);
-    initial_pose_vec.push_back(curr_pose);
-    ndt_result_pose_vec.push_back(sub_ndt_result);
   }
 
+  const std::vector<double> weight_vec(n, 1.0 / n);
+
   // calculate the covariance matrix
-  mean /= n;
-  Eigen::Matrix2d pca_covariance = Eigen::Matrix2d::Zero();
-  for(const auto& temp_ndt_pose_2d : ndt_pose_2d_vec) {
-    const Eigen::Vector2d diff_2d = temp_ndt_pose_2d - mean;
-    pca_covariance += diff_2d * diff_2d.transpose();
-  }
-  pca_covariance /= (n - 1);  // unbiased covariance
-  return {mean, pca_covariance, poses_to_search, ndt_results};
+  auto [mean, covariance] = calculate_weighted_mean_and_cov(ndt_pose_2d_vec, weight_vec);
+
+  // unbiased covariance
+  covariance *= static_cast<double>(n - 1) / n;
+
+  return {mean, covariance, poses_to_search, ndt_results};
 }
 
 ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_result, std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> ndt_ptr, const Eigen::Matrix4f& initial_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y) {
