@@ -32,12 +32,13 @@ def plot_ellipse(mean, cov, color, label, scale):
         color=color,
         alpha=0.5,
         fill=False,
+        linewidth=2,
         label=f"{label}(scale={scale})",
     )
     plt.gca().add_patch(ellipse)
 
 
-def plot_ndt_result(df: pd.DataFrame, x: float, y: float, cov: np.ndarray):
+def plot_ndt_result(df: pd.DataFrame, x: float, y: float, cov: np.ndarray, cov_default: np.ndarray):
     """
             score     initial_x     initial_y      result_x      result_y
     index
@@ -66,6 +67,7 @@ def plot_ndt_result(df: pd.DataFrame, x: float, y: float, cov: np.ndarray):
             vmax=2.5,
         )
     plot_ellipse([x, y], cov, "red", "Multi NDT", 10)
+    plot_ellipse([x, y], cov_default, "green", "Default", 10)
     plt.grid()
     plt.xlabel("x[m]")
     plt.ylabel("y[m]")
@@ -177,7 +179,7 @@ if __name__ == "__main__":
             df_mndt = pd.read_csv(
                 result_csv.parent / "multi_ndt" / f"{i:08d}.csv", index_col=0
             )
-            plot_ndt_result(df_mndt, x, y, cov_by_mndt)
+            plot_ndt_result(df_mndt, x, y, cov_by_mndt, cov_default)
             save_path = output_dir.parent / "multi_ndt_plot" / f"{i:08d}.png"
             save_path.parent.mkdir(exist_ok=True, parents=True)
             plt.savefig(str(save_path), bbox_inches="tight", pad_inches=0.05)
@@ -186,7 +188,7 @@ if __name__ == "__main__":
             df_mndt_score = pd.read_csv(
                 result_csv.parent / "multi_ndt_score" / f"{i:08d}.csv", index_col=0
             )
-            plot_ndt_result(df_mndt_score, x, y, cov_by_mndt_score)
+            plot_ndt_result(df_mndt_score, x, y, cov_by_mndt_score, cov_default)
             save_path = output_dir.parent / "multi_ndt_score_plot" / f"{i:08d}.png"
             save_path.parent.mkdir(exist_ok=True, parents=True)
             plt.savefig(str(save_path), bbox_inches="tight", pad_inches=0.05)
