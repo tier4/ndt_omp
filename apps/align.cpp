@@ -1,5 +1,5 @@
 #include <iostream>
-#include <ros/ros.h>
+#include <chrono>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
@@ -10,6 +10,7 @@
 
 #include <pclomp/ndt_omp.h>
 #include <pclomp/gicp_omp.h>
+#include <multigrid_pclomp/multigrid_ndt_omp.h>
 
 // align point clouds and measure processing time
 pcl::PointCloud<pcl::PointXYZ>::Ptr align(pcl::Registration<pcl::PointXYZ, pcl::PointXYZ>::Ptr registration, const pcl::PointCloud<pcl::PointXYZ>::Ptr& target_cloud, const pcl::PointCloud<pcl::PointXYZ>::Ptr& source_cloud) {
@@ -17,16 +18,16 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr align(pcl::Registration<pcl::PointXYZ, pcl::
   registration->setInputSource(source_cloud);
   pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>());
 
-  auto t1 = ros::WallTime::now();
+  auto t1 = std::chrono::system_clock::now();
   registration->align(*aligned);
-  auto t2 = ros::WallTime::now();
-  std::cout << "single : " << (t2 - t1).toSec() * 1000 << "[msec]" << std::endl;
+  auto t2 = std::chrono::system_clock::now();
+  std::cout << "single : " << (t2 - t1).count() / 1e6 << "[msec]" << std::endl;
 
   for(int i = 0; i < 10; i++) {
     registration->align(*aligned);
   }
-  auto t3 = ros::WallTime::now();
-  std::cout << "10times: " << (t3 - t2).toSec() * 1000 << "[msec]" << std::endl;
+  auto t3 = std::chrono::system_clock::now();
+  std::cout << "10times: " << (t3 - t2).count() / 1e6 << "[msec]" << std::endl;
   std::cout << "fitness: " << registration->getFitnessScore() << std::endl << std::endl;
 
   return aligned;
@@ -67,8 +68,6 @@ int main(int argc, char** argv) {
   voxelgrid.filter(*downsampled);
   source_cloud = downsampled;
 
-  ros::Time::init();
-
   // benchmark
   std::cout << "--- pcl::GICP ---" << std::endl;
   pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>::Ptr gicp(new pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>());
@@ -89,6 +88,9 @@ int main(int argc, char** argv) {
   pclomp::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr ndt_omp(new pclomp::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
   ndt_omp->setResolution(1.0);
 
+  pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr mg_ndt_omp(new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
+  mg_ndt_omp->setResolution(1.0);
+
   for(int n : num_threads) {
     for(const auto& search_method : search_methods) {
       std::cout << "--- pclomp::NDT (" << search_method.first << ", " << n << " threads) ---" << std::endl;
@@ -96,6 +98,10 @@ int main(int argc, char** argv) {
       ndt_omp->setNeighborhoodSearchMethod(search_method.second);
       aligned = align(ndt_omp, target_cloud, source_cloud);
     }
+
+    std::cout << "--- multigrid_pclomp::NDT (" << n << " threads) ---" << std::endl;
+    mg_ndt_omp->setNumThreads(n);
+    aligned = align(mg_ndt_omp, target_cloud, source_cloud);
   }
 
   // visualization
