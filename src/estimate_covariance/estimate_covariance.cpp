@@ -10,9 +10,7 @@ Eigen::Matrix2d estimate_xy_covariance_by_Laplace_approximation(const Eigen::Mat
   return covariance_xy;
 }
 
-ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt(const NdtResult& ndt_result, std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> ndt_ptr, const Eigen::Matrix4f& initial_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y) {
-  const std::vector<Eigen::Matrix4f> poses_to_search = propose_poses_to_search(ndt_result.hessian, ndt_result.pose, offset_x, offset_y);
-
+ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt(const NdtResult& ndt_result, std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> ndt_ptr, const std::vector<Eigen::Matrix4f>& poses_to_search) {
   // initialize by the main result
   const Eigen::Vector2d ndt_pose_2d(ndt_result.pose(0, 3), ndt_result.pose(1, 3));
   std::vector<Eigen::Vector2d> ndt_pose_2d_vec{ndt_pose_2d};
@@ -41,9 +39,7 @@ ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt(const N
   return {mean, covariance, poses_to_search, ndt_results};
 }
 
-ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_result, std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> ndt_ptr, const Eigen::Matrix4f& initial_pose, const std::vector<double>& offset_x, const std::vector<double>& offset_y) {
-  const std::vector<Eigen::Matrix4f> poses_to_search = propose_poses_to_search(ndt_result.hessian, ndt_result.pose, offset_x, offset_y);
-
+ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_result, std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> ndt_ptr, const std::vector<Eigen::Matrix4f>& poses_to_search) {
   // initialize by the main result
   const Eigen::Vector2d ndt_pose_2d(ndt_result.pose(0, 3), ndt_result.pose(1, 3));
   std::vector<Eigen::Vector2d> ndt_pose_2d_vec{ndt_pose_2d};
