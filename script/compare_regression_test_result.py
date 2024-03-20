@@ -24,16 +24,11 @@ if __name__ == "__main__":
 
     """
     elapsed_milliseconds,nvtl_score,tp_score
-    574.228000,3.245870,6.492360
-    7.980000,3.222864,6.484424
-    8.261000,3.249374,6.525939
-    8.245000,3.248322,6.554400
+    25.296000,3.245870,6.492360
+    21.354000,3.222864,6.484425
+    21.320000,3.249374,6.525939
     ...
     """
-
-    # The first data point in results is slow, so remove it.
-    current_df = current_df.iloc[1:]
-    reference_df = reference_df.iloc[1:]
 
     # calculate the ratio of elapsed time
     elapsed_milliseconds_ratio = (
