@@ -148,8 +148,9 @@ int main(int argc, char** argv) {
     const auto elapsed_mndt = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000.0;
 
     // (3) Multi NDT with score
+    const double temperature = 0.1;
     t1 = std::chrono::system_clock::now();
-    const pclomp::ResultOfMultiNdtCovarianceEstimation result_of_mndt_score = pclomp::estimate_xy_covariance_by_multi_ndt_score(ndt_result, mg_ndt_omp, poses_to_search);
+    const pclomp::ResultOfMultiNdtCovarianceEstimation result_of_mndt_score = pclomp::estimate_xy_covariance_by_multi_ndt_score(ndt_result, mg_ndt_omp, poses_to_search, temperature);
     const Eigen::Matrix2d cov_by_mndt_score = result_of_mndt_score.covariance;
     t2 = std::chrono::system_clock::now();
     const auto elapsed_mndt_score = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000.0;

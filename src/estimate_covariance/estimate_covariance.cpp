@@ -41,7 +41,7 @@ ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt(const N
   return {mean, covariance, poses_to_search, ndt_results};
 }
 
-ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_result, std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> ndt_ptr, const std::vector<Eigen::Matrix4f>& poses_to_search) {
+ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt_score(const NdtResult& ndt_result, std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> ndt_ptr, const std::vector<Eigen::Matrix4f>& poses_to_search, const double temperature) {
   // initialize by the main result
   const Eigen::Vector2d ndt_pose_2d(ndt_result.pose(0, 3), ndt_result.pose(1, 3));
   std::vector<Eigen::Vector2d> ndt_pose_2d_vec{ndt_pose_2d};
@@ -70,7 +70,7 @@ ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt_score(c
   ndt_ptr->setMaximumIterations(original_max_itr);
 
   // calculate the weights
-  const std::vector<double> weight_vec = calc_weight_vec(score_vec, 0.1);
+  const std::vector<double> weight_vec = calc_weight_vec(score_vec, temperature);
 
   // calculate mean and covariance
   const auto [mean, covariance] = calculate_weighted_mean_and_cov(ndt_pose_2d_vec, weight_vec);
