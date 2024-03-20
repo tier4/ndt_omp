@@ -34,6 +34,40 @@ def plot_ellipse(mean, cov, color, label, scale):
     plt.gca().add_patch(ellipse)
 
 
+def plot_ndt_result(df: pd.DataFrame, x: float, y: float, cov: np.ndarray):
+    """
+            score     initial_x     initial_y      result_x      result_y
+    index
+    0      2.287171  81376.671875  49917.335938  81377.015625  49917.191406
+    1      2.279694  81377.500000  49916.781250  81377.046875  49917.058594
+    2      2.267292  81377.359375  49917.476562  81377.179688  49917.433594
+    """
+    plt.figure()
+    markers = ["$0$", "$1$", "$2$", "$3$", "$4$", "$5$", "$6$", "$7$", "$8$", "$9$"]
+    for j, row in df.iterrows():
+        plt.scatter(
+            row["initial_x"],
+            row["initial_y"],
+            label="initial",
+            marker=markers[j],
+            color="tab:blue",
+        )
+        plt.scatter(
+            row["result_x"],
+            row["result_y"],
+            label="result",
+            marker=markers[j],
+            color="tab:orange",
+        )
+    plot_ellipse([x, y], cov, "red", "Multi NDT", 10)
+    plt.grid()
+    plt.xlabel("x[m]")
+    plt.ylabel("y[m]")
+    plt.xlim(x - 5, x + 5)
+    plt.ylim(y - 5, y + 5)
+    plt.gca().set_aspect("equal", adjustable="box")
+
+
 if __name__ == "__main__":
     args = parse_args()
     result_csv = args.result_csv
@@ -113,13 +147,13 @@ if __name__ == "__main__":
                 "cov_by_mndt_score_11",
             ]
         ].values.reshape(2, 2)
-        x, y = row["initial_x"], row["initial_y"]
+        x, y = row["result_x"], row["result_y"]
         plot_ellipse([x, y], cov_default, "green", "Default", 10)
         plot_ellipse([x, y], cov_by_la, "blue", "Laplace Approximation", 100)
         plot_ellipse([x, y], cov_by_mndt, "red", "Multi NDT", 10)
         plot_ellipse([x, y], cov_by_mndt_score, "orange", "Multi NDT Score", 10)
         plt.scatter(
-            df_result["initial_x"][0:i], df_result["initial_y"][0:i], color="black", s=1
+            df_result["result_x"][0:i], df_result["result_y"][0:i], color="black", s=1
         )
         plt.legend(loc="lower left", bbox_to_anchor=(0.0, 1.0))
         plt.grid()
@@ -131,3 +165,22 @@ if __name__ == "__main__":
         plt.gca().set_aspect("equal", adjustable="box")
         plt.savefig(output_dir / f"{i:08d}.png", bbox_inches="tight", pad_inches=0.05)
         plt.close()
+
+        if False:
+            df_mndt = pd.read_csv(
+                result_csv.parent / "multi_ndt" / f"{i:08d}.csv", index_col=0
+            )
+            plot_ndt_result(df_mndt, x, y, cov_by_mndt)
+            save_path = output_dir.parent / "multi_ndt_plot" / f"{i:08d}.png"
+            save_path.parent.mkdir(exist_ok=True, parents=True)
+            plt.savefig(str(save_path), bbox_inches="tight", pad_inches=0.05)
+            plt.close()
+
+            df_mndt_score = pd.read_csv(
+                result_csv.parent / "multi_ndt_score" / f"{i:08d}.csv", index_col=0
+            )
+            plot_ndt_result(df_mndt_score, x, y, cov_by_mndt_score)
+            save_path = output_dir.parent / "multi_ndt_score_plot" / f"{i:08d}.png"
+            save_path.parent.mkdir(exist_ok=True, parents=True)
+            plt.savefig(str(save_path), bbox_inches="tight", pad_inches=0.05)
+            plt.close()
