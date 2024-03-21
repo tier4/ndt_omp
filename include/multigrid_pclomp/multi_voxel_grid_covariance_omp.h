@@ -278,11 +278,10 @@ public:
    * \param[in] point the given query point
    * \param[in] radius the radius of the sphere bounding all of p_q's neighbors
    * \param[out] k_leaves the resultant leaves of the neighboring points
-   * \param[out] k_sqr_distances the resultant squared distances to the neighboring points
    * \param[in] max_nn
    * \return number of neighbors found
    */
-  int radiusSearch(const PointT &point, double radius, std::vector<LeafConstPtr> &k_leaves, std::vector<float> &k_sqr_distances, unsigned int max_nn = 0) const;
+  int radiusSearch(const PointT &point, double radius, std::vector<LeafConstPtr> &k_leaves, unsigned int max_nn = 0) const;
 
   /** \brief Search for all the nearest occupied voxels of the query point in a given radius.
    * \note Only voxels containing a sufficient number of points are used.
@@ -290,11 +289,10 @@ public:
    * \param[in] index a valid index in cloud representing a valid (i.e., finite) query point
    * \param[in] radius the radius of the sphere bounding all of p_q's neighbors
    * \param[out] k_leaves the resultant leaves of the neighboring points
-   * \param[out] k_sqr_distances the resultant squared distances to the neighboring points
    * \param[in] max_nn
    * \return number of neighbors found
    */
-  int radiusSearch(const PointCloud &cloud, int index, double radius, std::vector<LeafConstPtr> &k_leaves, std::vector<float> &k_sqr_distances, unsigned int max_nn = 0) const;
+  int radiusSearch(const PointCloud &cloud, int index, double radius, std::vector<LeafConstPtr> &k_leaves, unsigned int max_nn = 0) const;
 
   PointCloud getVoxelPCD() const;
 

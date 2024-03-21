@@ -154,10 +154,11 @@ void MultiVoxelGridCovariance<PointT>::createKdtree() {
 }
 
 template<typename PointT>
-int MultiVoxelGridCovariance<PointT>::radiusSearch(const PointT &point, double radius, std::vector<LeafConstPtr> &k_leaves, std::vector<float> &k_sqr_distances, unsigned int max_nn) const {
+int MultiVoxelGridCovariance<PointT>::radiusSearch(const PointT &point, double radius, std::vector<LeafConstPtr> &k_leaves, unsigned int max_nn) const {
   k_leaves.clear();
 
   // Find neighbors within radius in the occupied voxel centroid cloud
+  std::vector<float> k_sqr_distances;
   std::vector<int> k_indices;
   int k = kdtree_.radiusSearch(point, radius, k_indices, k_sqr_distances, max_nn);
 
@@ -175,9 +176,9 @@ int MultiVoxelGridCovariance<PointT>::radiusSearch(const PointT &point, double r
 }
 
 template<typename PointT>
-int MultiVoxelGridCovariance<PointT>::radiusSearch(const PointCloud &cloud, int index, double radius, std::vector<LeafConstPtr> &k_leaves, std::vector<float> &k_sqr_distances, unsigned int max_nn) const {
+int MultiVoxelGridCovariance<PointT>::radiusSearch(const PointCloud &cloud, int index, double radius, std::vector<LeafConstPtr> &k_leaves, unsigned int max_nn) const {
   if(index >= static_cast<int>(cloud.points.size()) || index < 0) return (0);
-  return (radiusSearch(cloud.points[index], radius, k_leaves, k_sqr_distances, max_nn));
+  return (radiusSearch(cloud.points[index], radius, k_leaves, max_nn));
 }
 
 template<typename PointT>
