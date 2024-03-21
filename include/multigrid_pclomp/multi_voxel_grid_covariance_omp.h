@@ -283,7 +283,7 @@ protected:
   // A kdtree built from the leaves of grids
   pcl::KdTreeFLANN<PointT> kdtree_;
   // To access leaf by the search results by kdtree
-  std::vector<LeafConstPtr> leaf_indices_;
+  std::vector<LeafConstPtr> leaves_;
 };
 }  // namespace pclomp
 

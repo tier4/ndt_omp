@@ -59,7 +59,7 @@
 namespace pclomp {
 
 template<typename PointT>
-MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(const MultiVoxelGridCovariance &other) : pcl::VoxelGrid<PointT>(other), sid_to_iid_(other.sid_to_iid_), grid_list_(other.grid_list_), kdtree_(other.kdtree_), leaf_indices_(other.leaf_indices_) {
+MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(const MultiVoxelGridCovariance &other) : pcl::VoxelGrid<PointT>(other), sid_to_iid_(other.sid_to_iid_), grid_list_(other.grid_list_), kdtree_(other.kdtree_), leaves_(other.leaves_) {
   min_points_per_voxel_ = other.min_points_per_voxel_;
   min_covar_eigvalue_mult_ = other.min_covar_eigvalue_mult_;
 
@@ -78,7 +78,7 @@ MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(MultiVoxelGridCovaria
       sid_to_iid_(std::move(other.sid_to_iid_)),
       grid_list_(std::move(other.grid_list_)),
       kdtree_(std::move(other.kdtree_)),
-      leaf_indices_(std::move(other.leaf_indices_)) {
+      leaves_(std::move(other.leaves_)) {
   min_points_per_voxel_ = other.min_points_per_voxel_;
   min_covar_eigvalue_mult_ = other.min_covar_eigvalue_mult_;
 }
@@ -90,7 +90,7 @@ MultiVoxelGridCovariance<PointT> &pclomp::MultiVoxelGridCovariance<PointT>::oper
   sid_to_iid_ = other.sid_to_iid_;
   grid_list_ = other.grid_list_;
   kdtree_ = other.kdtree_;
-  leaf_indices_ = other.leaf_indices_;
+  leaves_ = other.leaves_;
   min_points_per_voxel_ = other.min_points_per_voxel_;
   min_covar_eigvalue_mult_ = other.min_covar_eigvalue_mult_;
 
@@ -111,7 +111,7 @@ MultiVoxelGridCovariance<PointT> &pclomp::MultiVoxelGridCovariance<PointT>::oper
   sid_to_iid_ = std::move(other.sid_to_iid_);
   grid_list_ = std::move(other.grid_list_);
   kdtree_ = std::move(other.kdtree_);
-  leaf_indices_ = std::move(other.leaf_indices_);
+  leaves_ = std::move(other.leaves_);
 
   min_points_per_voxel_ = other.min_points_per_voxel_;
   min_covar_eigvalue_mult_ = other.min_covar_eigvalue_mult_;
@@ -169,8 +169,8 @@ void MultiVoxelGridCovariance<PointT>::createKdtree() {
   // Rebuild the voxel_centroids_ptr_
   voxel_centroids_ptr_.reset(new PointCloud);
   voxel_centroids_ptr_->reserve(total_leaf_num);
-  leaf_indices_.clear();
-  leaf_indices_.reserve(total_leaf_num);
+  leaves_.clear();
+  leaves_.reserve(total_leaf_num);
 
   for(const GridNodePtr &grid_ptr : grid_list_) {
     for(const Leaf &leaf : *grid_ptr) {
@@ -180,7 +180,7 @@ void MultiVoxelGridCovariance<PointT>::createKdtree() {
       new_leaf.y = leaf.centroid_[1];
       new_leaf.z = leaf.centroid_[2];
       voxel_centroids_ptr_->push_back(new_leaf);
-      leaf_indices_.push_back(&leaf);
+      leaves_.push_back(&leaf);
     }
   }
 
@@ -208,7 +208,7 @@ int MultiVoxelGridCovariance<PointT>::radiusSearch(const PointT &point, double r
   k_leaves.reserve(k);
 
   for(auto &nn_idx : k_indices) {
-    k_leaves.push_back(leaf_indices_[nn_idx]);
+    k_leaves.push_back(leaves_[nn_idx]);
   }
 
   return k_leaves.size();
