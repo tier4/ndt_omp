@@ -142,24 +142,10 @@ public:
       return *this;
     }
 
-    /** \brief Get the voxel covariance.
-     * \return covariance matrix
-     */
-    const Eigen::Matrix3d &getCov() const {
-      return (cov_);
-    }
-    Eigen::Matrix3d &getCov() {
-      return (cov_);
-    }
-
     /** \brief Get the inverse of the voxel covariance.
      * \return inverse covariance matrix
      */
     const Eigen::Matrix3d &getInverseCov() const {
-      return (icov_);
-    }
-
-    Eigen::Matrix3d &getInverseCov() {
       return (icov_);
     }
 
@@ -168,41 +154,6 @@ public:
      */
     const Eigen::Vector3d &getMean() const {
       return (mean_);
-    }
-
-    Eigen::Vector3d &getMean() {
-      return (mean_);
-    }
-
-    /** \brief Get the eigen vectors of the voxel covariance.
-     * \note Order corresponds with \ref getEvals
-     * \return matrix whose columns contain eigen vectors
-     */
-    const Eigen::Matrix3d &getEvecs() const {
-      return (evecs_);
-    }
-
-    Eigen::Matrix3d &getEvecs() {
-      return (evecs_);
-    }
-
-    /** \brief Get the eigen values of the voxel covariance.
-     * \note Order corresponds with \ref getEvecs
-     * \return vector of eigen values
-     */
-    const Eigen::Vector3d &getEvals() const {
-      return (evals_);
-    }
-
-    Eigen::Vector3d &getEvals() {
-      return (evals_);
-    }
-
-    /** \brief Get the number of points contained by this voxel.
-     * \return number of points
-     */
-    int getPointCount() const {
-      return (nr_points_);
     }
 
     /** \brief Number of points contained by voxel */
