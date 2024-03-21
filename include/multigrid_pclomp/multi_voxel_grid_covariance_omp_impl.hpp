@@ -73,12 +73,7 @@ MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(const MultiVoxelGridC
 
 template<typename PointT>
 MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(MultiVoxelGridCovariance &&other)
-    : pcl::VoxelGrid<PointT>(std::move(other)),
-      voxel_centroids_ptr_(std::move(other.voxel_centroids_ptr_)),
-      sid_to_iid_(std::move(other.sid_to_iid_)),
-      grid_list_(std::move(other.grid_list_)),
-      kdtree_(std::move(other.kdtree_)),
-      leaves_(std::move(other.leaves_)) {
+    : pcl::VoxelGrid<PointT>(std::move(other)), voxel_centroids_ptr_(std::move(other.voxel_centroids_ptr_)), sid_to_iid_(std::move(other.sid_to_iid_)), grid_list_(std::move(other.grid_list_)), kdtree_(std::move(other.kdtree_)), leaves_(std::move(other.leaves_)) {
   min_points_per_voxel_ = other.min_points_per_voxel_;
   min_covar_eigvalue_mult_ = other.min_covar_eigvalue_mult_;
 }
