@@ -232,7 +232,6 @@ std::vector<std::string> MultiVoxelGridCovariance<PointT>::getCurrentMapIDs() co
   for(const auto &element : sid_to_iid_) {
     output.push_back(element.first);
   }
-
   return output;
 }
 
