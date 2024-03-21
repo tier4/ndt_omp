@@ -341,14 +341,15 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeD
     // Compute derivative of transform function w.r.t. transform vector, J_E and H_E in Equations 6.18 and 6.20 [Magnusson 2009]
     computePointDerivatives(x, point_gradient, point_hessian);
 
+    // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
     const Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
+
     double sum_score_pt = 0;
     double nearest_voxel_score_pt = 0;
     auto &score_gradient_pt = score_gradients[tid];
     auto &hessian_pt = hessians[tid];
 
     for(auto &cell : neighborhood) {
-      // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
       // Update score, gradient and hessian, lines 19-21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13, respectively [Magnusson 2009]
       double score_pt = updateDerivatives(score_gradient_pt, hessian_pt, point_gradient, point_hessian, x_trans - cell->getMean(), cell->getInverseCov(), compute_hessian);
       sum_score_pt += score_pt;
@@ -609,6 +610,8 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHes
     auto &x_pt = (*input_)[idx];
     // For math
     Eigen::Vector3d x(x_pt.x, x_pt.y, x_pt.z);
+
+    // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
     const Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
 
     auto &point_gradient = t_point_gradients[tid];
@@ -619,7 +622,6 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHes
     computePointDerivatives(x, point_gradient, point_hessian);
 
     for(auto &cell : neighborhood) {
-      // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
       // Update hessian, lines 21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13, respectively [Magnusson 2009]
       updateHessian(tmp_hessian, point_gradient, point_hessian, x_trans - cell->getMean(), cell->getInverseCov());
     }
