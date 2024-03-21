@@ -69,8 +69,6 @@ MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(const MultiVoxelGridC
   if(other.voxel_centroids_ptr_) {
     *voxel_centroids_ptr_ = *other.voxel_centroids_ptr_;
   }
-
-  removed_count_ = other.removed_count_;
 }
 
 template<typename PointT>
@@ -83,8 +81,6 @@ MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(MultiVoxelGridCovaria
       leaf_indices_(std::move(other.leaf_indices_)) {
   min_points_per_voxel_ = other.min_points_per_voxel_;
   min_covar_eigvalue_mult_ = other.min_covar_eigvalue_mult_;
-
-  removed_count_ = other.removed_count_;
 }
 
 template<typename PointT>
@@ -105,8 +101,6 @@ MultiVoxelGridCovariance<PointT> &pclomp::MultiVoxelGridCovariance<PointT>::oper
     *voxel_centroids_ptr_ = *other.voxel_centroids_ptr_;
   }
 
-  removed_count_ = other.removed_count_;
-
   return *this;
 }
 
@@ -121,8 +115,6 @@ MultiVoxelGridCovariance<PointT> &pclomp::MultiVoxelGridCovariance<PointT>::oper
 
   min_points_per_voxel_ = other.min_points_per_voxel_;
   min_covar_eigvalue_mult_ = other.min_covar_eigvalue_mult_;
-
-  removed_count_ = other.removed_count_;
 
   return *this;
 }
@@ -152,14 +144,12 @@ void MultiVoxelGridCovariance<PointT>::removeCloud(const std::string &grid_id) {
   grid_list_[iid].reset();
   // Remove the specified grid from the conversion map
   sid_to_iid_.erase(sid);
-
-  ++removed_count_;
 }
 
 template<typename PointT>
 void MultiVoxelGridCovariance<PointT>::createKdtree() {
   // Rebuild the grid_list_ and sid_to_iid_ to delete the data related to the removed clouds
-  int new_grid_num = grid_list_.size() - removed_count_;
+  const int new_grid_num = sid_to_iid_.size();
   std::vector<GridNodePtr> new_grid_list(new_grid_num);
   int new_pos = 0;
   int total_leaf_num = 0;
@@ -198,9 +188,6 @@ void MultiVoxelGridCovariance<PointT>::createKdtree() {
   if(voxel_centroids_ptr_->size() > 0) {
     kdtree_.setInputCloud(voxel_centroids_ptr_);
   }
-
-  // Reset for the next update
-  removed_count_ = 0;
 }
 
 template<typename PointT>

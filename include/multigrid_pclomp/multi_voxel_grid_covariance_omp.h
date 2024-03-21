@@ -207,8 +207,6 @@ public:
     min_b_.setZero();
     max_b_.setZero();
     filter_name_ = "MultiVoxelGridCovariance";
-
-    removed_count_ = 0;
   }
 
   MultiVoxelGridCovariance(const MultiVoxelGridCovariance &other);
@@ -286,7 +284,6 @@ protected:
   pcl::KdTreeFLANN<PointT> kdtree_;
   // To access leaf by the search results by kdtree
   std::vector<LeafConstPtr> leaf_indices_;
-  int removed_count_;
 };
 }  // namespace pclomp
 
