@@ -186,8 +186,6 @@ public:
   /** \brief Const pointer to MultiVoxelGridCovariance leaf structure */
   typedef const Leaf *LeafConstPtr;
 
-  typedef std::map<int64_t, Leaf> LeafDict;
-
   struct BoundingBox {
     Eigen::Vector4i max;
     Eigen::Vector4i min;
