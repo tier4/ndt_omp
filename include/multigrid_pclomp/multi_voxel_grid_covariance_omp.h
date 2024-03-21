@@ -142,48 +142,18 @@ public:
       return *this;
     }
 
-    /** \brief Get the voxel covariance.
-     * \return covariance matrix
-     */
-    Eigen::Matrix3d getCov() const {
-      return (cov_);
-    }
-
     /** \brief Get the inverse of the voxel covariance.
      * \return inverse covariance matrix
      */
-    Eigen::Matrix3d getInverseCov() const {
+    const Eigen::Matrix3d &getInverseCov() const {
       return (icov_);
     }
 
     /** \brief Get the voxel centroid.
      * \return centroid
      */
-    Eigen::Vector3d getMean() const {
+    const Eigen::Vector3d &getMean() const {
       return (mean_);
-    }
-
-    /** \brief Get the eigen vectors of the voxel covariance.
-     * \note Order corresponds with \ref getEvals
-     * \return matrix whose columns contain eigen vectors
-     */
-    Eigen::Matrix3d getEvecs() const {
-      return (evecs_);
-    }
-
-    /** \brief Get the eigen values of the voxel covariance.
-     * \note Order corresponds with \ref getEvecs
-     * \return vector of eigen values
-     */
-    Eigen::Vector3d getEvals() const {
-      return (evals_);
-    }
-
-    /** \brief Get the number of points contained by this voxel.
-     * \return number of points
-     */
-    int getPointCount() const {
-      return (nr_points_);
     }
 
     /** \brief Number of points contained by voxel */
@@ -261,7 +231,7 @@ public:
   MultiVoxelGridCovariance &operator=(const MultiVoxelGridCovariance &other);
   MultiVoxelGridCovariance &operator=(MultiVoxelGridCovariance &&other);
 
-  /** \brief Initializes voxel structure.
+  /** \brief Add a cloud to the voxel grid list and build a ND voxel grid from it.
    */
   void setInputCloudAndFilter(const PointCloudConstPtr &cloud, const std::string &grid_id);
 
@@ -294,8 +264,10 @@ public:
    */
   int radiusSearch(const PointCloud &cloud, int index, double radius, std::vector<LeafConstPtr> &k_leaves, unsigned int max_nn = 0) const;
 
+  // Return a pointer to avoid multiple deep copies
   PointCloud getVoxelPCD() const;
 
+  // Return the string indices of currently loaded map pieces
   std::vector<std::string> getCurrentMapIDs() const;
 
 protected:
