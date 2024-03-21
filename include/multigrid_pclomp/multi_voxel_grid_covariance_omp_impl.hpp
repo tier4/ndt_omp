@@ -142,12 +142,16 @@ void MultiVoxelGridCovariance<PointT>::setInputCloudAndFilter(const PointCloudCo
 
 template<typename PointT>
 void MultiVoxelGridCovariance<PointT>::removeCloud(const std::string &grid_id) {
-  auto iid = sid_to_iid_.find(grid_id);
+  if(sid_to_iid_.count(grid_id) == 0) {
+    return;
+  }
+
+  const auto [sid, iid] = *(sid_to_iid_.find(grid_id));
 
   // Set the pointer corresponding to the specified grid to null
-  grid_list_[iid->second].reset();
+  grid_list_[iid].reset();
   // Remove the specified grid from the conversion map
-  sid_to_iid_.erase(iid);
+  sid_to_iid_.erase(sid);
 
   ++removed_count_;
 }
@@ -208,7 +212,7 @@ int MultiVoxelGridCovariance<PointT>::radiusSearch(const PointT &point, double r
   std::vector<int> k_indices;
 
   // This should be fast, since the number of grids is small
-  int k = kdtree_.radiusSearch(point, radius, k_indices, k_sqr_distances, max_nn);
+  const int k = kdtree_.radiusSearch(point, radius, k_indices, k_sqr_distances, max_nn);
 
   if(k <= 0) {
     return 0;
