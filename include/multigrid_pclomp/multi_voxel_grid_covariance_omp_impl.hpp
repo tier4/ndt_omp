@@ -156,7 +156,7 @@ template<typename PointT>
 void MultiVoxelGridCovariance<PointT>::createKdtree() {
   // Rebuild the grid_list_ and sid_to_iid_ to delete the data related to the removed clouds
   int new_grid_num = grid_list_.size() - removed_count_;
-  std::vector<GridNodePtr> new_grid_list_(new_grid_num);
+  std::vector<GridNodePtr> new_grid_list(new_grid_num);
   int new_pos = 0;
   int total_leaf_num = 0;
 
@@ -164,13 +164,13 @@ void MultiVoxelGridCovariance<PointT>::createKdtree() {
     int &old_pos = it.second;
     auto &grid_ptr = grid_list_[old_pos];
 
-    new_grid_list_[new_pos] = grid_ptr;
+    new_grid_list[new_pos] = grid_ptr;
     old_pos = new_pos;
     ++new_pos;
     total_leaf_num = grid_ptr->size();
   }
 
-  grid_list_ = std::move(new_grid_list_);
+  grid_list_ = std::move(new_grid_list);
 
   // Rebuild the voxel_centroids_ptr_
   voxel_centroids_ptr_.reset(new PointCloud);
