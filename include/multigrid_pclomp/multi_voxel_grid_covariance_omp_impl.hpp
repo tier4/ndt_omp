@@ -178,8 +178,8 @@ void MultiVoxelGridCovariance<PointT>::createKdtree() {
   leaf_indices_.clear();
   leaf_indices_.reserve(total_leaf_num);
 
-  for(auto &grid_ptr : grid_list_) {
-    for(const auto &leaf : *grid_ptr) {
+  for(const GridNodePtr &grid_ptr : grid_list_) {
+    for(const Leaf &leaf : *grid_ptr) {
       PointT new_leaf;
 
       new_leaf.x = leaf.centroid_[0];
