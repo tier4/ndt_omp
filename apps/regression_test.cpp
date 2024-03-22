@@ -30,6 +30,7 @@
 
 #include "util.hpp"
 #include "pcd_map_grid_manager.hpp"
+#include "timer.hpp"
 
 int main(int argc, char** argv) {
   if(argc != 3) {
@@ -76,6 +77,7 @@ int main(int argc, char** argv) {
   std::cout << std::fixed;
 
   constexpr int update_interval = 10;
+  Timer timer;
 
   // execute align
   for(int64_t i = 0; i < n_data; i++) {
@@ -100,13 +102,12 @@ int main(int argc, char** argv) {
 
     // align
     pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>());
-    auto t1 = std::chrono::system_clock::now();
+    timer.start();
     mg_ndt_omp->align(*aligned, initial_pose);
     const pclomp::NdtResult ndt_result = mg_ndt_omp->getResult();
-    auto t2 = std::chrono::system_clock::now();
+    const double elapsed = timer.elapsed_milliseconds();
 
     // output result
-    const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000.0;
     const double tp = ndt_result.transform_probability;
     const double nvtl = ndt_result.nearest_voxel_transformation_likelihood;
     elapsed_milliseconds.push_back(elapsed);
