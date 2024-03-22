@@ -70,4 +70,4 @@ std::vector<Eigen::Matrix4f> load_pose_list(const std::string& path) {
   return pose_list;
 }
 
-#endif
+#endif  // NDT_OMP__APPS__UTIL_HPP_
