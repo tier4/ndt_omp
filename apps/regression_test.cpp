@@ -29,6 +29,7 @@
 #include <multigrid_pclomp/multigrid_ndt_omp.h>
 
 #include "util.hpp"
+#include "pcd_map_grid_manager.hpp"
 
 int main(int argc, char** argv) {
   if(argc != 3) {
@@ -60,10 +61,12 @@ int main(int argc, char** argv) {
   pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr mg_ndt_omp(new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
   mg_ndt_omp->setResolution(2.0);
   mg_ndt_omp->setNumThreads(4);
-  mg_ndt_omp->setInputTarget(target_cloud);
   mg_ndt_omp->setMaximumIterations(30);
   mg_ndt_omp->setTransformationEpsilon(0.0);
   mg_ndt_omp->createVoxelKdtree();
+
+  // prepare map grid manager
+  MapGridManager map_grid_manager(target_cloud);
 
   // prepare results
   std::vector<double> elapsed_milliseconds;
@@ -72,24 +75,46 @@ int main(int argc, char** argv) {
 
   std::cout << std::fixed;
 
+  constexpr int update_interval = 10;
+
   // execute align
   for(int64_t i = 0; i < n_data; i++) {
+    // get input
     const Eigen::Matrix4f initial_pose = initial_pose_list[i];
     const std::string& source_pcd = source_pcd_list[i];
     const pcl::PointCloud<pcl::PointXYZ>::Ptr source_cloud = load_pcd(source_pcd);
     mg_ndt_omp->setInputSource(source_cloud);
+
+    // update map
+    if(i % update_interval == 0) {
+      const auto [add_result, remove_result] = map_grid_manager.query(initial_pose);
+      std::cout << "add_result.size()=" << std::setw(3) << add_result.size() << ", remove_result.size()=" << std::setw(3) << remove_result.size() << ", ";
+      for(const auto& [key, cloud] : add_result) {
+        mg_ndt_omp->addTarget(cloud, key);
+      }
+      for(const auto& key : remove_result) {
+        mg_ndt_omp->removeTarget(key);
+      }
+      mg_ndt_omp->createVoxelKdtree();
+    }
+
+    // align
     pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>());
     auto t1 = std::chrono::system_clock::now();
     mg_ndt_omp->align(*aligned, initial_pose);
     const pclomp::NdtResult ndt_result = mg_ndt_omp->getResult();
     auto t2 = std::chrono::system_clock::now();
+
+    // output result
     const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000.0;
     const double tp = ndt_result.transform_probability;
     const double nvtl = ndt_result.nearest_voxel_transformation_likelihood;
     elapsed_milliseconds.push_back(elapsed);
     nvtl_scores.push_back(nvtl);
     tp_scores.push_back(tp);
-    std::cout << source_pcd << ", num=" << std::setw(4) << source_cloud->size() << " points, time=" << elapsed << " [msec], nvtl=" << nvtl << ", tp = " << tp << std::endl;
+    if(i % update_interval == 0) {
+      std::cout << "source_cloud->size()=" << std::setw(4) << source_cloud->size() << ", time=" << elapsed << " [msec], nvtl=" << nvtl << ", tp = " << tp << std::endl;
+    }
   }
 
   // output result
