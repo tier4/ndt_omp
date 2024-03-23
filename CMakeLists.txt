@@ -70,17 +70,35 @@ endif()
 ## ROS 2 multigrid ndt_omp (end) ##
 ###################################
 
+###############
+## fast_gicp ##
+###############
+ament_auto_add_library(fast_gicp SHARED
+  src/fast_gicp/gicp/fast_gicp.cpp
+  src/fast_gicp/gicp/fast_vgicp.cpp
+  src/fast_gicp/gicp/lsq_registration.cpp
+)
+target_link_libraries(fast_gicp ${PCL_LIBRARIES})
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(fast_gicp OpenMP::OpenMP_CXX)
+else()
+  message(WARNING "OpenMP not found")
+endif()
+#####################
+## fast_gicp (end) ##
+#####################
+
 ament_auto_package()
 
 add_executable(align
   apps/align.cpp
 )
 add_dependencies(align
-  ndt_omp multigrid_ndt_omp
+  ndt_omp multigrid_ndt_omp fast_gicp
 )
 target_link_libraries(align
   ${PCL_LIBRARIES}
-  ndt_omp multigrid_ndt_omp
+  ndt_omp multigrid_ndt_omp fast_gicp
 )
 
 # regression test

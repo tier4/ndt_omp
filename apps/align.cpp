@@ -12,6 +12,8 @@
 #include <pclomp/gicp_omp.h>
 #include <multigrid_pclomp/multigrid_ndt_omp.h>
 
+#include "fast_gicp/gicp/fast_vgicp.hpp"
+
 // align point clouds and measure processing time
 pcl::PointCloud<pcl::PointXYZ>::Ptr align(pcl::Registration<pcl::PointXYZ, pcl::PointXYZ>::Ptr registration, const pcl::PointCloud<pcl::PointXYZ>::Ptr& target_cloud, const pcl::PointCloud<pcl::PointXYZ>::Ptr& source_cloud) {
   registration->setInputTarget(target_cloud);
@@ -103,6 +105,11 @@ int main(int argc, char** argv) {
     mg_ndt_omp->setNumThreads(n);
     aligned = align(mg_ndt_omp, target_cloud, source_cloud);
   }
+
+  // fast_gicp
+  std::cout << "--- fast_gicp ---" << std::endl;
+  fast_gicp::FastVGICP<pcl::PointXYZ, pcl::PointXYZ>::Ptr fast_gicp(new fast_gicp::FastVGICP<pcl::PointXYZ, pcl::PointXYZ>());
+  aligned = align(fast_gicp, target_cloud, source_cloud);
 
   // visualization
   pcl::visualization::PCLVisualizer vis("vis");
