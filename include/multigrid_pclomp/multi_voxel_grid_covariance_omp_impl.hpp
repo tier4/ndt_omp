@@ -72,7 +72,6 @@ MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(const MultiVoxelGridC
 
   setThreadNum(other.thread_num_);
   last_check_tid_ = -1;
-  removed_count_ = other.removed_count_;
 }
 
 template<typename PointT>
@@ -83,7 +82,6 @@ MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(MultiVoxelGridCovaria
 
   setThreadNum(other.thread_num_);
   last_check_tid_ = -1;
-  removed_count_ = other.removed_count_;
 }
 
 template<typename PointT>
@@ -106,7 +104,6 @@ MultiVoxelGridCovariance<PointT> &pclomp::MultiVoxelGridCovariance<PointT>::oper
 
   setThreadNum(other.thread_num_);
   last_check_tid_ = -1;
-  removed_count_ = other.removed_count_;
 
   return *this;
 }
@@ -125,7 +122,6 @@ MultiVoxelGridCovariance<PointT> &pclomp::MultiVoxelGridCovariance<PointT>::oper
 
   setThreadNum(other.thread_num_);
   last_check_tid_ = -1;
-  removed_count_ = other.removed_count_;
 
   return *this;
 }
@@ -211,9 +207,6 @@ void MultiVoxelGridCovariance<PointT>::createKdtree() {
   if(voxel_centroids_ptr_->size() > 0) {
     kdtree_.setInputCloud(voxel_centroids_ptr_);
   }
-
-  // Reset for the next update
-  removed_count_ = 0;
 }
 
 template<typename PointT>
@@ -245,6 +238,11 @@ int MultiVoxelGridCovariance<PointT>::radiusSearch(const PointCloud &cloud, int 
   }
 
   return (radiusSearch(cloud[index], radius, k_leaves, max_nn));
+}
+
+template<typename PointT>
+typename MultiVoxelGridCovariance<PointT>::PointCloud MultiVoxelGridCovariance<PointT>::getVoxelPCD() const {
+  return *voxel_centroids_ptr_;
 }
 
 template<typename PointT>

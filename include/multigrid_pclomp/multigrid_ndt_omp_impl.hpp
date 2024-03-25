@@ -611,9 +611,6 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHes
     auto &x_pt = (*input_)[idx];
     // For math
     Eigen::Vector3d x(x_pt.x, x_pt.y, x_pt.z);
-    Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
-
-    // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
     const Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
 
     auto &point_gradient = t_point_gradients[tid];

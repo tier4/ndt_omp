@@ -267,7 +267,6 @@ public:
 
     setThreadNum(1);
     last_check_tid_ = -1;
-    removed_count_ = 0;
   }
 
   MultiVoxelGridCovariance(const MultiVoxelGridCovariance &other);
