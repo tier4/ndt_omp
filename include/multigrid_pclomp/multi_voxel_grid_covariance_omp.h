@@ -61,11 +61,7 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <Eigen/Dense>
 #include <Eigen/Cholesky>
-
 #include <future>
-#include <ctime>
-#include <fstream>
-#include <sstream>
 
 namespace pclomp {
 /** \brief A searchable voxel structure containing the mean and covariance of the data.
@@ -355,7 +351,7 @@ protected:
 
   // Wait for all running threads to finish
   inline void sync() {
-    for(int i = 0; i < thread_num_; ++i) {
+    for(int i = 0; i < thread_futs_.size(); ++i) {
       if(thread_futs_[i].valid()) {
         thread_futs_[i].wait();
       }
