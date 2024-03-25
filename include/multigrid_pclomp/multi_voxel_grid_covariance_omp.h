@@ -66,10 +66,6 @@
 #include <ctime>
 #include <fstream>
 #include <sstream>
-#include <sys/time.h>
-#include <pcl/io/pcd_io.h>
-#include <queue>
-#include <unistd.h>
 
 namespace pclomp {
 /** \brief A searchable voxel structure containing the mean and covariance of the data.
@@ -315,6 +311,8 @@ public:
   std::vector<std::string> getCurrentMapIDs() const;
 
   void setThreadNum(int thread_num) {
+    sync();
+
     if(thread_num <= 0) {
       thread_num_ = 1;
     }
@@ -338,7 +336,6 @@ protected:
 
     // Loop until an idle thread is found
     while(true) {
-      // gettimeofday(&start, NULL);
       // Return immediately if a thread that has not been given a job is found
       if(!thread_futs_[tid].valid()) {
         last_check_tid_ = tid;
