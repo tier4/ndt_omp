@@ -151,8 +151,7 @@ template<typename PointT>
 void MultiVoxelGridCovariance<PointT>::removeCloud(const std::string &grid_id) {
   auto iid = sid_to_iid_.find(grid_id);
 
-  if (iid == sid_to_iid_.end())
-  {
+  if(iid == sid_to_iid_.end()) {
     return;
   }
 
