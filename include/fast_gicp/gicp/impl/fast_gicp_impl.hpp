@@ -5,7 +5,7 @@
 
 namespace fast_gicp {
 
-template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+template<typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::FastGICP() {
 #ifdef _OPENMP
   num_threads_ = omp_get_max_threads();
@@ -22,31 +22,31 @@ FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::Fast
   search_target_.reset(new SearchMethodTarget);
 }
 
-template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+template<typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::~FastGICP() {}
 
-template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+template<typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setNumThreads(int n) {
   num_threads_ = n;
 
 #ifdef _OPENMP
-  if (n == 0) {
+  if(n == 0) {
     num_threads_ = omp_get_max_threads();
   }
 #endif
 }
 
-template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+template<typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setCorrespondenceRandomness(int k) {
   k_correspondences_ = k;
 }
 
-template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+template<typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setRegularizationMethod(RegularizationMethod method) {
   regularization_method_ = method;
 }
 
-template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+template<typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::swapSourceAndTarget() {
   input_.swap(target_);
   search_source_.swap(search_target_);
@@ -56,21 +56,21 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
   sq_distances_.clear();
 }
 
-template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+template<typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::clearSource() {
   input_.reset();
   source_covs_.clear();
 }
 
-template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+template<typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::clearTarget() {
   target_.reset();
   target_covs_.clear();
 }
 
-template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+template<typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setInputSource(const PointCloudSourceConstPtr& cloud) {
-  if (input_ == cloud) {
+  if(input_ == cloud) {
     return;
   }
 
@@ -79,9 +79,9 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
   source_covs_.clear();
 }
 
-template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+template<typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setInputTarget(const PointCloudTargetConstPtr& cloud) {
-  if (target_ == cloud) {
+  if(target_ == cloud) {
     return;
   }
   pcl::Registration<PointSource, PointTarget, Scalar>::setInputTarget(cloud);
@@ -89,32 +89,32 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
   target_covs_.clear();
 }
 
-template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+template<typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setSourceCovariances(const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs) {
   source_covs_ = covs;
 }
 
-template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+template<typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setTargetCovariances(const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs) {
   target_covs_ = covs;
 }
 
-template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+template<typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
-  if (output.points.data() == input_->points.data() || output.points.data() == target_->points.data()) {
+  if(output.points.data() == input_->points.data() || output.points.data() == target_->points.data()) {
     throw std::invalid_argument("FastGICP: destination cloud cannot be identical to source or target");
   }
-  if (source_covs_.size() != input_->size()) {
+  if(source_covs_.size() != input_->size()) {
     calculate_covariances(input_, *search_source_, source_covs_);
   }
-  if (target_covs_.size() != target_->size()) {
+  if(target_covs_.size() != target_->size()) {
     calculate_covariances(target_, *search_target_, target_covs_);
   }
 
   LsqRegistration<PointSource, PointTarget>::computeTransformation(output, guess);
 }
 
-template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+template<typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::update_correspondences(const Eigen::Isometry3d& trans) {
   assert(source_covs_.size() == input_->size());
   assert(target_covs_.size() == target_->size());
@@ -129,7 +129,7 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
   std::vector<float> k_sq_dists(1);
 
 #pragma omp parallel for num_threads(num_threads_) firstprivate(k_indices, k_sq_dists) schedule(guided, 8)
-  for (int i = 0; i < input_->size(); i++) {
+  for(int i = 0; i < input_->size(); i++) {
     PointTarget pt;
     pt.getVector4fMap() = trans_f * input_->at(i).getVector4fMap();
 
@@ -138,7 +138,7 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
     sq_distances_[i] = k_sq_dists[0];
     correspondences_[i] = k_sq_dists[0] < corr_dist_threshold_ * corr_dist_threshold_ ? k_indices[0] : -1;
 
-    if (correspondences_[i] < 0) {
+    if(correspondences_[i] < 0) {
       continue;
     }
 
@@ -154,22 +154,22 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
   }
 }
 
-template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+template<typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 double FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::linearize(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) {
   update_correspondences(trans);
 
   double sum_errors = 0.0;
   std::vector<Eigen::Matrix<double, 6, 6>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 6>>> Hs(num_threads_);
   std::vector<Eigen::Matrix<double, 6, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 1>>> bs(num_threads_);
-  for (int i = 0; i < num_threads_; i++) {
+  for(int i = 0; i < num_threads_; i++) {
     Hs[i].setZero();
     bs[i].setZero();
   }
 
 #pragma omp parallel for num_threads(num_threads_) reduction(+ : sum_errors) schedule(guided, 8)
-  for (int i = 0; i < input_->size(); i++) {
+  for(int i = 0; i < input_->size(); i++) {
     int target_index = correspondences_[i];
-    if (target_index < 0) {
+    if(target_index < 0) {
       continue;
     }
 
@@ -184,7 +184,7 @@ double FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget
 
     sum_errors += error.transpose() * mahalanobis_[i] * error;
 
-    if (H == nullptr || b == nullptr) {
+    if(H == nullptr || b == nullptr) {
       continue;
     }
 
@@ -201,10 +201,10 @@ double FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget
     bs[omp_get_thread_num()] += bi;
   }
 
-  if (H && b) {
+  if(H && b) {
     H->setZero();
     b->setZero();
-    for (int i = 0; i < num_threads_; i++) {
+    for(int i = 0; i < num_threads_; i++) {
       (*H) += Hs[i];
       (*b) += bs[i];
     }
@@ -213,14 +213,14 @@ double FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget
   return sum_errors;
 }
 
-template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+template<typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 double FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::compute_error(const Eigen::Isometry3d& trans) {
   double sum_errors = 0.0;
 
 #pragma omp parallel for num_threads(num_threads_) reduction(+ : sum_errors) schedule(guided, 8)
-  for (int i = 0; i < input_->size(); i++) {
+  for(int i = 0; i < input_->size(); i++) {
     int target_index = correspondences_[i];
-    if (target_index < 0) {
+    if(target_index < 0) {
       continue;
     }
 
@@ -239,34 +239,31 @@ double FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget
   return sum_errors;
 }
 
-template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
-template <typename PointT>
-bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::calculate_covariances(
-  const typename pcl::PointCloud<PointT>::ConstPtr& cloud,
-  pcl::search::Search<PointT>& kdtree,
-  std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances) {
-  if (kdtree.getInputCloud() != cloud) {
+template<typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+template<typename PointT>
+bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::calculate_covariances(const typename pcl::PointCloud<PointT>::ConstPtr& cloud, pcl::search::Search<PointT>& kdtree, std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances) {
+  if(kdtree.getInputCloud() != cloud) {
     kdtree.setInputCloud(cloud);
   }
   covariances.resize(cloud->size());
 
 #pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
-  for (int i = 0; i < cloud->size(); i++) {
+  for(int i = 0; i < cloud->size(); i++) {
     std::vector<int> k_indices;
     std::vector<float> k_sq_distances;
     kdtree.nearestKSearch(cloud->at(i), k_correspondences_, k_indices, k_sq_distances);
 
     Eigen::Matrix<double, 4, -1> neighbors(4, k_correspondences_);
-    for (int j = 0; j < k_indices.size(); j++) {
+    for(int j = 0; j < k_indices.size(); j++) {
       neighbors.col(j) = cloud->at(k_indices[j]).getVector4fMap().template cast<double>();
     }
 
     neighbors.colwise() -= neighbors.rowwise().mean().eval();
     Eigen::Matrix4d cov = neighbors * neighbors.transpose() / k_correspondences_;
 
-    if (regularization_method_ == RegularizationMethod::NONE) {
+    if(regularization_method_ == RegularizationMethod::NONE) {
       covariances[i] = cov;
-    } else if (regularization_method_ == RegularizationMethod::FROBENIUS) {
+    } else if(regularization_method_ == RegularizationMethod::FROBENIUS) {
       double lambda = 1e-3;
       Eigen::Matrix3d C = cov.block<3, 3>(0, 0).cast<double>() + lambda * Eigen::Matrix3d::Identity();
       Eigen::Matrix3d C_inv = C.inverse();
@@ -276,7 +273,7 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
       Eigen::JacobiSVD<Eigen::Matrix3d> svd(cov.block<3, 3>(0, 0), Eigen::ComputeFullU | Eigen::ComputeFullV);
       Eigen::Vector3d values;
 
-      switch (regularization_method_) {
+      switch(regularization_method_) {
         default:
           std::cerr << "here must not be reached" << std::endl;
           abort();

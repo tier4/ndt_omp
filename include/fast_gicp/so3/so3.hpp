@@ -61,7 +61,7 @@ inline Eigen::Quaterniond so3_exp(const Eigen::Vector3d& omega) {
   double theta;
   double imag_factor;
   double real_factor;
-  if (theta_sq < 1e-10) {
+  if(theta_sq < 1e-10) {
     theta = 0;
     double theta_quad = theta_sq * theta_sq;
     imag_factor = 0.5 - 1.0 / 48.0 * theta_sq + 1.0 / 3840.0 * theta_quad;
@@ -88,7 +88,7 @@ inline Eigen::Isometry3d se3_exp(const Eigen::Matrix<double, 6, 1>& a) {
   const Eigen::Matrix3d Omega_sq = Omega * Omega;
   Eigen::Matrix3d V;
 
-  if (theta < 1e-10) {
+  if(theta < 1e-10) {
     V = so3.matrix();
     /// Note: That is an accurate expansion!
   } else {
