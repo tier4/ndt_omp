@@ -189,11 +189,9 @@ template<typename PointT>
 int MultiVoxelGridCovariance<PointT>::radiusSearch(const PointT &point, double radius, std::vector<LeafConstPtr> &k_leaves, unsigned int max_nn) const {
   k_leaves.clear();
 
-  // First, search from the grid kdtree to find candidate grids
+  // Search from the kdtree to find neighbors of @point
   std::vector<float> k_sqr_distances;
   std::vector<int> k_indices;
-
-  // This should be fast, since the number of grids is small
   const int k = kdtree_.radiusSearch(point, radius, k_indices, k_sqr_distances, max_nn);
 
   if(k <= 0) {
