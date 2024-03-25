@@ -1030,3 +1030,4 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculat
 }  // namespace pclomp
 
 #endif  // PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
+
