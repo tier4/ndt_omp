@@ -1,4 +1,3 @@
-#include "multigrid_pclomp/multigrid_ndt_omp.h"
 // Copyright 2022 TIER IV, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -55,6 +54,8 @@
 
 #ifndef PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 #define PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
+
+#include "multigrid_pclomp/multigrid_ndt_omp.h"
 
 namespace pclomp {
 
@@ -148,7 +149,7 @@ MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormal
   params_.step_size = 0.1;
   params_.resolution = 1.0f;
   params_.max_iterations = 35;
-  params_.search_method = DIRECT7;
+  params_.search_method = KDTREE;  // Only KDTREE is supported in multigrid_ndt_omp
   params_.num_threads = omp_get_max_threads();
   params_.regularization_scale_factor = 0.0f;
   params_.use_line_search = false;
@@ -341,17 +342,17 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeD
     // Compute derivative of transform function w.r.t. transform vector, J_E and H_E in Equations 6.18 and 6.20 [Magnusson 2009]
     computePointDerivatives(x, point_gradient, point_hessian);
 
-    Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
+    // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
+    const Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
+
     double sum_score_pt = 0;
     double nearest_voxel_score_pt = 0;
     auto &score_gradient_pt = score_gradients[tid];
     auto &hessian_pt = hessians[tid];
 
     for(auto &cell : neighborhood) {
-      // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
       // Update score, gradient and hessian, lines 19-21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13, respectively [Magnusson 2009]
       double score_pt = updateDerivatives(score_gradient_pt, hessian_pt, point_gradient, point_hessian, x_trans - cell->getMean(), cell->getInverseCov(), compute_hessian);
-
       sum_score_pt += score_pt;
 
       if(score_pt > nearest_voxel_score_pt) {
@@ -612,6 +613,9 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHes
     Eigen::Vector3d x(x_pt.x, x_pt.y, x_pt.z);
     Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
 
+    // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
+    const Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
+
     auto &point_gradient = t_point_gradients[tid];
     auto &point_hessian = t_point_hessians[tid];
     auto &tmp_hessian = t_hessians[tid];
@@ -620,7 +624,6 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHes
     computePointDerivatives(x, point_gradient, point_hessian);
 
     for(auto &cell : neighborhood) {
-      // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
       // Update hessian, lines 21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13, respectively [Magnusson 2009]
       updateHessian(tmp_hessian, point_gradient, point_hessian, x_trans - cell->getMean(), cell->getInverseCov());
     }

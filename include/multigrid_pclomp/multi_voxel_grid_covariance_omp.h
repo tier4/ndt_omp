@@ -245,8 +245,6 @@ public:
   /** \brief Const pointer to MultiVoxelGridCovariance leaf structure */
   typedef const Leaf *LeafConstPtr;
 
-  typedef std::map<int64_t, Leaf> LeafDict;
-
   struct BoundingBox {
     Eigen::Vector4i max;
     Eigen::Vector4i min;
@@ -309,12 +307,10 @@ public:
    * \param[in] max_nn
    * \return number of neighbors found
    */
-  inline int radiusSearch(const PointCloud &cloud, int index, double radius, std::vector<LeafConstPtr> &k_leaves, unsigned int max_nn = 0) const;
+  int radiusSearch(const PointCloud &cloud, int index, double radius, std::vector<LeafConstPtr> &k_leaves, unsigned int max_nn = 0) const;
 
   // Return a pointer to avoid multiple deep copies
-  PointCloud getVoxelPCD() const {
-    return *voxel_centroids_ptr_;
-  }
+  PointCloud getVoxelPCD() const;
 
   // Return the string indices of currently loaded map pieces
   std::vector<std::string> getCurrentMapIDs() const;
@@ -412,8 +408,7 @@ protected:
   // A kdtree built from the leaves of grids
   pcl::KdTreeFLANN<PointT> kdtree_;
   // To access leaf by the search results by kdtree
-  std::vector<LeafConstPtr> leaf_indices_;
-  int removed_count_;
+  std::vector<LeafConstPtr> leaf_ptrs_;
 };
 }  // namespace pclomp
 

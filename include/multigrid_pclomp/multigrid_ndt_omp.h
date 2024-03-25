@@ -161,6 +161,7 @@ public:
 
   inline void createVoxelKdtree() {
     target_cells_.createKdtree();
+    target_cloud_updated_ = false;
   }
 
   /** \brief Set/change the voxel grid resolution.
@@ -343,6 +344,7 @@ protected:
   using BaseRegType::transformation_;
   using BaseRegType::transformation_epsilon_;
   using BaseRegType::converged_;
+  using BaseRegType::target_cloud_updated_;
 
   using BaseRegType::update_visualizer_;
 
