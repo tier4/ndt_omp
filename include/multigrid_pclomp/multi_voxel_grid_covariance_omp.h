@@ -61,6 +61,8 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <Eigen/Dense>
 #include <Eigen/Cholesky>
+#include <future>
+
 namespace pclomp {
 /** \brief A searchable voxel structure containing the mean and covariance of the data.
  * \note For more information please see
@@ -142,10 +144,24 @@ public:
       return *this;
     }
 
+    /** \brief Get the voxel covariance.
+     * \return covariance matrix
+     */
+    const Eigen::Matrix3d &getCov() const {
+      return (cov_);
+    }
+    Eigen::Matrix3d &getCov() {
+      return (cov_);
+    }
+
     /** \brief Get the inverse of the voxel covariance.
      * \return inverse covariance matrix
      */
     const Eigen::Matrix3d &getInverseCov() const {
+      return (icov_);
+    }
+
+    Eigen::Matrix3d &getInverseCov() {
       return (icov_);
     }
 
@@ -154,6 +170,41 @@ public:
      */
     const Eigen::Vector3d &getMean() const {
       return (mean_);
+    }
+
+    Eigen::Vector3d &getMean() {
+      return (mean_);
+    }
+
+    /** \brief Get the eigen vectors of the voxel covariance.
+     * \note Order corresponds with \ref getEvals
+     * \return matrix whose columns contain eigen vectors
+     */
+    const Eigen::Matrix3d &getEvecs() const {
+      return (evecs_);
+    }
+
+    Eigen::Matrix3d &getEvecs() {
+      return (evecs_);
+    }
+
+    /** \brief Get the eigen values of the voxel covariance.
+     * \note Order corresponds with \ref getEvecs
+     * \return vector of eigen values
+     */
+    const Eigen::Vector3d &getEvals() const {
+      return (evals_);
+    }
+
+    Eigen::Vector3d &getEvals() {
+      return (evals_);
+    }
+
+    /** \brief Get the number of points contained by this voxel.
+     * \return number of points
+     */
+    int getPointCount() const {
+      return (nr_points_);
     }
 
     /** \brief Number of points contained by voxel */
@@ -205,6 +256,9 @@ public:
     min_b_.setZero();
     max_b_.setZero();
     filter_name_ = "MultiVoxelGridCovariance";
+
+    setThreadNum(1);
+    last_check_tid_ = -1;
   }
 
   MultiVoxelGridCovariance(const MultiVoxelGridCovariance &other);
@@ -252,7 +306,66 @@ public:
   // Return the string indices of currently loaded map pieces
   std::vector<std::string> getCurrentMapIDs() const;
 
+  void setThreadNum(int thread_num) {
+    sync();
+
+    if(thread_num <= 0) {
+      thread_num_ = 1;
+    }
+
+    thread_num_ = thread_num;
+    thread_futs_.resize(thread_num_);
+    processing_inputs_.resize(thread_num_);
+  }
+
+  ~MultiVoxelGridCovariance() {
+    // Stop all threads in the case an intermediate interrupt occurs
+    sync();
+  }
+
 protected:
+  // Return the index of an idle thread, which is not running any
+  // job, or has already finished its job and waiting for a join.
+  inline int get_idle_tid() {
+    int tid = (last_check_tid_ == thread_num_ - 1) ? 0 : last_check_tid_ + 1;
+    std::chrono::microseconds span(50);
+
+    // Loop until an idle thread is found
+    while(true) {
+      // Return immediately if a thread that has not been given a job is found
+      if(!thread_futs_[tid].valid()) {
+        last_check_tid_ = tid;
+        return tid;
+      }
+
+      // If no such thread is found, wait for the current thread to finish its job
+      if(thread_futs_[tid].wait_for(span) == std::future_status::ready) {
+        last_check_tid_ = tid;
+        return tid;
+      }
+
+      // If the current thread has not finished its job, check the next thread
+      tid = (tid == thread_num_ - 1) ? 0 : tid + 1;
+    }
+  }
+
+  // Wait for all running threads to finish
+  inline void sync() {
+    for(auto &tf : thread_futs_) {
+      if(tf.valid()) {
+        tf.wait();
+      }
+    }
+  }
+
+  // A wraper of the real applyFilter
+  inline bool applyFilterThread(int tid, GridNodeType &node) {
+    applyFilter(processing_inputs_[tid], node);
+    processing_inputs_[tid].reset();
+
+    return true;
+  }
+
   /** \brief Filter cloud and initializes voxel structure.
    * \param[out] output cloud containing centroids of voxels containing a sufficient number of points
    */
@@ -273,6 +386,12 @@ protected:
   // The point cloud containing the centroids of leaves
   // Used to build a kdtree for radius search
   PointCloudPtr voxel_centroids_ptr_;
+
+  // Thread pooling, for parallel processing
+  int thread_num_;
+  std::vector<std::future<bool>> thread_futs_;
+  std::vector<PointCloudConstPtr> processing_inputs_;
+  int last_check_tid_;
 
   // A map to convert string index to integer index, used for grids
   std::map<std::string, int> sid_to_iid_;

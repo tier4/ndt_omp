@@ -121,6 +121,8 @@ public:
 
   void setNumThreads(int n) {
     params_.num_threads = n;
+
+    target_cells_.setThreadNum(params_.num_threads);
   }
 
   inline int getNumThreads() const {
@@ -315,6 +317,8 @@ public:
   void setParams(const NdtParams &ndt_params) {
     params_ = ndt_params;
     max_iterations_ = params_.max_iterations;
+
+    target_cells_.setThreadNum(params_.num_threads);
   }
 
   NdtParams getParams() const {
