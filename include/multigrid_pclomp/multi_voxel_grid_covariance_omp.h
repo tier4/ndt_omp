@@ -351,7 +351,7 @@ protected:
 
   // Wait for all running threads to finish
   inline void sync() {
-    for(auto& tf : thread_futs_) {
+    for(auto &tf : thread_futs_) {
       if(tf.valid()) {
         tf.wait();
       }
