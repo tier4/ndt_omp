@@ -351,9 +351,9 @@ protected:
 
   // Wait for all running threads to finish
   inline void sync() {
-    for(size_t i = 0; i < thread_futs_.size(); ++i) {
-      if(thread_futs_[i].valid()) {
-        thread_futs_[i].wait();
+    for(auto& tf : thread_futs_) {
+      if(tf.valid()) {
+        tf.wait();
       }
     }
   }
