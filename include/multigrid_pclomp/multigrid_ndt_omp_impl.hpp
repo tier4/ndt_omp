@@ -1,4 +1,3 @@
-#include "multigrid_pclomp/multigrid_ndt_omp.h"
 // Copyright 2022 TIER IV, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -55,6 +54,8 @@
 
 #ifndef PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
 #define PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
+
+#include "multigrid_pclomp/multigrid_ndt_omp.h"
 
 namespace pclomp {
 
@@ -148,7 +149,7 @@ MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormal
   params_.step_size = 0.1;
   params_.resolution = 1.0f;
   params_.max_iterations = 35;
-  params_.search_method = DIRECT7;
+  params_.search_method = KDTREE;  // Only KDTREE is supported in multigrid_ndt_omp
   params_.num_threads = omp_get_max_threads();
   params_.regularization_scale_factor = 0.0f;
   params_.use_line_search = false;
@@ -610,8 +611,6 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHes
     auto &x_pt = (*input_)[idx];
     // For math
     Eigen::Vector3d x(x_pt.x, x_pt.y, x_pt.z);
-
-    // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
     const Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
 
     auto &point_gradient = t_point_gradients[tid];

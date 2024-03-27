@@ -61,6 +61,8 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <Eigen/Dense>
 #include <Eigen/Cholesky>
+#include <future>
+
 namespace pclomp {
 /** \brief A searchable voxel structure containing the mean and covariance of the data.
  * \note For more information please see
@@ -142,10 +144,24 @@ public:
       return *this;
     }
 
+    /** \brief Get the voxel covariance.
+     * \return covariance matrix
+     */
+    const Eigen::Matrix3d &getCov() const {
+      return (cov_);
+    }
+    Eigen::Matrix3d &getCov() {
+      return (cov_);
+    }
+
     /** \brief Get the inverse of the voxel covariance.
      * \return inverse covariance matrix
      */
     const Eigen::Matrix3d &getInverseCov() const {
+      return (icov_);
+    }
+
+    Eigen::Matrix3d &getInverseCov() {
       return (icov_);
     }
 
@@ -154,6 +170,41 @@ public:
      */
     const Eigen::Vector3d &getMean() const {
       return (mean_);
+    }
+
+    Eigen::Vector3d &getMean() {
+      return (mean_);
+    }
+
+    /** \brief Get the eigen vectors of the voxel covariance.
+     * \note Order corresponds with \ref getEvals
+     * \return matrix whose columns contain eigen vectors
+     */
+    const Eigen::Matrix3d &getEvecs() const {
+      return (evecs_);
+    }
+
+    Eigen::Matrix3d &getEvecs() {
+      return (evecs_);
+    }
+
+    /** \brief Get the eigen values of the voxel covariance.
+     * \note Order corresponds with \ref getEvecs
+     * \return vector of eigen values
+     */
+    const Eigen::Vector3d &getEvals() const {
+      return (evals_);
+    }
+
+    Eigen::Vector3d &getEvals() {
+      return (evals_);
+    }
+
+    /** \brief Get the number of points contained by this voxel.
+     * \return number of points
+     */
+    int getPointCount() const {
+      return (nr_points_);
     }
 
     /** \brief Number of points contained by voxel */
@@ -180,33 +231,11 @@ public:
     Eigen::Vector3d evals_;
   };
 
-  struct LeafID {
-    std::string parent_grid_id;
-    int leaf_index;
-    bool operator<(const LeafID &rhs) const {
-      if(parent_grid_id < rhs.parent_grid_id) {
-        return true;
-      }
-      if(parent_grid_id > rhs.parent_grid_id) {
-        return false;
-      }
-      if(leaf_index < rhs.leaf_index) {
-        return true;
-      }
-      if(leaf_index > rhs.leaf_index) {
-        return false;
-      }
-      return false;
-    }
-  };
-
   /** \brief Pointer to MultiVoxelGridCovariance leaf structure */
   typedef Leaf *LeafPtr;
 
   /** \brief Const pointer to MultiVoxelGridCovariance leaf structure */
   typedef const Leaf *LeafConstPtr;
-
-  typedef std::map<LeafID, Leaf> LeafDict;
 
   struct BoundingBox {
     Eigen::Vector4i max;
@@ -214,15 +243,22 @@ public:
     Eigen::Vector4i div_mul;
   };
 
+  // Each grid contains a vector of leaves and a kdtree built from those leaves
+  using GridNodeType = std::vector<Leaf>;
+  using GridNodePtr = std::shared_ptr<GridNodeType>;
+
 public:
   /** \brief Constructor.
    * Sets \ref leaf_size_ to 0
    */
-  MultiVoxelGridCovariance() : min_points_per_voxel_(6), min_covar_eigvalue_mult_(0.01), leaves_(), grid_leaves_(), leaf_indices_(), kdtree_() {
+  MultiVoxelGridCovariance() : min_points_per_voxel_(6), min_covar_eigvalue_mult_(0.01) {
     leaf_size_.setZero();
     min_b_.setZero();
     max_b_.setZero();
     filter_name_ = "MultiVoxelGridCovariance";
+
+    setThreadNum(1);
+    last_check_tid_ = -1;
   }
 
   MultiVoxelGridCovariance(const MultiVoxelGridCovariance &other);
@@ -270,19 +306,76 @@ public:
   // Return the string indices of currently loaded map pieces
   std::vector<std::string> getCurrentMapIDs() const;
 
+  void setThreadNum(int thread_num) {
+    sync();
+
+    if(thread_num <= 0) {
+      thread_num_ = 1;
+    }
+
+    thread_num_ = thread_num;
+    thread_futs_.resize(thread_num_);
+    processing_inputs_.resize(thread_num_);
+  }
+
+  ~MultiVoxelGridCovariance() {
+    // Stop all threads in the case an intermediate interrupt occurs
+    sync();
+  }
+
 protected:
+  // Return the index of an idle thread, which is not running any
+  // job, or has already finished its job and waiting for a join.
+  inline int get_idle_tid() {
+    int tid = (last_check_tid_ == thread_num_ - 1) ? 0 : last_check_tid_ + 1;
+    std::chrono::microseconds span(50);
+
+    // Loop until an idle thread is found
+    while(true) {
+      // Return immediately if a thread that has not been given a job is found
+      if(!thread_futs_[tid].valid()) {
+        last_check_tid_ = tid;
+        return tid;
+      }
+
+      // If no such thread is found, wait for the current thread to finish its job
+      if(thread_futs_[tid].wait_for(span) == std::future_status::ready) {
+        last_check_tid_ = tid;
+        return tid;
+      }
+
+      // If the current thread has not finished its job, check the next thread
+      tid = (tid == thread_num_ - 1) ? 0 : tid + 1;
+    }
+  }
+
+  // Wait for all running threads to finish
+  inline void sync() {
+    for(auto &tf : thread_futs_) {
+      if(tf.valid()) {
+        tf.wait();
+      }
+    }
+  }
+
+  // A wraper of the real applyFilter
+  inline bool applyFilterThread(int tid, GridNodeType &node) {
+    applyFilter(processing_inputs_[tid], node);
+    processing_inputs_[tid].reset();
+
+    return true;
+  }
+
   /** \brief Filter cloud and initializes voxel structure.
    * \param[out] output cloud containing centroids of voxels containing a sufficient number of points
    */
-  void applyFilter(const PointCloudConstPtr &input, const std::string &grid_id, LeafDict &leaves) const;
-
-  void updateVoxelCentroids(const Leaf &leaf, PointCloud &voxel_centroids) const;
+  void applyFilter(const PointCloudConstPtr &input, GridNodeType &node);
 
   void updateLeaf(const PointT &point, const int &centroid_size, Leaf &leaf) const;
 
   void computeLeafParams(const Eigen::Vector3d &pt_sum, Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> &eigensolver, Leaf &leaf) const;
 
-  LeafID getLeafID(const std::string &grid_id, const PointT &point, const BoundingBox &bbox) const;
+  int64_t getLeafID(const PointT &point, const BoundingBox &bbox) const;
 
   /** \brief Minimum points contained with in a voxel to allow it to be usable. */
   int min_points_per_voxel_;
@@ -290,19 +383,24 @@ protected:
   /** \brief Minimum allowable ratio between eigenvalues to prevent singular covariance matrices. */
   double min_covar_eigvalue_mult_;
 
-  /** \brief Voxel structure containing all leaf nodes (includes voxels with less than a sufficient number of points). */
-  LeafDict leaves_;
-
-  /** \brief Point cloud containing centroids of voxels containing at least minimum number of points. */
-  std::map<std::string, LeafDict> grid_leaves_;
-
-  /** \brief Indices of leaf structures associated with each point in \ref voxel_centroids_ (used for searching). */
-  std::vector<LeafID> leaf_indices_;
-
-  /** \brief KdTree generated using \ref voxel_centroids_ (used for searching). */
-  pcl::KdTreeFLANN<PointT> kdtree_;
-
+  // The point cloud containing the centroids of leaves
+  // Used to build a kdtree for radius search
   PointCloudPtr voxel_centroids_ptr_;
+
+  // Thread pooling, for parallel processing
+  int thread_num_;
+  std::vector<std::future<bool>> thread_futs_;
+  std::vector<PointCloudConstPtr> processing_inputs_;
+  int last_check_tid_;
+
+  // A map to convert string index to integer index, used for grids
+  std::map<std::string, int> sid_to_iid_;
+  // Grids of leaves are held in a vector for faster access speed
+  std::vector<GridNodePtr> grid_list_;
+  // A kdtree built from the leaves of grids
+  pcl::KdTreeFLANN<PointT> kdtree_;
+  // To access leaf by the search results by kdtree
+  std::vector<LeafConstPtr> leaf_ptrs_;
 };
 }  // namespace pclomp
 
