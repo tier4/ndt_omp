@@ -73,6 +73,17 @@ endif()
 
 ament_auto_package()
 
+add_executable(align
+  apps/align.cpp
+)
+add_dependencies(align
+  ndt_omp multigrid_ndt_omp
+)
+target_link_libraries(align
+  ${PCL_LIBRARIES}
+  ndt_omp multigrid_ndt_omp
+)
+
 # regression test
 add_executable(regression_test
   apps/regression_test.cpp
