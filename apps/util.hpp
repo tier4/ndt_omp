@@ -28,12 +28,30 @@ std::vector<std::string> glob(const std::string& input_dir) {
 }
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr load_pcd(const std::string& path) {
-  pcl::PointCloud<pcl::PointXYZ>::Ptr pcd(new pcl::PointCloud<pcl::PointXYZ>());
-  if(pcl::io::loadPCDFile(path, *pcd)) {
-    std::cerr << "failed to load " << path << std::endl;
+  // check if dir
+  if(!std::filesystem::exists(path)) {
+    std::cerr << "failed to find " << path << std::endl;
     std::exit(1);
   }
-  return pcd;
+  if (std::filesystem::is_directory(path)) {
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pcd(new pcl::PointCloud<pcl::PointXYZ>());
+    for(const auto& file : glob(path)) {
+      pcl::PointCloud<pcl::PointXYZ>::Ptr tmp(new pcl::PointCloud<pcl::PointXYZ>());
+      if(pcl::io::loadPCDFile(file, *tmp)) {
+        std::cerr << "failed to load " << file << std::endl;
+        std::exit(1);
+      }
+      *pcd += *tmp;
+    }
+    return pcd;
+  } else {
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pcd(new pcl::PointCloud<pcl::PointXYZ>());
+    if(pcl::io::loadPCDFile(path, *pcd)) {
+      std::cerr << "failed to load " << path << std::endl;
+      std::exit(1);
+    }
+    return pcd;
+  }
 }
 
 std::vector<Eigen::Matrix4f> load_pose_list(const std::string& path) {

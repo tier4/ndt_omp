@@ -112,3 +112,15 @@ target_link_libraries(regression_test
   ${PCL_LIBRARIES}
   ndt_omp multigrid_ndt_omp
 )
+
+# execute_align_by_default_params
+add_executable(execute_align_by_default_params
+  apps/execute_align_by_default_params.cpp
+)
+add_dependencies(execute_align_by_default_params
+  ndt_omp multigrid_ndt_omp fast_gicp
+)
+target_link_libraries(execute_align_by_default_params
+  ${PCL_LIBRARIES}
+  ndt_omp multigrid_ndt_omp fast_gicp
+)
