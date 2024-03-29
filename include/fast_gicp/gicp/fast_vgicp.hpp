@@ -45,6 +45,7 @@ public:
 protected:
   using pcl::Registration<PointSource, PointTarget, Scalar>::input_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::target_;
+  using pcl::Registration<PointSource, PointTarget, Scalar>::nr_iterations_;
 
   using FastGICP<PointSource, PointTarget>::num_threads_;
   using FastGICP<PointSource, PointTarget>::search_source_;
@@ -62,6 +63,10 @@ public:
 
   virtual void swapSourceAndTarget() override;
   virtual void setInputTarget(const PointCloudTargetConstPtr& cloud) override;
+
+  int getNrIterations() const {
+    return nr_iterations_;
+  }
 
 protected:
   virtual void computeTransformation(PointCloudSource& output, const Matrix4& guess) override;

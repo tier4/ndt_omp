@@ -43,6 +43,7 @@ protected:
   using pcl::Registration<PointSource, PointTarget, Scalar>::input_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::target_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::corr_dist_threshold_;
+  using pcl::Registration<PointSource, PointTarget, Scalar>::nr_iterations_;
 
 public:
   FastGICP();
@@ -67,6 +68,10 @@ public:
 
   const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& getTargetCovariances() const {
     return target_covs_;
+  }
+
+  int getNrIterations() const {
+    return nr_iterations_;
   }
 
 protected:

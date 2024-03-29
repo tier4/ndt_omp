@@ -27,6 +27,8 @@
 
 #include <pclomp/gicp_omp.h>
 #include <multigrid_pclomp/multigrid_ndt_omp.h>
+#include "fast_gicp/gicp/fast_vgicp.hpp"
+#include "fast_gicp/gicp/fast_gicp.hpp"
 
 #include "util.hpp"
 #include "pcd_map_grid_manager.hpp"
@@ -59,13 +61,15 @@ int main(int argc, char** argv) {
   const int64_t n_data = initial_pose_list.size();
 
   // prepare ndt
-  pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr aligner(new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
-  aligner->setResolution(2.0);
+  // pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr aligner(new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
+  fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ>::Ptr aligner(new fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ>());
+  // aligner->setResolution(2.0);
   aligner->setNumThreads(4);
   aligner->setMaximumIterations(30);
   aligner->setTransformationEpsilon(0.01);
-  aligner->setStepSize(0.1);
-  aligner->createVoxelKdtree();
+  // aligner->setStepSize(0.1);
+  // aligner->createVoxelKdtree();
+  aligner->setInputTarget(target_cloud);
 
   // prepare map grid manager
   MapGridManager map_grid_manager(target_cloud);
@@ -89,30 +93,16 @@ int main(int argc, char** argv) {
     const pcl::PointCloud<pcl::PointXYZ>::Ptr source_cloud = load_pcd(source_pcd);
     aligner->setInputSource(source_cloud);
 
-    // update map
-    if(i % update_interval == 0) {
-      const auto [add_result, remove_result] = map_grid_manager.query(initial_pose);
-      std::cout << "add_result.size()=" << std::setw(3) << add_result.size() << ", remove_result.size()=" << std::setw(3) << remove_result.size() << ", ";
-      for(const auto& [key, cloud] : add_result) {
-        aligner->addTarget(cloud, key);
-      }
-      for(const auto& key : remove_result) {
-        aligner->removeTarget(key);
-      }
-      aligner->createVoxelKdtree();
-    }
-
     // align
     pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>());
     timer.start();
     aligner->align(*aligned, initial_pose);
-    const pclomp::NdtResult ndt_result = aligner->getResult();
     const double elapsed = timer.elapsed_milliseconds();
 
     // output result
-    const int iteration_num = ndt_result.iteration_num;
-    const double tp = ndt_result.transform_probability;
-    const double nvtl = ndt_result.nearest_voxel_transformation_likelihood;
+    const int iteration_num = aligner->getNrIterations();
+    const double tp = 0.0;
+    const double nvtl = aligner->getFitnessScore();
     iteration_nums.push_back(iteration_num);
     elapsed_milliseconds.push_back(elapsed);
     nvtl_scores.push_back(nvtl);
