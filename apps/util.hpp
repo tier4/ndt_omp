@@ -33,7 +33,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr load_pcd(const std::string& path) {
     std::cerr << "failed to find " << path << std::endl;
     std::exit(1);
   }
-  if (std::filesystem::is_directory(path)) {
+  if(std::filesystem::is_directory(path)) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr pcd(new pcl::PointCloud<pcl::PointXYZ>());
     for(const auto& file : glob(path)) {
       pcl::PointCloud<pcl::PointXYZ>::Ptr tmp(new pcl::PointCloud<pcl::PointXYZ>());
