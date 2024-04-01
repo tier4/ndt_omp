@@ -47,27 +47,25 @@ ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt_score(c
   std::vector<Eigen::Vector2d> ndt_pose_2d_vec{ndt_pose_2d};
   std::vector<double> score_vec{ndt_result.nearest_voxel_transformation_likelihood};
 
-  // set itr to 1
-  const int original_max_itr = ndt_ptr->getMaximumIterations();
-  ndt_ptr->setMaximumIterations(1);
+  const pcl::PointCloud<pcl::PointXYZ>::ConstPtr input_cloud = ndt_ptr->getInputCloud();
+  pcl::PointCloud<pcl::PointXYZ> trans_cloud;
 
   // multiple searches
   std::vector<NdtResult> ndt_results;
   for(const Eigen::Matrix4f& curr_pose : poses_to_search) {
-    auto sub_output_cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
-    ndt_ptr->align(*sub_output_cloud, curr_pose);
-    const NdtResult sub_ndt_result = ndt_ptr->getResult();
-    ndt_results.push_back(sub_ndt_result);
-
-    const Eigen::Matrix4f sub_ndt_pose = sub_ndt_result.pose;
-    const Eigen::Vector2d sub_ndt_pose_2d = sub_ndt_pose.topRightCorner<2, 1>().cast<double>();
+    const Eigen::Vector2d sub_ndt_pose_2d = curr_pose.topRightCorner<2, 1>().cast<double>();
     ndt_pose_2d_vec.emplace_back(sub_ndt_pose_2d);
 
-    score_vec.emplace_back(sub_ndt_result.nearest_voxel_transformation_likelihood);
-  }
+    transformPointCloud(*input_cloud, trans_cloud, curr_pose);
+    const double nvtl = ndt_ptr->calculateNearestVoxelTransformationLikelihood(trans_cloud);
+    score_vec.emplace_back(nvtl);
 
-  // set itr to original
-  ndt_ptr->setMaximumIterations(original_max_itr);
+    NdtResult sub_ndt_result{};
+    sub_ndt_result.pose = curr_pose;
+    sub_ndt_result.iteration_num = 0;
+    sub_ndt_result.nearest_voxel_transformation_likelihood = nvtl;
+    ndt_results.push_back(sub_ndt_result);
+  }
 
   // calculate the weights
   const std::vector<double> weight_vec = calc_weight_vec(score_vec, temperature);
