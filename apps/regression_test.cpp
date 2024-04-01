@@ -1,3 +1,17 @@
+// Copyright 2024 TIER IV, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <iostream>
 #include <chrono>
 #include <pcl/io/pcd_io.h>
@@ -14,17 +28,9 @@
 #include <pclomp/gicp_omp.h>
 #include <multigrid_pclomp/multigrid_ndt_omp.h>
 
-std::vector<std::string> glob(const std::string& input_dir) {
-  glob_t buffer;
-  std::vector<std::string> files;
-  glob((input_dir + "/*").c_str(), 0, NULL, &buffer);
-  for(size_t i = 0; i < buffer.gl_pathc; i++) {
-    files.push_back(buffer.gl_pathv[i]);
-  }
-  globfree(&buffer);
-  std::sort(files.begin(), files.end());
-  return files;
-}
+#include "util.hpp"
+#include "pcd_map_grid_manager.hpp"
+#include "timer.hpp"
 
 int main(int argc, char** argv) {
   if(argc != 3) {
@@ -37,61 +43,14 @@ int main(int argc, char** argv) {
 
   // load target pcd
   const std::string target_pcd = input_dir + "/pointcloud_map.pcd";
-  pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-  if(pcl::io::loadPCDFile(target_pcd, *target_cloud)) {
-    std::cerr << "failed to load " << target_pcd << std::endl;
-    return 1;
-  }
-
-  // prepare ndt
-  pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr mg_ndt_omp(new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
-  mg_ndt_omp->setResolution(2.0);
-  mg_ndt_omp->setNumThreads(4);
-  mg_ndt_omp->setInputTarget(target_cloud);
-  mg_ndt_omp->setMaximumIterations(30);
-  mg_ndt_omp->setTransformationEpsilon(0.0);
-  mg_ndt_omp->createVoxelKdtree();
+  const pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud = load_pcd(target_pcd);
 
   // prepare sensor_pcd
   const std::string source_pcd_dir = input_dir + "/sensor_pcd/";
-  std::vector<std::string> source_pcd_list = glob(source_pcd_dir);
-
-  // prepare results
-  std::vector<double> elapsed_milliseconds;
-  std::vector<double> nvtl_scores;
-  std::vector<double> tp_scores;
+  const std::vector<std::string> source_pcd_list = glob(source_pcd_dir);
 
   // load kinematic_state.csv
-  /*
-  timestamp,pose_x,pose_y,pose_z,quat_w,quat_x,quat_y,quat_z,twist_linear_x,twist_linear_y,twist_linear_z,twist_angular_x,twist_angular_y,twist_angular_z
-  63.100010,81377.359702,49916.899866,41.232589,0.953768,0.000494,-0.007336,0.300453,0.000000,0.000000,0.000000,0.000000,0.000000,0.000000
-  63.133344,81377.359780,49916.899912,41.232735,0.953769,0.000491,-0.007332,0.300452,0.000000,0.000000,0.000000,0.000000,0.000000,0.000000
-  ...
-  */
-  std::ifstream ifs(input_dir + "/kinematic_state.csv");
-  std::string line;
-  std::getline(ifs, line);  // skip header
-  std::vector<Eigen::Matrix4f> initial_pose_list;
-  while(std::getline(ifs, line)) {
-    std::istringstream iss(line);
-    std::string token;
-    std::vector<std::string> tokens;
-    while(std::getline(iss, token, ',')) {
-      tokens.push_back(token);
-    }
-    const double timestamp = std::stod(tokens[0]);
-    const double pose_x = std::stod(tokens[1]);
-    const double pose_y = std::stod(tokens[2]);
-    const double pose_z = std::stod(tokens[3]);
-    const double quat_w = std::stod(tokens[4]);
-    const double quat_x = std::stod(tokens[5]);
-    const double quat_y = std::stod(tokens[6]);
-    const double quat_z = std::stod(tokens[7]);
-    Eigen::Matrix4f initial_pose = Eigen::Matrix4f::Identity();
-    initial_pose.block<3, 3>(0, 0) = Eigen::Quaternionf(quat_w, quat_x, quat_y, quat_z).toRotationMatrix();
-    initial_pose.block<3, 1>(0, 3) = Eigen::Vector3f(pose_x, pose_y, pose_z);
-    initial_pose_list.push_back(initial_pose);
-  }
+  const std::vector<Eigen::Matrix4f> initial_pose_list = load_pose_list(input_dir + "/kinematic_state.csv");
 
   if(initial_pose_list.size() != source_pcd_list.size()) {
     std::cerr << "initial_pose_list.size() != source_pcd_list.size()" << std::endl;
@@ -99,30 +58,64 @@ int main(int argc, char** argv) {
   }
   const int64_t n_data = initial_pose_list.size();
 
+  // prepare ndt
+  pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr mg_ndt_omp(new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
+  mg_ndt_omp->setResolution(2.0);
+  mg_ndt_omp->setNumThreads(4);
+  mg_ndt_omp->setMaximumIterations(30);
+  mg_ndt_omp->setTransformationEpsilon(0.0);
+  mg_ndt_omp->createVoxelKdtree();
+
+  // prepare map grid manager
+  MapGridManager map_grid_manager(target_cloud);
+
+  // prepare results
+  std::vector<double> elapsed_milliseconds;
+  std::vector<double> nvtl_scores;
+  std::vector<double> tp_scores;
+
   std::cout << std::fixed;
+
+  constexpr int update_interval = 10;
+  Timer timer;
 
   // execute align
   for(int64_t i = 0; i < n_data; i++) {
+    // get input
     const Eigen::Matrix4f initial_pose = initial_pose_list[i];
     const std::string& source_pcd = source_pcd_list[i];
-    pcl::PointCloud<pcl::PointXYZ>::Ptr source_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-    if(pcl::io::loadPCDFile(source_pcd, *source_cloud)) {
-      std::cerr << "failed to load " << source_pcd << std::endl;
-      return 1;
-    }
+    const pcl::PointCloud<pcl::PointXYZ>::Ptr source_cloud = load_pcd(source_pcd);
     mg_ndt_omp->setInputSource(source_cloud);
+
+    // update map
+    if(i % update_interval == 0) {
+      const auto [add_result, remove_result] = map_grid_manager.query(initial_pose);
+      std::cout << "add_result.size()=" << std::setw(3) << add_result.size() << ", remove_result.size()=" << std::setw(3) << remove_result.size() << ", ";
+      for(const auto& [key, cloud] : add_result) {
+        mg_ndt_omp->addTarget(cloud, key);
+      }
+      for(const auto& key : remove_result) {
+        mg_ndt_omp->removeTarget(key);
+      }
+      mg_ndt_omp->createVoxelKdtree();
+    }
+
+    // align
     pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>());
-    auto t1 = std::chrono::system_clock::now();
+    timer.start();
     mg_ndt_omp->align(*aligned, initial_pose);
     const pclomp::NdtResult ndt_result = mg_ndt_omp->getResult();
-    auto t2 = std::chrono::system_clock::now();
-    const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000.0;
+    const double elapsed = timer.elapsed_milliseconds();
+
+    // output result
     const double tp = ndt_result.transform_probability;
     const double nvtl = ndt_result.nearest_voxel_transformation_likelihood;
     elapsed_milliseconds.push_back(elapsed);
     nvtl_scores.push_back(nvtl);
     tp_scores.push_back(tp);
-    std::cout << source_pcd << ", num=" << std::setw(4) << source_cloud->size() << " points, time=" << elapsed << " [msec], nvtl=" << nvtl << ", tp = " << tp << std::endl;
+    if(i % update_interval == 0) {
+      std::cout << "source_cloud->size()=" << std::setw(4) << source_cloud->size() << ", time=" << elapsed << " [msec], nvtl=" << nvtl << ", tp = " << tp << std::endl;
+    }
   }
 
   // output result
