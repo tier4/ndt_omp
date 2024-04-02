@@ -15,17 +15,7 @@
 #include <multigrid_pclomp/multigrid_ndt_omp.h>
 #include "estimate_covariance/estimate_covariance.hpp"
 
-std::vector<std::string> glob(const std::string& input_dir) {
-  glob_t buffer;
-  std::vector<std::string> files;
-  glob((input_dir + "/*").c_str(), 0, NULL, &buffer);
-  for(size_t i = 0; i < buffer.gl_pathc; i++) {
-    files.push_back(buffer.gl_pathv[i]);
-  }
-  globfree(&buffer);
-  std::sort(files.begin(), files.end());
-  return files;
-}
+#include "util.hpp"
 
 int main(int argc, char** argv) {
   if(argc != 3) {
@@ -38,11 +28,20 @@ int main(int argc, char** argv) {
 
   // load target pcd
   const std::string target_pcd = input_dir + "/pointcloud_map.pcd";
-  pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-  if(pcl::io::loadPCDFile(target_pcd, *target_cloud)) {
-    std::cerr << "failed to load " << target_pcd << std::endl;
+  const pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud = load_pcd(target_pcd);
+
+  // prepare sensor_pcd
+  const std::string source_pcd_dir = input_dir + "/sensor_pcd/";
+  const std::vector<std::string> source_pcd_list = glob(source_pcd_dir);
+
+  // load kinematic_state.csv
+  const std::vector<Eigen::Matrix4f> initial_pose_list = load_pose_list(input_dir + "/kinematic_state.csv");
+
+  if(initial_pose_list.size() != source_pcd_list.size()) {
+    std::cerr << "initial_pose_list.size() != source_pcd_list.size()" << std::endl;
     return 1;
   }
+  const int64_t n_data = initial_pose_list.size();
 
   // prepare ndt
   std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> mg_ndt_omp(new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
@@ -53,48 +52,6 @@ int main(int argc, char** argv) {
   mg_ndt_omp->setTransformationEpsilon(0.01);
   mg_ndt_omp->setStepSize(0.1);
   mg_ndt_omp->createVoxelKdtree();
-
-  // prepare sensor_pcd
-  const std::string source_pcd_dir = input_dir + "/sensor_pcd/";
-  std::vector<std::string> source_pcd_list = glob(source_pcd_dir);
-
-  // load kinematic_state.csv
-  /*
-  timestamp,pose_x,pose_y,pose_z,quat_w,quat_x,quat_y,quat_z,twist_linear_x,twist_linear_y,twist_linear_z,twist_angular_x,twist_angular_y,twist_angular_z
-  63.100010,81377.359702,49916.899866,41.232589,0.953768,0.000494,-0.007336,0.300453,0.000000,0.000000,0.000000,0.000000,0.000000,0.000000
-  63.133344,81377.359780,49916.899912,41.232735,0.953769,0.000491,-0.007332,0.300452,0.000000,0.000000,0.000000,0.000000,0.000000,0.000000
-  ...
-  */
-  std::ifstream ifs(input_dir + "/kinematic_state.csv");
-  std::string line;
-  std::getline(ifs, line);  // skip header
-  std::vector<Eigen::Matrix4f> initial_pose_list;
-  while(std::getline(ifs, line)) {
-    std::istringstream iss(line);
-    std::string token;
-    std::vector<std::string> tokens;
-    while(std::getline(iss, token, ',')) {
-      tokens.push_back(token);
-    }
-    const double timestamp = std::stod(tokens[0]);
-    const double pose_x = std::stod(tokens[1]);
-    const double pose_y = std::stod(tokens[2]);
-    const double pose_z = std::stod(tokens[3]);
-    const double quat_w = std::stod(tokens[4]);
-    const double quat_x = std::stod(tokens[5]);
-    const double quat_y = std::stod(tokens[6]);
-    const double quat_z = std::stod(tokens[7]);
-    Eigen::Matrix4f initial_pose = Eigen::Matrix4f::Identity();
-    initial_pose.block<3, 3>(0, 0) = Eigen::Quaternionf(quat_w, quat_x, quat_y, quat_z).toRotationMatrix();
-    initial_pose.block<3, 1>(0, 3) = Eigen::Vector3f(pose_x, pose_y, pose_z);
-    initial_pose_list.push_back(initial_pose);
-  }
-
-  if(initial_pose_list.size() != source_pcd_list.size()) {
-    std::cerr << "initial_pose_list.size() != source_pcd_list.size()" << std::endl;
-    return 1;
-  }
-  const int64_t n_data = initial_pose_list.size();
 
   std::cout << std::fixed;
 
