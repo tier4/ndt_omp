@@ -38,7 +38,9 @@ def plot_ellipse(mean, cov, color, label, scale):
     plt.gca().add_patch(ellipse)
 
 
-def plot_ndt_result(df: pd.DataFrame, x: float, y: float, cov: np.ndarray, cov_default: np.ndarray):
+def plot_ndt_result(
+    df: pd.DataFrame, x: float, y: float, cov: np.ndarray, cov_default: np.ndarray
+):
     """
             score     initial_x     initial_y      result_x      result_y
     index
@@ -170,9 +172,9 @@ if __name__ == "__main__":
         plt.ylabel("y[m]")
         plt.xlim(x - 15, x + 15)
         plt.ylim(y - 15, y + 15)
-        plt.tick_params(labelbottom=False, labelleft=False)
         plt.gca().set_aspect("equal", adjustable="box")
-        plt.savefig(output_dir / f"{i:08d}.png", bbox_inches="tight", pad_inches=0.05)
+        plt.subplots_adjust(top=0.8)  # 余白を追加
+        plt.savefig(output_dir / f"{i:08d}.png", pad_inches=0.05)
         plt.close()
 
         if args.plot_ndt_result:
@@ -182,7 +184,7 @@ if __name__ == "__main__":
             plot_ndt_result(df_mndt, x, y, cov_by_mndt, cov_default)
             save_path = output_dir.parent / "multi_ndt_plot" / f"{i:08d}.png"
             save_path.parent.mkdir(exist_ok=True, parents=True)
-            plt.savefig(str(save_path), bbox_inches="tight", pad_inches=0.05)
+            plt.savefig(str(save_path), pad_inches=0.05)
             plt.close()
 
             df_mndt_score = pd.read_csv(
@@ -191,5 +193,5 @@ if __name__ == "__main__":
             plot_ndt_result(df_mndt_score, x, y, cov_by_mndt_score, cov_default)
             save_path = output_dir.parent / "multi_ndt_score_plot" / f"{i:08d}.png"
             save_path.parent.mkdir(exist_ok=True, parents=True)
-            plt.savefig(str(save_path), bbox_inches="tight", pad_inches=0.05)
+            plt.savefig(str(save_path), pad_inches=0.05)
             plt.close()
