@@ -45,7 +45,7 @@ jobs:
 
       - name: Run check_covariance
         run: |
-          ./script/check_covariance.sh ./regression_test_data/input/ ./regression_test_data/output_check_covariance/
+          ./script/execute_check_covariance.sh ./regression_test_data/input/ ./regression_test_data/output_check_covariance/
 
       - name: Upload output files
         uses: actions/upload-artifact@v4
