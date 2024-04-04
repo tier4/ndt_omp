@@ -14,6 +14,9 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("result_csv", type=pathlib.Path)
     parser.add_argument(
+        "--plot_each_frame", action="store_true", help="Plot each frame. It takes about a few minutes."
+    )
+    parser.add_argument(
         "--plot_ndt_result", action="store_true", help="It takes about 10 minutes."
     )
     return parser.parse_args()
@@ -154,6 +157,9 @@ if __name__ == "__main__":
     plt.savefig(save_path, bbox_inches="tight", pad_inches=0.05)
     print(f"Saved: {save_path}")
     plt.close()
+
+    if not args.plot_each_frame:
+        exit(0)
 
     mean_x = df_result["initial_x"].mean()
     mean_y = df_result["initial_y"].mean()
