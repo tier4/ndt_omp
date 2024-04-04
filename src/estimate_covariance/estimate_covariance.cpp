@@ -138,4 +138,9 @@ std::pair<Eigen::Vector2d, Eigen::Matrix2d> calculate_weighted_mean_and_cov(cons
   return {mean, covariance};
 }
 
+Eigen::Matrix2d rotate_covariance_to_base_link(const Eigen::Matrix2d& covariance, const Eigen::Matrix4f& pose) {
+  const Eigen::Matrix2d rot = pose.topLeftCorner<2, 2>().cast<double>();
+  return rot * covariance * rot.transpose();
+}
+
 }  // namespace pclomp

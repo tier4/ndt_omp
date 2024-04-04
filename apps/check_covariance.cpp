@@ -67,7 +67,10 @@ int main(int argc, char** argv) {
   ofs << "result_x,result_y,result_yaw,";
   ofs << "elapsed_la,cov_by_la_00,cov_by_la_01,cov_by_la_10,cov_by_la_11,";
   ofs << "elapsed_mndt,cov_by_mndt_00,cov_by_mndt_01,cov_by_mndt_10,cov_by_mndt_11,";
-  ofs << "elapsed_mndt_score,cov_by_mndt_score_00,cov_by_mndt_score_01,cov_by_mndt_score_10,cov_by_mndt_score_11" << std::endl;
+  ofs << "elapsed_mndt_score,cov_by_mndt_score_00,cov_by_mndt_score_01,cov_by_mndt_score_10,cov_by_mndt_score_11,";
+  ofs << "cov_by_la_rotated_00,cov_by_la_rotated_01,cov_by_la_rotated_10,cov_by_la_rotated_11,";
+  ofs << "cov_by_mndt_rotated_00,cov_by_mndt_rotated_01,cov_by_mndt_rotated_10,cov_by_mndt_rotated_11,";
+  ofs << "cov_by_mndt_score_rotated_00,cov_by_mndt_score_rotated_01,cov_by_mndt_score_rotated_10,cov_by_mndt_score_rotated_11" << std::endl;
 
   const std::string multi_ndt_dir = output_dir + "/multi_ndt";
   std::filesystem::create_directories(multi_ndt_dir);
@@ -122,12 +125,18 @@ int main(int argc, char** argv) {
     const auto result_y = ndt_result.pose(1, 3);
     const Eigen::Vector3f euler_initial = initial_pose.block<3, 3>(0, 0).eulerAngles(0, 1, 2);
     const Eigen::Vector3f euler_result = ndt_result.pose.block<3, 3>(0, 0).eulerAngles(0, 1, 2);
+    const Eigen::Matrix2d cov_by_la_rotated = pclomp::rotate_covariance_to_base_link(cov_by_la, ndt_result.pose);
+    const Eigen::Matrix2d cov_by_mndt_rotated = pclomp::rotate_covariance_to_base_link(cov_by_mndt, ndt_result.pose);
+    const Eigen::Matrix2d cov_by_mndt_score_rotated = pclomp::rotate_covariance_to_base_link(cov_by_mndt_score, ndt_result.pose);
     ofs << i << "," << score << ",";
     ofs << initial_pose(0, 3) << "," << initial_pose(1, 3) << "," << euler_initial(2) << ",";
     ofs << result_x << "," << result_y << "," << euler_result(2) << ",";
     ofs << elapsed_la << "," << cov_by_la(0, 0) << "," << cov_by_la(0, 1) << "," << cov_by_la(1, 0) << "," << cov_by_la(1, 1) << ",";
     ofs << elapsed_mndt << "," << cov_by_mndt(0, 0) << "," << cov_by_mndt(0, 1) << "," << cov_by_mndt(1, 0) << "," << cov_by_mndt(1, 1) << ",";
-    ofs << elapsed_mndt_score << "," << cov_by_mndt_score(0, 0) << "," << cov_by_mndt_score(0, 1) << "," << cov_by_mndt_score(1, 0) << "," << cov_by_mndt_score(1, 1) << std::endl;
+    ofs << elapsed_mndt_score << "," << cov_by_mndt_score(0, 0) << "," << cov_by_mndt_score(0, 1) << "," << cov_by_mndt_score(1, 0) << "," << cov_by_mndt_score(1, 1) << ",";
+    ofs << cov_by_la_rotated(0, 0) << "," << cov_by_la_rotated(0, 1) << "," << cov_by_la_rotated(1, 0) << "," << cov_by_la_rotated(1, 1) << ",";
+    ofs << cov_by_mndt_rotated(0, 0) << "," << cov_by_mndt_rotated(0, 1) << "," << cov_by_mndt_rotated(1, 0) << "," << cov_by_mndt_rotated(1, 1) << ",";
+    ofs << cov_by_mndt_score_rotated(0, 0) << "," << cov_by_mndt_score_rotated(0, 1) << "," << cov_by_mndt_score_rotated(1, 0) << "," << cov_by_mndt_score_rotated(1, 1) << std::endl;
 
     std::stringstream filename_ss;
     filename_ss << std::setw(8) << std::setfill('0') << i << ".csv";

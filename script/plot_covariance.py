@@ -108,20 +108,47 @@ if __name__ == "__main__":
     print(f"Saved: {save_path}")
     plt.close()
 
-    cov_by_la = df_result[
-        ["cov_by_la_00", "cov_by_la_01", "cov_by_la_10", "cov_by_la_11"]
+    cov_by_la_rotated = df_result[
+        [
+            "cov_by_la_rotated_00",
+            "cov_by_la_rotated_01",
+            "cov_by_la_rotated_10",
+            "cov_by_la_rotated_11",
+        ]
     ].values
-    cov_by_mndt = df_result[
-        ["cov_by_mndt_00", "cov_by_mndt_01", "cov_by_mndt_10", "cov_by_mndt_11"]
+    cov_by_mndt_rotated = df_result[
+        [
+            "cov_by_mndt_rotated_00",
+            "cov_by_mndt_rotated_01",
+            "cov_by_mndt_rotated_10",
+            "cov_by_mndt_rotated_11",
+        ]
     ].values
+    cov_by_mndt_score_rotated = df_result[
+        [
+            "cov_by_mndt_score_rotated_00",
+            "cov_by_mndt_score_rotated_01",
+            "cov_by_mndt_score_rotated_10",
+            "cov_by_mndt_score_rotated_11",
+        ]
+    ].values
+
+    DEFAULT_VALUE = 0.0225
+
+    fig, axs = plt.subplots(2, 2)
 
     for i in range(2):
         for j in range(2):
-            plt.subplot(2, 2, i * 2 + j + 1)
-            plt.plot(cov_by_la[:, i * 2 + j], label="Laplace Approximation")
-            plt.plot(cov_by_mndt[:, i * 2 + j], label="Multi NDT")
-            plt.ylabel(f"cov_{i}{j}")
-            plt.legend()
+            ax = axs[i, j]
+            ax.plot([DEFAULT_VALUE if (i == j) else 0] * len(df_result), label="Default", color="green")
+            ax.plot(cov_by_la_rotated[:, i * 2 + j], label="Laplace Approximation", color="blue")
+            ax.plot(cov_by_mndt_rotated[:, i * 2 + j], label="Multi NDT", color="red")
+            ax.plot(cov_by_mndt_score_rotated[:, i * 2 + j], label="Multi NDT Score", color="orange")
+            ax.set_ylabel(f"cov_{i}{j}")
+
+    lines, labels = axs[0, 0].get_legend_handles_labels()
+    fig.legend(lines, labels, loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=3)
+
     plt.tight_layout()
     save_path = result_csv.parent / "covariance.png"
     plt.savefig(save_path, bbox_inches="tight", pad_inches=0.05)
@@ -134,7 +161,7 @@ if __name__ == "__main__":
     df_result["initial_x"] -= mean_x
     df_result["initial_y"] -= mean_y
 
-    cov_default = 0.0225 * np.eye(2)
+    cov_default = DEFAULT_VALUE * np.eye(2)
 
     # plot each frame
     output_dir = result_csv.parent / "covariance_each_frame"
@@ -173,7 +200,7 @@ if __name__ == "__main__":
         plt.xlim(x - 15, x + 15)
         plt.ylim(y - 15, y + 15)
         plt.gca().set_aspect("equal", adjustable="box")
-        plt.subplots_adjust(top=0.8)  # 余白を追加
+        plt.subplots_adjust(top=0.8)
         plt.savefig(output_dir / f"{i:08d}.png", pad_inches=0.05)
         plt.close()
 

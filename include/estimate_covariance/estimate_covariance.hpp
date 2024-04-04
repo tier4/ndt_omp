@@ -38,6 +38,9 @@ std::vector<double> calc_weight_vec(const std::vector<double>& score_vec, double
 /** \brief Calculate weighted mean and covariance */
 std::pair<Eigen::Vector2d, Eigen::Matrix2d> calculate_weighted_mean_and_cov(const std::vector<Eigen::Vector2d>& pose_2d_vec, const std::vector<double>& weight_vec);
 
+/** \brief Rotate covariance to base_link coordinate */
+Eigen::Matrix2d rotate_covariance_to_base_link(const Eigen::Matrix2d& covariance, const Eigen::Matrix4f& pose);
+
 }  // namespace pclomp
 
 #endif  // NDT_OMP__ESTIMATE_COVARIANCE_HPP_
