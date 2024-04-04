@@ -62,7 +62,12 @@ int main(int argc, char** argv) {
   std::filesystem::create_directories(output_dir);
   std::ofstream ofs(output_dir + "/result.csv");
   ofs << std::fixed;
-  ofs << "index,score,initial_x,initial_y,result_x,result_y,elapsed_la,cov_by_la_00,cov_by_la_01,cov_by_la_10,cov_by_la_11,elapsed_mndt,cov_by_mndt_00,cov_by_mndt_01,cov_by_mndt_10,cov_by_mndt_11,elapsed_mndt_score,cov_by_mndt_score_00,cov_by_mndt_score_01,cov_by_mndt_score_10,cov_by_mndt_score_11" << std::endl;
+  ofs << "index,score,";
+  ofs << "initial_x,initial_y,initial_yaw,";
+  ofs << "result_x,result_y,result_yaw,";
+  ofs << "elapsed_la,cov_by_la_00,cov_by_la_01,cov_by_la_10,cov_by_la_11,";
+  ofs << "elapsed_mndt,cov_by_mndt_00,cov_by_mndt_01,cov_by_mndt_10,cov_by_mndt_11,";
+  ofs << "elapsed_mndt_score,cov_by_mndt_score_00,cov_by_mndt_score_01,cov_by_mndt_score_10,cov_by_mndt_score_11" << std::endl;
 
   const std::string multi_ndt_dir = output_dir + "/multi_ndt";
   std::filesystem::create_directories(multi_ndt_dir);
@@ -115,10 +120,14 @@ int main(int argc, char** argv) {
     // output result
     const auto result_x = ndt_result.pose(0, 3);
     const auto result_y = ndt_result.pose(1, 3);
-    ofs << i << "," << score << "," << initial_pose(0, 3) << "," << initial_pose(1, 3) << "," << result_x << "," << result_y;
-    ofs << "," << elapsed_la << "," << cov_by_la(0, 0) << "," << cov_by_la(0, 1) << "," << cov_by_la(1, 0) << "," << cov_by_la(1, 1);
-    ofs << "," << elapsed_mndt << "," << cov_by_mndt(0, 0) << "," << cov_by_mndt(0, 1) << "," << cov_by_mndt(1, 0) << "," << cov_by_mndt(1, 1);
-    ofs << "," << elapsed_mndt_score << "," << cov_by_mndt_score(0, 0) << "," << cov_by_mndt_score(0, 1) << "," << cov_by_mndt_score(1, 0) << "," << cov_by_mndt_score(1, 1) << std::endl;
+    const Eigen::Vector3f euler_initial = initial_pose.block<3, 3>(0, 0).eulerAngles(0, 1, 2);
+    const Eigen::Vector3f euler_result = ndt_result.pose.block<3, 3>(0, 0).eulerAngles(0, 1, 2);
+    ofs << i << "," << score << ",";
+    ofs << initial_pose(0, 3) << "," << initial_pose(1, 3) << "," << euler_initial(2) << ",";
+    ofs << result_x << "," << result_y << "," << euler_result(2) << ",";
+    ofs << elapsed_la << "," << cov_by_la(0, 0) << "," << cov_by_la(0, 1) << "," << cov_by_la(1, 0) << "," << cov_by_la(1, 1) << ",";
+    ofs << elapsed_mndt << "," << cov_by_mndt(0, 0) << "," << cov_by_mndt(0, 1) << "," << cov_by_mndt(1, 0) << "," << cov_by_mndt(1, 1) << ",";
+    ofs << elapsed_mndt_score << "," << cov_by_mndt_score(0, 0) << "," << cov_by_mndt_score(0, 1) << "," << cov_by_mndt_score(1, 0) << "," << cov_by_mndt_score(1, 1) << std::endl;
 
     std::stringstream filename_ss;
     filename_ss << std::setw(8) << std::setfill('0') << i << ".csv";
