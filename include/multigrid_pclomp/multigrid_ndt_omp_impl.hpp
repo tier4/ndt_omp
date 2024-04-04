@@ -409,6 +409,7 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeD
   } else {
     nearest_voxel_transformation_likelihood_ = 0.0;
   }
+
   return (score);
 }
 
