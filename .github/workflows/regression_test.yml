@@ -23,7 +23,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y wget unzip libpcl-dev python3-pip
-          pip3 install pandas matplotlib
+          pip3 install pandas matplotlib tqdm
 
       - name: Download data
         run: |
