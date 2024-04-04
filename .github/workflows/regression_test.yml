@@ -39,13 +39,19 @@ jobs:
           make -j
           cd ..
 
-      - name: Run
+      - name: Run regression test
         run: |
           ./script/execute_regression_test.sh
+
+      - name: Run check_covariance
+        run: |
+          ./script/check_covariance.sh ./regression_test_data/input/ ./regression_test_data/output_check_covariance/
 
       - name: Upload output files
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: regression-test-output
-          path: ./regression_test_data/output/
+          path: |
+            ./regression_test_data/output/
+            ./regression_test_data/output_check_covariance/
