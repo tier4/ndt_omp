@@ -1015,8 +1015,8 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculat
 
   // Sum up point-wise scores
   for(size_t idx = 0; idx < params_.num_threads; ++idx) {
-    found_neighborhood_voxel_num += t_nvs[idx];
-    nearest_voxel_score += t_found_nnvn[idx];
+    found_neighborhood_voxel_num += t_found_nnvn[idx];
+    nearest_voxel_score += t_nvs[idx];
   }
 
   double output_score = 0;
