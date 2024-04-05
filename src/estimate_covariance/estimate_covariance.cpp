@@ -143,4 +143,17 @@ Eigen::Matrix2d rotate_covariance_to_base_link(const Eigen::Matrix2d& covariance
   return rot.transpose() * covariance * rot;
 }
 
+Eigen::Matrix2d rotate_covariance_to_map(const Eigen::Matrix2d& covariance, const Eigen::Matrix4f& pose) {
+  const Eigen::Matrix2d rot = pose.topLeftCorner<2, 2>().cast<double>();
+  return rot * covariance * rot.transpose();
+}
+
+Eigen::Matrix2d adjust_diagonal_covariance(const Eigen::Matrix2d& covariance, const Eigen::Matrix4f& pose, const double fixed_cov00, const double fixed_cov11) {
+  Eigen::Matrix2d cov_base_link = rotate_covariance_to_base_link(covariance, pose);
+  cov_base_link(0, 0) = std::max(cov_base_link(0, 0), fixed_cov00);
+  cov_base_link(1, 1) = std::max(cov_base_link(1, 1), fixed_cov11);
+  const Eigen::Matrix2d cov_map = rotate_covariance_to_map(cov_base_link, pose);
+  return cov_map;
+}
+
 }  // namespace pclomp

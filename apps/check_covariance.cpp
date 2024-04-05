@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
     // (2) Multi NDT
     t1 = std::chrono::system_clock::now();
     const pclomp::ResultOfMultiNdtCovarianceEstimation result_of_mndt = pclomp::estimate_xy_covariance_by_multi_ndt(ndt_result, mg_ndt_omp, poses_to_search);
-    const Eigen::Matrix2d cov_by_mndt = result_of_mndt.covariance;
+    const Eigen::Matrix2d cov_by_mndt = pclomp::adjust_diagonal_covariance(result_of_mndt.covariance, ndt_result.pose, 0.0225, 0.0225);
     t2 = std::chrono::system_clock::now();
     const auto elapsed_mndt = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000.0;
 
@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
     const double temperature = 0.1;
     t1 = std::chrono::system_clock::now();
     const pclomp::ResultOfMultiNdtCovarianceEstimation result_of_mndt_score = pclomp::estimate_xy_covariance_by_multi_ndt_score(ndt_result, mg_ndt_omp, poses_to_search, temperature);
-    const Eigen::Matrix2d cov_by_mndt_score = result_of_mndt_score.covariance;
+    const Eigen::Matrix2d cov_by_mndt_score = pclomp::adjust_diagonal_covariance(result_of_mndt_score.covariance, ndt_result.pose, 0.0225, 0.0225);
     t2 = std::chrono::system_clock::now();
     const auto elapsed_mndt_score = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000.0;
 

@@ -41,6 +41,12 @@ std::pair<Eigen::Vector2d, Eigen::Matrix2d> calculate_weighted_mean_and_cov(cons
 /** \brief Rotate covariance to base_link coordinate */
 Eigen::Matrix2d rotate_covariance_to_base_link(const Eigen::Matrix2d& covariance, const Eigen::Matrix4f& pose);
 
+/** \brief Rotate covariance to map coordinate */
+Eigen::Matrix2d rotate_covariance_to_map(const Eigen::Matrix2d& covariance, const Eigen::Matrix4f& pose);
+
+/** \brief  Adjust diagonal covariance */
+Eigen::Matrix2d adjust_diagonal_covariance(const Eigen::Matrix2d& covariance, const Eigen::Matrix4f& pose, const double fixed_cov00, const double fixed_cov11);
+
 }  // namespace pclomp
 
 #endif  // NDT_OMP__ESTIMATE_COVARIANCE_HPP_
