@@ -34,6 +34,18 @@
 #include "pcd_map_grid_manager.hpp"
 #include "timer.hpp"
 
+std::ostream& operator<<(std::ostream& ost, const Eigen::Matrix4f& pose) {
+  for(int i = 0; i < 4; i++) {
+    for(int j = 0; j < 4; j++) {
+      ost << pose(i, j);
+      if(i != 3 || j != 3) {
+        ost << ",";
+      }
+    }
+  }
+  return ost;
+}
+
 int main(int argc, char** argv) {
   if(argc != 3) {
     std::cout << "usage: ./regression_test <input_dir> <output_dir>" << std::endl;
@@ -60,30 +72,45 @@ int main(int argc, char** argv) {
   }
   const int64_t n_data = initial_pose_list.size();
 
-  // prepare ndt
-  // pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr aligner(new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
-  fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ>::Ptr aligner(new fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ>());
-  // aligner->setResolution(2.0);
-  aligner->setNumThreads(4);
-  aligner->setMaximumIterations(30);
-  aligner->setTransformationEpsilon(0.01);
-  // aligner->setStepSize(0.1);
-  // aligner->createVoxelKdtree();
-  aligner->setInputTarget(target_cloud);
+  // prepare aligner
+  pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr ndt_omp(new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
+  ndt_omp->setResolution(2.0);
+  ndt_omp->setNumThreads(4);
+  ndt_omp->setMaximumIterations(30);
+  ndt_omp->setTransformationEpsilon(0.01);
+  ndt_omp->setStepSize(0.1);
+  ndt_omp->setInputTarget(target_cloud);
+  ndt_omp->createVoxelKdtree();
 
-  // prepare map grid manager
-  MapGridManager map_grid_manager(target_cloud);
+  fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ>::Ptr fast_gicp(new fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ>());
+  fast_gicp->setNumThreads(4);
+  fast_gicp->setMaximumIterations(30);
+  fast_gicp->setTransformationEpsilon(0.01);
+  fast_gicp->setInputTarget(target_cloud);
 
-  // prepare results
-  std::vector<int> iteration_nums;
-  std::vector<double> elapsed_milliseconds;
-  std::vector<double> nvtl_scores;
-  std::vector<double> tp_scores;
-
-  std::cout << std::fixed;
-
-  constexpr int update_interval = 10;
   Timer timer;
+
+  mkdir(output_dir.c_str(), 0777);
+  std::ofstream ofs(output_dir + "/result.csv");
+  ofs << std::fixed;
+
+  const std::vector<std::string> methods = {"ndt_omp", "fast_gicp"};
+  for(const std::string& method : methods) {
+    ofs << method << "_elapsed_msec,";
+    for(int i = 0; i < 4; i++) {
+      for(int j = 0; j < 4; j++) {
+        ofs << method << "_pose" << i << j;
+        if(i != 3 || j != 3) {
+          ofs << ",";
+        }
+      }
+    }
+    if (method == methods.back()) {
+      ofs << std::endl;
+    } else {
+      ofs << ",";
+    }
+  }
 
   // execute align
   for(int64_t i = 0; i < n_data; i++) {
@@ -91,33 +118,29 @@ int main(int argc, char** argv) {
     const Eigen::Matrix4f initial_pose = initial_pose_list[i];
     const std::string& source_pcd = source_pcd_list[i];
     const pcl::PointCloud<pcl::PointXYZ>::Ptr source_cloud = load_pcd(source_pcd);
-    aligner->setInputSource(source_cloud);
+    ndt_omp->setInputSource(source_cloud);
+    fast_gicp->setInputSource(source_cloud);
 
     // align
     pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>());
+
+    // ndt_omp
     timer.start();
-    aligner->align(*aligned, initial_pose);
-    const double elapsed = timer.elapsed_milliseconds();
+    ndt_omp->align(*aligned, initial_pose);
+    const double elapsed_ndt_omp = timer.elapsed_milliseconds();
+    const pclomp::NdtResult result_ndt_omp_struct = ndt_omp->getResult();
+    const Eigen::Matrix4f result_ndt_omp = result_ndt_omp_struct.transformation_array.back();
+    ofs << elapsed_ndt_omp << "," << result_ndt_omp << ",";
 
-    // output result
-    const int iteration_num = aligner->getNrIterations();
-    const double tp = 0.0;
-    const double nvtl = aligner->getFitnessScore();
-    iteration_nums.push_back(iteration_num);
-    elapsed_milliseconds.push_back(elapsed);
-    nvtl_scores.push_back(nvtl);
-    tp_scores.push_back(tp);
-    if(i % update_interval == 0) {
-      std::cout << "source_cloud->size()=" << std::setw(4) << source_cloud->size() << ", iteration_num=" << iteration_num << ", time=" << elapsed << " [msec], nvtl=" << nvtl << ", tp = " << tp << std::endl;
-    }
-  }
+    // fast_gicp
+    timer.start();
+    fast_gicp->align(*aligned, initial_pose);
+    const double elapsed_fast_gicp = timer.elapsed_milliseconds();
+    const Eigen::Matrix4f result_fast_gicp = fast_gicp->getFinalTransformation();
+    ofs << elapsed_fast_gicp << "," << result_fast_gicp;
 
-  // output result
-  mkdir(output_dir.c_str(), 0777);
-  std::ofstream ofs(output_dir + "/result.csv");
-  ofs << "iteration_num,elapsed_milliseconds,nvtl_score,tp_score" << std::endl;
-  ofs << std::fixed;
-  for(size_t i = 0; i < elapsed_milliseconds.size(); i++) {
-    ofs << iteration_nums[i] << "," << elapsed_milliseconds[i] << "," << nvtl_scores[i] << "," << tp_scores[i] << std::endl;
+    ofs << std::endl;
+
+    std::cout << i << "\r" << std::flush;
   }
 }
