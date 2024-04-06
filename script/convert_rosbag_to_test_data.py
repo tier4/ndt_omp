@@ -10,6 +10,7 @@ import pandas as pd
 from sensor_msgs_py import point_cloud2
 import open3d as o3d
 import numpy as np
+from interpolate_pose import interpolate_pose
 
 
 def parse_args():
@@ -42,7 +43,7 @@ if __name__ == "__main__":
     }
 
     target_topics = [
-        "/localization/kinematic_state",
+        "/awsim/ground_truth/localization/kinematic_state",
         "/localization/util/downsample/pointcloud",
     ]
     storage_filter = rosbag2_py.StorageFilter(topics=target_topics)
@@ -58,7 +59,7 @@ if __name__ == "__main__":
         timestamp_header = (
             int(msg.header.stamp.sec) + int(msg.header.stamp.nanosec) * 1e-9
         )
-        if topic == "/localization/kinematic_state":
+        if topic == "/awsim/ground_truth/localization/kinematic_state":
             pose = msg.pose.pose
             twist = msg.twist.twist
             kinematic_state_list.append(
@@ -93,28 +94,30 @@ if __name__ == "__main__":
     print(f"{len(pointcloud_list)=}")
 
     df_kinematic_state = pd.DataFrame(kinematic_state_list)
+    df_pointcloud = pd.DataFrame(pointcloud_list)
+
+    min_timestamp = df_kinematic_state["timestamp"].min()
+    max_timestamp = df_kinematic_state["timestamp"].max()
+    cond = (min_timestamp <= df_pointcloud["timestamp"]) & (
+        df_pointcloud["timestamp"] <= max_timestamp
+    )
+    df_pointcloud = df_pointcloud[cond]
+
+    df_kinematic_state = interpolate_pose(
+        df_kinematic_state, df_pointcloud["timestamp"].values
+    )
+
+    df_kinematic_state = df_kinematic_state.reset_index()
+    df_pointcloud = df_pointcloud.reset_index()
+
+    assert len(df_kinematic_state) == len(df_pointcloud)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "sensor_pcd").mkdir(parents=True, exist_ok=True)
 
-    index_kinematic_state = 0
-    used_flag_kinematic_state = [False] * len(kinematic_state_list)
-
-    for i, data in enumerate(pointcloud_list):
+    for i, data in df_pointcloud.iterrows():
         timestamp = data["timestamp"]
         pointcloud = data["pointcloud"]  # sensor_msgs.msg.PointCloud2
-
-        # find nearest kinematic_state
-        while index_kinematic_state + 1 < len(kinematic_state_list):
-            if kinematic_state_list[index_kinematic_state + 1]["timestamp"] > timestamp:
-                break
-            index_kinematic_state += 1
-
-        if index_kinematic_state >= len(kinematic_state_list):
-            break
-
-        used_flag_kinematic_state[index_kinematic_state] = True
-        index_kinematic_state += 1
 
         # convert pointcloud to pcd format
         pcd = point_cloud2.read_points(pointcloud, field_names=("x", "y", "z"))
@@ -127,8 +130,6 @@ if __name__ == "__main__":
         o3d.io.write_point_cloud(str(output_path), o3d_pointcloud)
 
     # save kinematic_state
-    df_kinematic_state = df_kinematic_state[used_flag_kinematic_state]
-    df_kinematic_state.reset_index(drop=True, inplace=True)
     df_kinematic_state.to_csv(
         output_dir / "kinematic_state.csv", index=False, float_format="%.6f"
     )
