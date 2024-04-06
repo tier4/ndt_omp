@@ -107,8 +107,8 @@ if __name__ == "__main__":
         df_kinematic_state, df_pointcloud["timestamp"].values
     )
 
-    df_kinematic_state = df_kinematic_state.reset_index()
-    df_pointcloud = df_pointcloud.reset_index()
+    df_kinematic_state = df_kinematic_state.reset_index(drop=True)
+    df_pointcloud = df_pointcloud.reset_index(drop=True)
 
     assert len(df_kinematic_state) == len(df_pointcloud)
 
