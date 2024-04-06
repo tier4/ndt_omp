@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
         }
       }
     }
-    if (method == methods.back()) {
+    if(method == methods.back()) {
       ofs << std::endl;
     } else {
       ofs << ",";
