@@ -61,6 +61,7 @@ if __name__ == "__main__":
     gt_x = df_gt["pose_x"]
     gt_y = df_gt["pose_y"]
     gt_z = df_gt["pose_z"]
+    fig, axs = plt.subplots(2, 2)
     for method in methods:
         pred_x = df_result[f"{method}_pose03"]
         pred_y = df_result[f"{method}_pose13"]
@@ -68,21 +69,25 @@ if __name__ == "__main__":
         diff_x = pred_x - gt_x
         diff_y = pred_y - gt_y
         diff_z = pred_z - gt_z
-        diff = np.sqrt(diff_x ** 2 + diff_y ** 2 + diff_z ** 2)
-        plt.subplot(2, 2, 1)
-        plt.plot(diff_x, label=method)
-        plt.ylabel("x[m]")
-        plt.subplot(2, 2, 2)
-        plt.plot(diff_y, label=method)
-        plt.ylabel("y[m]")
-        plt.subplot(2, 2, 3)
-        plt.plot(diff_z, label=method)
-        plt.ylabel("z[m]")
-        plt.subplot(2, 2, 4)
-        plt.plot(diff, label=method)
-        plt.ylabel("norm[m]")
+        diff = np.sqrt(diff_x**2 + diff_y**2 + diff_z**2)
+        axs[0, 0].plot(diff_x, label=method)
+        axs[0, 0].set_ylabel("x[m]")
+        axs[0, 0].grid(True)
 
-    plt.tight_layout()
+        axs[0, 1].plot(diff_y)
+        axs[0, 1].set_ylabel("y[m]")
+        axs[0, 1].grid(True)
+
+        axs[1, 0].plot(diff_z)
+        axs[1, 0].set_ylabel("z[m]")
+        axs[1, 0].grid(True)
+
+        axs[1, 1].plot(diff)
+        axs[1, 1].set_ylabel("norm[m]")
+        axs[1, 1].grid(True)
+
+    fig.tight_layout()
+    fig.legend(loc="lower left", bbox_to_anchor=(0.4, 1.0))
     save_path = result_csv.parent / "diff_xyz.png"
     plt.savefig(save_path, bbox_inches="tight", pad_inches=0.05)
     print(f"Saved to {save_path}")
@@ -94,6 +99,7 @@ if __name__ == "__main__":
     gt_quat_y = df_gt["quat_y"]
     gt_quat_z = df_gt["quat_z"]
     gt_r = Rotation.from_quat(np.vstack([gt_quat_x, gt_quat_y, gt_quat_z, gt_quat_w]).T)
+    fig, axs = plt.subplots(2, 2)
     for method in methods:
         rotate_matrix = np.zeros((len(df_result), 3, 3))
         rotate_matrix[:, 0, 0] = df_result[f"{method}_pose00"]
@@ -108,22 +114,26 @@ if __name__ == "__main__":
         pred_r = Rotation.from_matrix(rotate_matrix)
         diff_r = gt_r.inv() * pred_r
         diff_r_euler = diff_r.as_euler("xyz", degrees=True)
-        plt.subplot(2, 2, 1)
-        plt.plot(diff_r_euler[:, 0], label=method)
-        plt.ylabel("roll[deg]")
-        plt.subplot(2, 2, 2)
-        plt.plot(diff_r_euler[:, 1], label=method)
-        plt.ylabel("pitch[deg]")
-        plt.subplot(2, 2, 3)
-        plt.plot(diff_r_euler[:, 2], label=method)
-        plt.ylabel("yaw[deg]")
-        plt.subplot(2, 2, 4)
+        axs[0, 0].plot(diff_r_euler[:, 0], label=method)
+        axs[0, 0].set_ylabel("roll[deg]")
+        axs[0, 0].grid(True)
+
+        axs[0, 1].plot(diff_r_euler[:, 1])
+        axs[0, 1].set_ylabel("pitch[deg]")
+        axs[0, 1].grid(True)
+
+        axs[1, 0].plot(diff_r_euler[:, 2])
+        axs[1, 0].set_ylabel("yaw[deg]")
+        axs[1, 0].grid(True)
+
         diff_r_norm = np.linalg.norm(diff_r.as_rotvec(), axis=1)
         diff_r_norm = np.rad2deg(diff_r_norm)
-        plt.plot(diff_r_norm, label=method)
-        plt.ylabel("norm[deg]")
+        axs[1, 1].plot(diff_r_norm)
+        axs[1, 1].set_ylabel("norm[deg]")
+        axs[1, 1].grid(True)
 
-    plt.tight_layout()
+    fig.tight_layout()
+    fig.legend(loc="lower left", bbox_to_anchor=(0.4, 1.0))
     save_path = result_csv.parent / "diff_rpy.png"
     plt.savefig(save_path, bbox_inches="tight", pad_inches=0.05)
     print(f"Saved to {save_path}")
