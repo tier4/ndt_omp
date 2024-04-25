@@ -3,23 +3,27 @@
 <package format="3">
   <name>ndt_omp</name>
   <version>0.0.0</version>
-  <description>OpenMP boosted NDT and GICP algorithms</description>
+  <description>OpenMP boosted NDT and GICP algorithms. With some modifications for Autoware</description>
 
-  <maintainer email="koide@aisl.cs.tut.ac.jp">koide</maintainer>
+  <maintainer email="yamato.ando@tier4.jp">Yamato Ando</maintainer>
+  <maintainer email="kento.yabuuchi.2@tier4.jp">Kento Yabuuchi</maintainer>
+  <maintainer email="koji.minoda@tier4.jp">Koji Minoda</maintainer>
+  <maintainer email="masahiro.sakamoto@tier4.jp">Masahiro Sakamoto</maintainer>
+  <maintainer email="anh.nguyen.2@tier4.jp">NGUYEN Viet Anh</maintainer>
+  <maintainer email="taiki.yamada@tier4.jp">Taiki Yamada</maintainer>
+  <maintainer email="shintaro.sakoda@tier4.jp">Shintaro Sakoda</maintainer>
+  <maintainer email="ryu.yamamoto@tier4.jp">Ryu Yamamoto</maintainer>
+
+  <author email="koide@aisl.cs.tut.ac.jp">koide</author>
 
   <license>BSD</license>
 
-  <buildtool_depend condition="$ROS_VERSION == 1">catkin</buildtool_depend>
-  <buildtool_depend condition="$ROS_VERSION == 2">ament_cmake_auto</buildtool_depend>
+  <buildtool_depend>ament_cmake_auto</buildtool_depend>
   <buildtool_depend>ros_environment</buildtool_depend>
 
-  <depend condition="$ROS_VERSION == 1">pcl_ros</depend>
-  <depend condition="$ROS_VERSION == 1">roscpp</depend>
-
-  <depend condition="$ROS_VERSION == 2">libpcl-all-dev</depend>
+  <depend>libpcl-all-dev</depend>
 
   <export>
-    <build_type condition="$ROS_VERSION == 1">catkin</build_type>
-    <build_type condition="$ROS_VERSION == 2">ament_cmake</build_type>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>
