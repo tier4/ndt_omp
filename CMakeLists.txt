@@ -110,3 +110,20 @@ target_link_libraries(check_covariance
   ${PCL_LIBRARIES}
   ndt_omp multigrid_ndt_omp
 )
+
+# initialpose estimation
+add_executable(initialpose_estimation
+  apps/initialpose_estimation.cpp
+  src/bbs3d/bbs3d.cpp
+  src/bbs3d/voxelmaps.cpp
+)
+add_dependencies(initialpose_estimation
+  ndt_omp multigrid_ndt_omp
+)
+include_directories(
+  ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(initialpose_estimation
+  ${PCL_LIBRARIES}
+  ndt_omp multigrid_ndt_omp
+)
