@@ -34,6 +34,7 @@
 #include "timer.hpp"
 
 #include "bbs3d/bbs3d.hpp"
+#include "bbs3d/random_search.hpp"
 
 int main(int argc, char** argv) {
   if(argc != 3) {

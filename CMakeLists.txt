@@ -60,6 +60,7 @@ ament_auto_add_library(multigrid_ndt_omp SHARED
   src/multigrid_pclomp/multi_voxel_grid_covariance_omp.cpp
   src/multigrid_pclomp/multigrid_ndt_omp.cpp
   src/estimate_covariance/estimate_covariance.cpp
+  src/bbs3d/random_search.cpp
 )
 target_link_libraries(multigrid_ndt_omp ${PCL_LIBRARIES})
 if(OpenMP_CXX_FOUND)
@@ -71,7 +72,9 @@ endif()
 ## ROS 2 multigrid ndt_omp (end) ##
 ###################################
 
-ament_auto_package()
+include_directories(
+  ${PROJECT_SOURCE_DIR}/include
+)
 
 add_executable(align
   apps/align.cpp
@@ -103,16 +106,13 @@ add_executable(check_covariance
 add_dependencies(check_covariance
   ndt_omp multigrid_ndt_omp
 )
-include_directories(
-  ${PROJECT_SOURCE_DIR}/include
-)
 target_link_libraries(check_covariance
   ${PCL_LIBRARIES}
   ndt_omp multigrid_ndt_omp
 )
 
 # initialpose estimation
-add_executable(initialpose_estimation
+ament_auto_add_executable(initialpose_estimation
   apps/initialpose_estimation.cpp
   src/bbs3d/bbs3d.cpp
   src/bbs3d/voxelmaps.cpp
@@ -120,10 +120,9 @@ add_executable(initialpose_estimation
 add_dependencies(initialpose_estimation
   ndt_omp multigrid_ndt_omp
 )
-include_directories(
-  ${PROJECT_SOURCE_DIR}/include
-)
 target_link_libraries(initialpose_estimation
   ${PCL_LIBRARIES}
   ndt_omp multigrid_ndt_omp
 )
+
+ament_auto_package()

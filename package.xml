@@ -20,6 +20,10 @@
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
   <buildtool_depend>ros_environment</buildtool_depend>
 
+  <depend>geometry_msgs</depend>
+  <depend>tf2_eigen</depend>
+  <depend>tf2_geometry_msgs</depend>
+
   <depend>libpcl-all-dev</depend>
 
   <export>
