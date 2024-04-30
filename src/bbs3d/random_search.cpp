@@ -35,13 +35,6 @@ geometry_msgs::msg::Vector3 get_rpy(const geometry_msgs::msg::Pose& pose) {
   return rpy;
 }
 
-geometry_msgs::msg::Pose matrix4f_to_pose(const Eigen::Matrix4f& eigen_pose_matrix) {
-  Eigen::Affine3d eigen_pose_affine;
-  eigen_pose_affine.matrix() = eigen_pose_matrix.cast<double>();
-  geometry_msgs::msg::Pose ros_pose = tf2::toMsg(eigen_pose_affine);
-  return ros_pose;
-}
-
 geometry_msgs::msg::PoseWithCovarianceStamped random_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov, const int64_t particles_num) {
   const geometry_msgs::msg::Vector3 base_rpy = get_rpy(initial_pose_with_cov.pose.pose);
   const Eigen::Map<const Eigen::Matrix<double, 6, 6>> covariance = {initial_pose_with_cov.pose.covariance.data(), 6, 6};

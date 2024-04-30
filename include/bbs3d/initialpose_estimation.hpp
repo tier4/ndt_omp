@@ -45,6 +45,13 @@ inline Eigen::Matrix4f pose_to_matrix4f(const geometry_msgs::msg::Pose& ros_pose
   return eigen_pose_matrix;
 }
 
+inline geometry_msgs::msg::Pose matrix4f_to_pose(const Eigen::Matrix4f& eigen_pose_matrix) {
+  Eigen::Affine3d eigen_pose_affine;
+  eigen_pose_affine.matrix() = eigen_pose_matrix.cast<double>();
+  geometry_msgs::msg::Pose ros_pose = tf2::toMsg(eigen_pose_affine);
+  return ros_pose;
+}
+
 }  // namespace initialpose_estimation
 
 #endif  // INITIAL_POSE_ESTIMATION_HPP

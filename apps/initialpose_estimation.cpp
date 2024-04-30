@@ -64,25 +64,22 @@ int main(int argc, char** argv) {
   }
   const int64_t n_data = initial_pose_list.size();
 
-  // prepare BBS3D
-  BBS3D bbs3d;
-
   // prepare ndt
-  // pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr mg_ndt_omp(new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
-  // mg_ndt_omp->setResolution(2.0);
-  // mg_ndt_omp->setNumThreads(4);
-  // mg_ndt_omp->setMaximumIterations(30);
-  // mg_ndt_omp->setTransformationEpsilon(0.0);
-  // mg_ndt_omp->createVoxelKdtree();
+  using NDT = pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>;
+  NDT::Ptr mg_ndt_omp(new NDT());
+  mg_ndt_omp->setResolution(2.0);
+  mg_ndt_omp->setNumThreads(4);
+  mg_ndt_omp->setMaximumIterations(30);
+  mg_ndt_omp->setTransformationEpsilon(0.0);
+  mg_ndt_omp->createVoxelKdtree();
 
   std::cout << std::fixed;
-
-  Timer timer;
 
   const Eigen::Matrix4f initial_pose = initial_pose_list.front();
   const std::string& source_pcd = source_pcd_list.front();
   const pcl::PointCloud<pcl::PointXYZ>::Ptr source_cloud = load_pcd(source_pcd);
   std::cout << "source_cloud->size(): " << source_cloud->size() << std::endl;
+  mg_ndt_omp->setInputSource(source_cloud);
 
   std::vector<Eigen::Vector3d> src_points;
   double max_norm = 0.0;
@@ -90,10 +87,6 @@ int main(int argc, char** argv) {
     src_points.emplace_back(point.x, point.y, point.z);
     max_norm = std::max(max_norm, src_points.back().norm());
   }
-  timer.start();
-  bbs3d.set_src_points(src_points);
-  const double milliseconds_src = timer.elapsed_milliseconds();
-  std::cout << "set_src_points: " << milliseconds_src << " ms" << std::endl;
 
   const double kSearchWidth = 10.0;
   const double cloud_width = kSearchWidth + max_norm;
@@ -111,54 +104,24 @@ int main(int argc, char** argv) {
   pass_y.setFilterLimits(initial_pose(1, 3) - cloud_width, initial_pose(1, 3) + cloud_width);
   pass_y.filter(*target_cloud);
   std::cout << "target_cloud->size(): " << target_cloud->size() << std::endl;
+  mg_ndt_omp->setInputTarget(target_cloud);
 
-  std::vector<Eigen::Vector3d> target_points;
-  for(const auto& point : target_cloud->points) {
-    target_points.emplace_back(point.x, point.y, point.z);
-  }
+  geometry_msgs::msg::PoseWithCovarianceStamped initial_pose_with_cov;
+  initial_pose_with_cov.pose.pose = initialpose_estimation::matrix4f_to_pose(initial_pose);
+  initial_pose_with_cov.pose.covariance[0] = 1.0;    // x
+  initial_pose_with_cov.pose.covariance[7] = 1.0;    // y
+  initial_pose_with_cov.pose.covariance[14] = 0.01;  // z
+  initial_pose_with_cov.pose.covariance[21] = 0.01;  // roll
+  initial_pose_with_cov.pose.covariance[28] = 0.01;  // pitch
+  initial_pose_with_cov.pose.covariance[35] = 10.0;  // yaw
 
-  const double min_level_res = 2.0;
-  const int max_level = 2;
+  Timer timer;
   timer.start();
-  bbs3d.set_tar_points(target_points, min_level_res, max_level);
-  const double milliseconds_tar = timer.elapsed_milliseconds();
-  std::cout << "set_tar_points: " << milliseconds_tar << " ms" << std::endl;
+  const geometry_msgs::msg::PoseWithCovarianceStamped result_pose = initialpose_estimation::random_search(mg_ndt_omp, initial_pose_with_cov, 200);
+  const Eigen::Matrix4f global_pose = initialpose_estimation::pose_to_matrix4f(result_pose.pose.pose);
+  const double elapsed_time = timer.elapsed_milliseconds();
+  std::cout << "elapsed_time: " << elapsed_time << " [ms]" << std::endl;
 
-  // other settings
-  bbs3d.set_score_threshold_percentage(0.1);
-  bbs3d.enable_timeout();
-
-  // set search range
-  Eigen::Vector3d min_xyz = Eigen::Vector3d::Constant(std::numeric_limits<double>::max());
-  Eigen::Vector3d max_xyz = Eigen::Vector3d::Constant(std::numeric_limits<double>::lowest());
-  for(const auto& point : target_points) {
-    min_xyz = min_xyz.cwiseMin(point);
-    max_xyz = max_xyz.cwiseMax(point);
-  }
-  std::cout << "min_xyz: " << min_xyz.transpose() << std::endl;
-  std::cout << "max_xyz: " << max_xyz.transpose() << std::endl;
-  std::cout << "gt_pose: " << initial_pose(0, 3) << " " << initial_pose(1, 3) << " " << initial_pose(2, 3) << std::endl;
-  min_xyz.x() = initial_pose(0, 3) - kSearchWidth;
-  min_xyz.y() = initial_pose(1, 3) - kSearchWidth;
-  max_xyz.x() = initial_pose(0, 3) + kSearchWidth;
-  max_xyz.y() = initial_pose(1, 3) + kSearchWidth;
-  timer.start();
-  bbs3d.set_trans_search_range(min_xyz, max_xyz);
-  const double milliseconds_set_trans_search_range = timer.elapsed_milliseconds();
-  std::cout << "set_trans_search_range: " << milliseconds_set_trans_search_range << " ms" << std::endl;
-
-  timer.start();
-  bbs3d.localize();
-  const double milliseconds_localize = timer.elapsed_milliseconds();
-  std::cout << "localize: " << milliseconds_localize << " ms" << std::endl;
-
-  const int best_score = bbs3d.get_best_score();
-  std::cout << "best_score: " << best_score << std::endl;
-  std::cout << "best_score_percentage: " << bbs3d.get_best_score_percentage() << std::endl;
-
-  const Eigen::Matrix4d global_pose = bbs3d.get_global_pose();
-
-  std::cout << std::fixed;
   std::cout << "gt_pose   = " << initial_pose(0, 3) << ", " << initial_pose(1, 3) << ", " << initial_pose(2, 3) << std::endl;
   std::cout << "pred_pose = " << global_pose(0, 3) << ", " << global_pose(1, 3) << ", " << global_pose(2, 3) << std::endl;
 }
