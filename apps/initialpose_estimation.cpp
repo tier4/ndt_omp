@@ -84,27 +84,30 @@ int main(int argc, char** argv) {
   std::cout << "source_cloud->size(): " << source_cloud->size() << std::endl;
 
   std::vector<Eigen::Vector3d> src_points;
+  double max_norm = 0.0;
   for(const auto& point : source_cloud->points) {
     src_points.emplace_back(point.x, point.y, point.z);
+    max_norm = std::max(max_norm, src_points.back().norm());
   }
   timer.start();
   bbs3d.set_src_points(src_points);
   const double milliseconds_src = timer.elapsed_milliseconds();
   std::cout << "set_src_points: " << milliseconds_src << " ms" << std::endl;
 
-  const double kSearchWidth = 100.0;
+  const double kSearchWidth = 10.0;
+  const double cloud_width = kSearchWidth + max_norm;
 
   std::cout << "target_cloud->size(): " << target_cloud->size() << std::endl;
   // filter target_cloud
   pcl::PassThrough<pcl::PointXYZ> pass_x;
   pass_x.setInputCloud(target_cloud);
   pass_x.setFilterFieldName("x");
-  pass_x.setFilterLimits(initial_pose(0, 3) - kSearchWidth, initial_pose(0, 3) + kSearchWidth);
+  pass_x.setFilterLimits(initial_pose(0, 3) - cloud_width, initial_pose(0, 3) + cloud_width);
   pass_x.filter(*target_cloud);
   pcl::PassThrough<pcl::PointXYZ> pass_y;
   pass_y.setInputCloud(target_cloud);
   pass_y.setFilterFieldName("y");
-  pass_y.setFilterLimits(initial_pose(1, 3) - kSearchWidth, initial_pose(1, 3) + kSearchWidth);
+  pass_y.setFilterLimits(initial_pose(1, 3) - cloud_width, initial_pose(1, 3) + cloud_width);
   pass_y.filter(*target_cloud);
   std::cout << "target_cloud->size(): " << target_cloud->size() << std::endl;
 
@@ -113,8 +116,8 @@ int main(int argc, char** argv) {
     target_points.emplace_back(point.x, point.y, point.z);
   }
 
-  const double min_level_res = 1.0;
-  const int max_level = 6;
+  const double min_level_res = 2.0;
+  const int max_level = 2;
   timer.start();
   bbs3d.set_tar_points(target_points, min_level_res, max_level);
   const double milliseconds_tar = timer.elapsed_milliseconds();
