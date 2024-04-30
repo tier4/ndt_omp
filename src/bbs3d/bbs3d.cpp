@@ -159,7 +159,7 @@ void BBS3D::localize() {
   int best_score = score_threshold;
   DiscreteTransformation<double> best_trans(best_score);
 
-  // Preapre initial transset
+  // Prepare initial transset
   const int max_bucket_scan_count = voxelmaps_ptr_->get_max_bucket_scan_count();
   const int max_level = voxelmaps_ptr_->get_max_level();
   std::vector<AngularInfo> ang_info_vec(max_level + 1);
