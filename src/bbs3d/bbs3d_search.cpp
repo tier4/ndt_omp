@@ -19,7 +19,7 @@
 
 namespace initialpose_estimation {
 
-geometry_msgs::msg::PoseWithCovarianceStamped bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov) {
+SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov) {
   const Eigen::Matrix4f initial_pose = pose_to_matrix4f(initial_pose_with_cov.pose.pose);
   const pcl::PointCloud<pcl::PointXYZ>::ConstPtr source_cloud = ndt_ptr->getInputSource();
   std::cout << "source_cloud->size(): " << source_cloud->size() << std::endl;

@@ -28,7 +28,7 @@ struct Particle {
   int iteration;
 };
 
-geometry_msgs::msg::PoseWithCovarianceStamped random_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov, const int64_t particles_num) {
+SearchResult random_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov, const int64_t particles_num) {
   const geometry_msgs::msg::Vector3 base_rpy = quaternion_to_rpy(initial_pose_with_cov.pose.pose.orientation);
   const Eigen::Map<const Eigen::Matrix<double, 6, 6>> covariance = {initial_pose_with_cov.pose.covariance.data(), 6, 6};
   const double stddev_x = std::sqrt(covariance(0, 0));
@@ -72,12 +72,16 @@ geometry_msgs::msg::PoseWithCovarianceStamped random_search(std::shared_ptr<Norm
 
   auto best_particle_ptr = std::max_element(std::begin(particle_array), std::end(particle_array), [](const Particle& lhs, const Particle& rhs) { return lhs.score < rhs.score; });
 
-  geometry_msgs::msg::PoseWithCovarianceStamped result_pose_with_cov_msg;
-  result_pose_with_cov_msg.header.stamp = initial_pose_with_cov.header.stamp;
-  result_pose_with_cov_msg.header.frame_id = "map";
-  result_pose_with_cov_msg.pose.pose = best_particle_ptr->result_pose;
+  SearchResult search_result;
 
-  return result_pose_with_cov_msg;
+  geometry_msgs::msg::PoseWithCovarianceStamped result_pose_with_cov_msg;
+  search_result.pose_with_cov.header.stamp = initial_pose_with_cov.header.stamp;
+  search_result.pose_with_cov.header.frame_id = "map";
+  search_result.pose_with_cov.pose.pose = best_particle_ptr->result_pose;
+
+  search_result.score = best_particle_ptr->score;
+
+  return search_result;
 }
 
 }  // namespace initialpose_estimation

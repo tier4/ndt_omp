@@ -28,9 +28,14 @@ using PointSource = pcl::PointXYZ;
 using PointTarget = pcl::PointXYZ;
 using NormalDistributionsTransform = pclomp::MultiGridNormalDistributionsTransform<PointSource, PointTarget>;
 
+struct SearchResult {
+  geometry_msgs::msg::PoseWithCovarianceStamped pose_with_cov;
+  double score;
+};
+
 // main functions
-geometry_msgs::msg::PoseWithCovarianceStamped random_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov, const int64_t particles_num);
-geometry_msgs::msg::PoseWithCovarianceStamped bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov, const int64_t particles_num);
+SearchResult random_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov, const int64_t particles_num);
+SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov, const int64_t particles_num);
 
 // utils
 inline Eigen::Affine3d pose_to_affine3d(const geometry_msgs::msg::Pose& ros_pose) {

@@ -139,11 +139,12 @@ int main(int argc, char** argv) {
         curr_initial_pose.pose.pose.orientation = initialpose_estimation::rpy_to_quaternion(curr_rpy);
 
         timer.start();
-        const geometry_msgs::msg::PoseWithCovarianceStamped result_pose = initialpose_estimation::random_search(mg_ndt_omp, base_pose, 200);
+        const initialpose_estimation::SearchResult result = initialpose_estimation::random_search(mg_ndt_omp, curr_initial_pose, 200);
         const double elapsed_time = timer.elapsed_milliseconds();
 
-        const double score = 0.0;
+        const geometry_msgs::msg::PoseWithCovarianceStamped result_pose = result.pose_with_cov;
         const geometry_msgs::msg::Vector3 result_rpy = initialpose_estimation::quaternion_to_rpy(result_pose.pose.pose.orientation);
+        const double score = result.score;
 
         ofs << count << ",";
         ofs << elapsed_time << ",";
