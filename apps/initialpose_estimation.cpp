@@ -106,7 +106,26 @@ int main(int argc, char** argv) {
 
   // other settings
   bbs3d.set_score_threshold_percentage(0.1);
-  bbs3d.set_trans_search_range(target_points);
+
+  // set search range
+  Eigen::Vector3d min_xyz = Eigen::Vector3d::Constant(std::numeric_limits<double>::max());
+  Eigen::Vector3d max_xyz = Eigen::Vector3d::Constant(std::numeric_limits<double>::lowest());
+  for(const auto& point : target_points) {
+    min_xyz = min_xyz.cwiseMin(point);
+    max_xyz = max_xyz.cwiseMax(point);
+  }
+  std::cout << "min_xyz: " << min_xyz.transpose() << std::endl;
+  std::cout << "max_xyz: " << max_xyz.transpose() << std::endl;
+  std::cout << "gt_pose: " << initial_pose(0, 3) << " " << initial_pose(1, 3) << " " << initial_pose(2, 3) << std::endl;
+  const double kSearchWidth = 100.0;
+  min_xyz.x() = initial_pose(0, 3) - kSearchWidth;
+  min_xyz.y() = initial_pose(1, 3) - kSearchWidth;
+  max_xyz.x() = initial_pose(0, 3) + kSearchWidth;
+  max_xyz.y() = initial_pose(1, 3) + kSearchWidth;
+  timer.start();
+  bbs3d.set_trans_search_range(min_xyz, max_xyz);
+  const double milliseconds_set_trans_search_range = timer.elapsed_milliseconds();
+  std::cout << "set_trans_search_range: " << milliseconds_set_trans_search_range << " ms" << std::endl;
 
   timer.start();
   bbs3d.localize();
