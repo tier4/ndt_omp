@@ -12,15 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "bbs3d/random_search.hpp"
+#include "bbs3d/initialpose_estimation.hpp"
 
 #include <geometry_msgs/msg/vector3.hpp>
-#include <tf2_eigen/tf2_eigen.hpp>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <random>
 
-namespace random_search {
+namespace initialpose_estimation {
 
 struct Particle {
   Particle(const geometry_msgs::msg::Pose& a_initial_pose, const geometry_msgs::msg::Pose& a_result_pose, const double a_score, const int a_iteration) : initial_pose(a_initial_pose), result_pose(a_result_pose), score(a_score), iteration(a_iteration) {}
@@ -35,18 +33,6 @@ geometry_msgs::msg::Vector3 get_rpy(const geometry_msgs::msg::Pose& pose) {
   tf2::Quaternion q(pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
   tf2::Matrix3x3(q).getRPY(rpy.x, rpy.y, rpy.z);
   return rpy;
-}
-
-Eigen::Affine3d pose_to_affine3d(const geometry_msgs::msg::Pose& ros_pose) {
-  Eigen::Affine3d eigen_pose;
-  tf2::fromMsg(ros_pose, eigen_pose);
-  return eigen_pose;
-}
-
-Eigen::Matrix4f pose_to_matrix4f(const geometry_msgs::msg::Pose& ros_pose) {
-  Eigen::Affine3d eigen_pose_affine = pose_to_affine3d(ros_pose);
-  Eigen::Matrix4f eigen_pose_matrix = eigen_pose_affine.matrix().cast<float>();
-  return eigen_pose_matrix;
 }
 
 geometry_msgs::msg::Pose matrix4f_to_pose(const Eigen::Matrix4f& eigen_pose_matrix) {
@@ -108,4 +94,4 @@ geometry_msgs::msg::PoseWithCovarianceStamped random_search(std::shared_ptr<Norm
   return result_pose_with_cov_msg;
 }
 
-}  // namespace random_search
+}  // namespace initialpose_estimation
