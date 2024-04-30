@@ -122,6 +122,7 @@ int main(int argc, char** argv) {
 
   // other settings
   bbs3d.set_score_threshold_percentage(0.1);
+  bbs3d.enable_timeout();
 
   // set search range
   Eigen::Vector3d min_xyz = Eigen::Vector3d::Constant(std::numeric_limits<double>::max());
@@ -149,6 +150,7 @@ int main(int argc, char** argv) {
 
   const int best_score = bbs3d.get_best_score();
   std::cout << "best_score: " << best_score << std::endl;
+  std::cout << "best_score_percentage: " << bbs3d.get_best_score_percentage() << std::endl;
 
   const Eigen::Matrix4d global_pose = bbs3d.get_global_pose();
 
