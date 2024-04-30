@@ -23,6 +23,9 @@ public:
   bool operator<(const DiscreteTransformation& rhs) const {
     return score < rhs.score;
   }
+  bool operator>(const DiscreteTransformation& rhs) const {
+    return score > rhs.score;
+  }
 
   bool is_leaf() const {
     return level == 0;
