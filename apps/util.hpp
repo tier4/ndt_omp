@@ -29,9 +29,22 @@ std::vector<std::string> glob(const std::string& input_dir) {
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr load_pcd(const std::string& path) {
   pcl::PointCloud<pcl::PointXYZ>::Ptr pcd(new pcl::PointCloud<pcl::PointXYZ>());
-  if(pcl::io::loadPCDFile(path, *pcd)) {
-    std::cerr << "failed to load " << path << std::endl;
-    std::exit(1);
+  if (std::filesystem::is_directory(path)) {
+    // load pcd files in the directory
+    const std::vector<std::string> pcd_files = glob(path);
+    for (const std::string& pcd_file : pcd_files) {
+      pcl::PointCloud<pcl::PointXYZ>::Ptr pcd_tmp(new pcl::PointCloud<pcl::PointXYZ>());
+      if(pcl::io::loadPCDFile(pcd_file, *pcd_tmp)) {
+        std::cerr << "failed to load " << pcd_file << std::endl;
+        std::exit(1);
+      }
+      *pcd += *pcd_tmp;
+    }
+  } else {
+    if(pcl::io::loadPCDFile(path, *pcd)) {
+      std::cerr << "failed to load " << path << std::endl;
+      std::exit(1);
+    }
   }
   return pcd;
 }
