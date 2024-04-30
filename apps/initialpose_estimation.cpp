@@ -21,6 +21,7 @@
 #include <pcl/registration/gicp.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/filters/passthrough.h>
 #include <omp.h>
 #include <glob.h>
 #include <filesystem>
@@ -91,7 +92,22 @@ int main(int argc, char** argv) {
   const double milliseconds_src = timer.elapsed_milliseconds();
   std::cout << "set_src_points: " << milliseconds_src << " ms" << std::endl;
 
+  const double kSearchWidth = 100.0;
+
   std::cout << "target_cloud->size(): " << target_cloud->size() << std::endl;
+  // filter target_cloud
+  pcl::PassThrough<pcl::PointXYZ> pass_x;
+  pass_x.setInputCloud(target_cloud);
+  pass_x.setFilterFieldName("x");
+  pass_x.setFilterLimits(initial_pose(0, 3) - kSearchWidth, initial_pose(0, 3) + kSearchWidth);
+  pass_x.filter(*target_cloud);
+  pcl::PassThrough<pcl::PointXYZ> pass_y;
+  pass_y.setInputCloud(target_cloud);
+  pass_y.setFilterFieldName("y");
+  pass_y.setFilterLimits(initial_pose(1, 3) - kSearchWidth, initial_pose(1, 3) + kSearchWidth);
+  pass_y.filter(*target_cloud);
+  std::cout << "target_cloud->size(): " << target_cloud->size() << std::endl;
+
   std::vector<Eigen::Vector3d> target_points;
   for(const auto& point : target_cloud->points) {
     target_points.emplace_back(point.x, point.y, point.z);
@@ -117,7 +133,6 @@ int main(int argc, char** argv) {
   std::cout << "min_xyz: " << min_xyz.transpose() << std::endl;
   std::cout << "max_xyz: " << max_xyz.transpose() << std::endl;
   std::cout << "gt_pose: " << initial_pose(0, 3) << " " << initial_pose(1, 3) << " " << initial_pose(2, 3) << std::endl;
-  const double kSearchWidth = 100.0;
   min_xyz.x() = initial_pose(0, 3) - kSearchWidth;
   min_xyz.y() = initial_pose(1, 3) - kSearchWidth;
   max_xyz.x() = initial_pose(0, 3) + kSearchWidth;
