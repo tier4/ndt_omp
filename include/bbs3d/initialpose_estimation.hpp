@@ -52,6 +52,19 @@ inline geometry_msgs::msg::Pose matrix4f_to_pose(const Eigen::Matrix4f& eigen_po
   return ros_pose;
 }
 
+inline geometry_msgs::msg::Vector3 quaternion_to_rpy(const geometry_msgs::msg::Quaternion& quat) {
+  geometry_msgs::msg::Vector3 rpy;
+  tf2::Quaternion q(quat.x, quat.y, quat.z, quat.w);
+  tf2::Matrix3x3(q).getRPY(rpy.x, rpy.y, rpy.z);
+  return rpy;
+}
+
+inline geometry_msgs::msg::Quaternion rpy_to_quaternion(const geometry_msgs::msg::Vector3& rpy) {
+  tf2::Quaternion tf_quaternion;
+  tf_quaternion.setRPY(rpy.x, rpy.y, rpy.z);
+  return tf2::toMsg(tf_quaternion);
+}
+
 }  // namespace initialpose_estimation
 
 #endif  // INITIAL_POSE_ESTIMATION_HPP

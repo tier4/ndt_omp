@@ -106,22 +106,63 @@ int main(int argc, char** argv) {
   std::cout << "target_cloud->size(): " << target_cloud->size() << std::endl;
   mg_ndt_omp->setInputTarget(target_cloud);
 
-  geometry_msgs::msg::PoseWithCovarianceStamped initial_pose_with_cov;
-  initial_pose_with_cov.pose.pose = initialpose_estimation::matrix4f_to_pose(initial_pose);
-  initial_pose_with_cov.pose.covariance[0] = 1.0;    // x
-  initial_pose_with_cov.pose.covariance[7] = 1.0;    // y
-  initial_pose_with_cov.pose.covariance[14] = 0.01;  // z
-  initial_pose_with_cov.pose.covariance[21] = 0.01;  // roll
-  initial_pose_with_cov.pose.covariance[28] = 0.01;  // pitch
-  initial_pose_with_cov.pose.covariance[35] = 10.0;  // yaw
+  geometry_msgs::msg::PoseWithCovarianceStamped base_pose;
+  base_pose.pose.pose = initialpose_estimation::matrix4f_to_pose(initial_pose);
+  base_pose.pose.covariance[0] = 1.0;    // x
+  base_pose.pose.covariance[7] = 1.0;    // y
+  base_pose.pose.covariance[14] = 0.01;  // z
+  base_pose.pose.covariance[21] = 0.01;  // roll
+  base_pose.pose.covariance[28] = 0.01;  // pitch
+  base_pose.pose.covariance[35] = 10.0;  // yaw
+  const geometry_msgs::msg::Vector3 base_rpy = initialpose_estimation::quaternion_to_rpy(base_pose.pose.pose.orientation);
 
+  std::filesystem::create_directories(output_dir);
+  std::ofstream ofs(output_dir + "/initialpose_estimation.csv");
+  ofs << std::fixed;
+  ofs << "id,time_msec,score,initial_trans_x,initial_trans_y,initial_tran_z,initial_angle_x,initial_angle_y,initial_angle_z,result_trans_x,result_trans_y,result_trans_z,result_angle_x,result_angle_y,result_angle_z" << std::endl;
+
+  const double x_unit = 1.0;
+  const double y_unit = 1.0;
+  const double yaw_unit = M_PI / 2.0;
   Timer timer;
-  timer.start();
-  const geometry_msgs::msg::PoseWithCovarianceStamped result_pose = initialpose_estimation::random_search(mg_ndt_omp, initial_pose_with_cov, 200);
-  const Eigen::Matrix4f global_pose = initialpose_estimation::pose_to_matrix4f(result_pose.pose.pose);
-  const double elapsed_time = timer.elapsed_milliseconds();
-  std::cout << "elapsed_time: " << elapsed_time << " [ms]" << std::endl;
 
-  std::cout << "gt_pose   = " << initial_pose(0, 3) << ", " << initial_pose(1, 3) << ", " << initial_pose(2, 3) << std::endl;
-  std::cout << "pred_pose = " << global_pose(0, 3) << ", " << global_pose(1, 3) << ", " << global_pose(2, 3) << std::endl;
+  int64_t count = 0;
+
+  for(int64_t x_offset = -2; x_offset <= +2; x_offset++) {
+    for(int64_t y_offset = -2; y_offset <= +2; y_offset++) {
+      for(int64_t yaw_offset = 0; yaw_offset < 4; yaw_offset++) {
+        geometry_msgs::msg::PoseWithCovarianceStamped curr_initial_pose = base_pose;
+        curr_initial_pose.pose.pose.position.x += x_offset * x_unit;
+        curr_initial_pose.pose.pose.position.y += y_offset * y_unit;
+        geometry_msgs::msg::Vector3 curr_rpy = base_rpy;
+        curr_rpy.z += yaw_offset * yaw_unit;
+        curr_initial_pose.pose.pose.orientation = initialpose_estimation::rpy_to_quaternion(curr_rpy);
+
+        timer.start();
+        const geometry_msgs::msg::PoseWithCovarianceStamped result_pose = initialpose_estimation::random_search(mg_ndt_omp, base_pose, 200);
+        const double elapsed_time = timer.elapsed_milliseconds();
+
+        const double score = 0.0;
+        const geometry_msgs::msg::Vector3 result_rpy = initialpose_estimation::quaternion_to_rpy(result_pose.pose.pose.orientation);
+
+        ofs << count << ",";
+        ofs << elapsed_time << ",";
+        ofs << score << ",";
+        ofs << curr_initial_pose.pose.pose.position.x << ",";
+        ofs << curr_initial_pose.pose.pose.position.y << ",";
+        ofs << curr_initial_pose.pose.pose.position.z << ",";
+        ofs << curr_rpy.x << ",";
+        ofs << curr_rpy.y << ",";
+        ofs << curr_rpy.z << ",";
+        ofs << result_pose.pose.pose.position.x << ",";
+        ofs << result_pose.pose.pose.position.y << ",";
+        ofs << result_pose.pose.pose.position.z << ",";
+        ofs << result_rpy.x << ",";
+        ofs << result_rpy.y << ",";
+        ofs << result_rpy.z << std::endl;
+        count++;
+        std::cout << count << "\r" << std::flush;
+      }
+    }
+  }
 }

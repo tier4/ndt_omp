@@ -28,15 +28,8 @@ struct Particle {
   int iteration;
 };
 
-geometry_msgs::msg::Vector3 get_rpy(const geometry_msgs::msg::Pose& pose) {
-  geometry_msgs::msg::Vector3 rpy;
-  tf2::Quaternion q(pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
-  tf2::Matrix3x3(q).getRPY(rpy.x, rpy.y, rpy.z);
-  return rpy;
-}
-
 geometry_msgs::msg::PoseWithCovarianceStamped random_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov, const int64_t particles_num) {
-  const geometry_msgs::msg::Vector3 base_rpy = get_rpy(initial_pose_with_cov.pose.pose);
+  const geometry_msgs::msg::Vector3 base_rpy = quaternion_to_rpy(initial_pose_with_cov.pose.pose.orientation);
   const Eigen::Map<const Eigen::Matrix<double, 6, 6>> covariance = {initial_pose_with_cov.pose.covariance.data(), 6, 6};
   const double stddev_x = std::sqrt(covariance(0, 0));
   const double stddev_y = std::sqrt(covariance(1, 1));
