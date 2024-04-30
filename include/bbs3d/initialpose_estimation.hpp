@@ -35,7 +35,7 @@ struct SearchResult {
 
 // main functions
 SearchResult random_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov, const int64_t particles_num);
-SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov, const int64_t particles_num);
+SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov);
 
 // utils
 inline Eigen::Affine3d pose_to_affine3d(const geometry_msgs::msg::Pose& ros_pose) {
