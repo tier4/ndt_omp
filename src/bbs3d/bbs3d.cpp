@@ -345,11 +345,17 @@ void BBS3D::localize_by_chokudai_search() {
     calc_score(init_transset[i], init_trans_res, rpy_res, min_rpy, top_buckets, max_bucket_scan_count, src_points_);
   }
 
-  using PQ = std::priority_queue<DiscreteTransformation<double>>;
+  using MultiSet = std::multiset<DiscreteTransformation<double>>;
 
-  std::vector<PQ> pq_vec(max_level + 1);
+  std::vector<MultiSet> pq_vec(max_level + 1);
+  const int64_t max_set_size = 1000;
 
-  pq_vec[max_level] = PQ(init_transset.begin(), init_transset.end());
+  for(const DiscreteTransformation<double>& t : init_transset) {
+    pq_vec[max_level].insert(t);
+    if(pq_vec[max_level].size() > max_set_size) {
+      pq_vec[max_level].erase(pq_vec[max_level].begin());
+    }
+  }
 
   while(true) {
     if(pq_vec[max_level].empty()) {
@@ -366,11 +372,12 @@ void BBS3D::localize_by_chokudai_search() {
         continue;
       }
 
-      DiscreteTransformation<double> trans = pq_vec[level].top();
-      pq_vec[level].pop();
+      const auto itr_back = --pq_vec[level].end();
+      DiscreteTransformation<double> trans = *itr_back;
+      pq_vec[level].erase(itr_back);
 
       if(trans.is_leaf()) {
-        if (trans.score > best_score_) {
+        if(trans.score > best_score_) {
           best_trans = trans;
           best_score_ = trans.score;
         }
@@ -390,7 +397,11 @@ void BBS3D::localize_by_chokudai_search() {
         }
 
         for(const auto& child : children) {
-          pq_vec[level - 1].push(child);
+          auto & next_set = pq_vec[child.level];
+          next_set.insert(child);
+          if(next_set.size() > max_set_size) {
+            next_set.erase(next_set.begin());
+          }
         }
       }
     }
