@@ -269,7 +269,7 @@ void BBS3D::localize_by_beam_search() {
   using PQ = std::priority_queue<DiscreteTransformation<double>, std::vector<DiscreteTransformation<double>>, std::greater<DiscreteTransformation<double>>>;
 
   PQ trans_queue(init_transset.begin(), init_transset.end());
-  while (trans_queue.size() > beam_size) {
+  while(trans_queue.size() > beam_size) {
     trans_queue.pop();
   }
 
@@ -308,6 +308,92 @@ void BBS3D::localize_by_beam_search() {
     }
 
     trans_queue = next_queue;
+  }
+
+  // Calc localization elapsed time
+  const auto end_time = std::chrono::system_clock::now();
+  elapsed_time_ = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time).count() / 1e6;
+
+  double min_res = voxelmaps_ptr_->get_min_res();
+  global_pose_ = best_trans.create_matrix(min_res, ang_info_vec[0].rpy_res, ang_info_vec[0].min_rpy);
+  has_timed_out_ = false;
+  has_localized_ = true;
+}
+
+void BBS3D::localize_by_chokudai_search() {
+  // Calc localize time limit
+  const auto start_time = std::chrono::system_clock::now();
+  const auto time_limit = start_time + timeout_duration_;
+
+  best_score_ = 0;
+  DiscreteTransformation<double> best_trans(best_score_);
+
+  // Prepare initial transset
+  const int max_bucket_scan_count = voxelmaps_ptr_->get_max_bucket_scan_count();
+  const int max_level = voxelmaps_ptr_->get_max_level();
+  std::vector<AngularInfo> ang_info_vec(max_level + 1);
+  calc_angular_info(ang_info_vec);
+  auto init_transset = create_init_transset(ang_info_vec[max_level]);
+
+  // Calc initial transset scores
+  const auto& top_buckets = voxelmaps_ptr_->multi_buckets_[max_level];
+  double init_trans_res = voxelmaps_ptr_->voxelmaps_res_[max_level];
+  const Eigen::Vector3d& rpy_res = ang_info_vec[max_level].rpy_res;
+  const Eigen::Vector3d& min_rpy = ang_info_vec[max_level].min_rpy;
+#pragma omp parallel for num_threads(num_threads_)
+  for(int i = 0; i < init_transset.size(); i++) {
+    calc_score(init_transset[i], init_trans_res, rpy_res, min_rpy, top_buckets, max_bucket_scan_count, src_points_);
+  }
+
+  using PQ = std::priority_queue<DiscreteTransformation<double>>;
+
+  std::vector<PQ> pq_vec(max_level + 1);
+
+  pq_vec[max_level] = PQ(init_transset.begin(), init_transset.end());
+
+  while(true) {
+    if(pq_vec[max_level].empty()) {
+      break;
+    }
+
+    const auto curr_time = std::chrono::system_clock::now();
+    if(curr_time > time_limit) {
+      break;
+    }
+
+    for(int64_t level = max_level; level >= 0; level--) {
+      if(pq_vec[level].empty()) {
+        continue;
+      }
+
+      DiscreteTransformation<double> trans = pq_vec[level].top();
+      pq_vec[level].pop();
+
+      if(trans.is_leaf()) {
+        if (trans.score > best_score_) {
+          best_trans = trans;
+          best_score_ = trans.score;
+        }
+      } else {
+        const int child_level = trans.level - 1;
+        const Eigen::Vector3i& num_division = ang_info_vec[child_level].num_division;
+        const Eigen::Vector3d& rpy_res = ang_info_vec[child_level].rpy_res;
+        const Eigen::Vector3d& min_rpy = ang_info_vec[child_level].min_rpy;
+        auto children = trans.branch(child_level, static_cast<int>(v_rate_), num_division);
+
+        const auto& buckets = voxelmaps_ptr_->multi_buckets_[child_level];
+        double trans_res = voxelmaps_ptr_->voxelmaps_res_[child_level];
+
+#pragma omp parallel for num_threads(num_threads_)
+        for(int i = 0; i < children.size(); i++) {
+          calc_score(children[i], trans_res, rpy_res, min_rpy, buckets, max_bucket_scan_count, src_points_);
+        }
+
+        for(const auto& child : children) {
+          pq_vec[level - 1].push(child);
+        }
+      }
+    }
   }
 
   // Calc localization elapsed time

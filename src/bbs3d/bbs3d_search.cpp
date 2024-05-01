@@ -77,7 +77,9 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
   max_xyz.y() = initial_pose(1, 3) + kSearchWidth;
   bbs3d.set_trans_search_range(min_xyz, max_xyz);
 
-  bbs3d.localize_by_beam_search();
+  bbs3d.set_timeout_duration_in_msec(1000);
+
+  bbs3d.localize_by_chokudai_search();
 
   const int best_score = bbs3d.get_best_score();
 

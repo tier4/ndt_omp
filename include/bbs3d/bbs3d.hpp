@@ -104,6 +104,8 @@ public:
 
   void localize_by_beam_search();
 
+  void localize_by_chokudai_search();
+
   // pcd iof
   bool load_voxel_params(const std::string& voxelmaps_folder_path);
 
