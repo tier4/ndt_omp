@@ -56,8 +56,8 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
     target_points.emplace_back(point.x, point.y, point.z);
   }
 
-  const double min_level_res = 1.0;
-  const int max_level = 3;
+  const double min_level_res = 0.5;
+  const int max_level = 4;
   bbs3d.set_tar_points(target_points, min_level_res, max_level);
 
   // other settings

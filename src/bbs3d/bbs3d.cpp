@@ -348,7 +348,7 @@ void BBS3D::localize_by_chokudai_search() {
   using MultiSet = std::multiset<DiscreteTransformation<double>>;
 
   std::vector<MultiSet> pq_vec(max_level + 1);
-  const int64_t max_set_size = 1000;
+  const int64_t max_set_size = 4000;
 
   for(const DiscreteTransformation<double>& t : init_transset) {
     pq_vec[max_level].insert(t);
