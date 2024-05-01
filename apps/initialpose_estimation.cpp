@@ -139,8 +139,8 @@ int main(int argc, char** argv) {
         curr_initial_pose.pose.pose.orientation = initialpose_estimation::rpy_to_quaternion(curr_rpy);
 
         timer.start();
-        const initialpose_estimation::SearchResult result = initialpose_estimation::random_search(mg_ndt_omp, curr_initial_pose, 200);
-        // const initialpose_estimation::SearchResult result = initialpose_estimation::bbs3d_search(mg_ndt_omp, curr_initial_pose);
+        // const initialpose_estimation::SearchResult result = initialpose_estimation::random_search(mg_ndt_omp, curr_initial_pose, 200);
+        const initialpose_estimation::SearchResult result = initialpose_estimation::bbs3d_search(mg_ndt_omp, curr_initial_pose);
         const double elapsed_time = timer.elapsed_milliseconds();
 
         const geometry_msgs::msg::PoseWithCovarianceStamped result_pose = result.pose_with_cov;

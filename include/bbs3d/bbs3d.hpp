@@ -102,6 +102,8 @@ public:
 
   void localize();
 
+  void localize_by_beam_search();
+
   // pcd iof
   bool load_voxel_params(const std::string& voxelmaps_folder_path);
 
