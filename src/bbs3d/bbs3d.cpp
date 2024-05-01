@@ -273,7 +273,7 @@ void BBS3D::localize_by_beam_search() {
     trans_queue.pop();
   }
 
-  for(int64_t level = 0; level <= max_level; level++) {
+  for(int64_t level = max_level; level >= 0; level--) {
     PQ next_queue;
 
     while(!trans_queue.empty()) {
