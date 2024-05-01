@@ -33,7 +33,7 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
   }
   bbs3d.set_src_points(src_points);
 
-  const double kSearchWidth = 10.0;
+  const double kSearchWidth = 5.0;
   const double cloud_width = kSearchWidth + max_norm;
 
   const pcl::PointCloud<pcl::PointXYZ>::ConstPtr target_cloud_const = ndt_ptr->getInputTarget();
@@ -61,7 +61,7 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
   bbs3d.set_tar_points(target_points, min_level_res, max_level);
 
   // other settings
-  bbs3d.set_score_threshold_percentage(0.1);
+  bbs3d.set_score_threshold_percentage(0.25);
   bbs3d.enable_timeout();
 
   // set search range
