@@ -281,8 +281,10 @@ void BBS3D::localize_by_beam_search() {
       trans_queue.pop();
 
       if(trans.is_leaf()) {
-        best_trans = trans;
-        best_score_ = trans.score;
+        if(trans.score > best_score_) {
+          best_trans = trans;
+          best_score_ = trans.score;
+        }
       } else {
         const int child_level = trans.level - 1;
         const Eigen::Vector3i& num_division = ang_info_vec[child_level].num_division;
