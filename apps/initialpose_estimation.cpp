@@ -78,32 +78,7 @@ int main(int argc, char** argv) {
   const Eigen::Matrix4f initial_pose = initial_pose_list.front();
   const std::string& source_pcd = source_pcd_list.front();
   const pcl::PointCloud<pcl::PointXYZ>::Ptr source_cloud = load_pcd(source_pcd);
-  std::cout << "source_cloud->size(): " << source_cloud->size() << std::endl;
   mg_ndt_omp->setInputSource(source_cloud);
-
-  std::vector<Eigen::Vector3d> src_points;
-  double max_norm = 0.0;
-  for(const auto& point : source_cloud->points) {
-    src_points.emplace_back(point.x, point.y, point.z);
-    max_norm = std::max(max_norm, src_points.back().norm());
-  }
-
-  const double kSearchWidth = 10.0;
-  const double cloud_width = kSearchWidth + max_norm;
-
-  std::cout << "target_cloud->size(): " << target_cloud->size() << std::endl;
-  // filter target_cloud
-  pcl::PassThrough<pcl::PointXYZ> pass_x;
-  pass_x.setInputCloud(target_cloud);
-  pass_x.setFilterFieldName("x");
-  pass_x.setFilterLimits(initial_pose(0, 3) - cloud_width, initial_pose(0, 3) + cloud_width);
-  pass_x.filter(*target_cloud);
-  pcl::PassThrough<pcl::PointXYZ> pass_y;
-  pass_y.setInputCloud(target_cloud);
-  pass_y.setFilterFieldName("y");
-  pass_y.setFilterLimits(initial_pose(1, 3) - cloud_width, initial_pose(1, 3) + cloud_width);
-  pass_y.filter(*target_cloud);
-  std::cout << "target_cloud->size(): " << target_cloud->size() << std::endl;
   mg_ndt_omp->setInputTarget(target_cloud);
 
   geometry_msgs::msg::PoseWithCovarianceStamped base_pose;
