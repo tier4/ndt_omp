@@ -28,7 +28,7 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
   const double stddev_z = std::sqrt(covariance(2, 2));
   const double stddev_roll = std::sqrt(covariance(3, 3));
   const double stddev_pitch = std::sqrt(covariance(4, 4));
-  const double coeff = 3.0;  // 3 sigma(99.73%)
+  const double coeff = 5.0;  // 5 sigma
   const double search_width_x = coeff * stddev_x;
   const double search_width_y = coeff * stddev_y;
   const double search_width_z = coeff * stddev_z;
@@ -41,10 +41,10 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
   for(const auto& point : source_cloud->points) {
     sensor_pcd_max_norm = std::max(sensor_pcd_max_norm, std::hypot(point.x, point.y, point.z));
   }
+  const double pcd_width_x = search_width_x + sensor_pcd_max_norm;
+  const double pcd_width_y = search_width_y + sensor_pcd_max_norm;
 
-  const double kSearchWidth = 5.0;
-  const double cloud_width = kSearchWidth + sensor_pcd_max_norm;
-
+  // prepare BBS3D
   BBS3D bbs3d;
 
   // set target points
@@ -53,12 +53,12 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
   pcl::PassThrough<pcl::PointXYZ> pass_x;
   pass_x.setInputCloud(target_cloud);
   pass_x.setFilterFieldName("x");
-  pass_x.setFilterLimits(initial_pose(0, 3) - cloud_width, initial_pose(0, 3) + cloud_width);
+  pass_x.setFilterLimits(initial_pose(0, 3) - pcd_width_x, initial_pose(0, 3) + pcd_width_x);
   pass_x.filter(*target_cloud);
   pcl::PassThrough<pcl::PointXYZ> pass_y;
   pass_y.setInputCloud(target_cloud);
   pass_y.setFilterFieldName("y");
-  pass_y.setFilterLimits(initial_pose(1, 3) - cloud_width, initial_pose(1, 3) + cloud_width);
+  pass_y.setFilterLimits(initial_pose(1, 3) - pcd_width_y, initial_pose(1, 3) + pcd_width_y);
   pass_y.filter(*target_cloud);
   std::vector<Eigen::Vector3d> target_points;
   for(const auto& point : target_cloud->points) {
@@ -75,10 +75,10 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
     min_xyz = min_xyz.cwiseMin(point);
     max_xyz = max_xyz.cwiseMax(point);
   }
-  min_xyz.x() = initial_pose(0, 3) - kSearchWidth;
-  min_xyz.y() = initial_pose(1, 3) - kSearchWidth;
-  max_xyz.x() = initial_pose(0, 3) + kSearchWidth;
-  max_xyz.y() = initial_pose(1, 3) + kSearchWidth;
+  min_xyz.x() = initial_pose(0, 3) - search_width_x;
+  min_xyz.y() = initial_pose(1, 3) - search_width_y;
+  max_xyz.x() = initial_pose(0, 3) + search_width_x;
+  max_xyz.y() = initial_pose(1, 3) + search_width_y;
   bbs3d.set_trans_search_range(min_xyz, max_xyz);
 
   // other settings
