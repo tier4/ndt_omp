@@ -90,7 +90,6 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
   bbs3d.set_angular_search_range(min_rpy, max_rpy);
 
   // other settings
-  bbs3d.set_score_threshold_percentage(0.25);
   bbs3d.enable_timeout();
   bbs3d.set_timeout_duration_in_msec(500);
 

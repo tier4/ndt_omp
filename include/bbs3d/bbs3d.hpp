@@ -45,10 +45,6 @@ public:
     num_threads_ = num_threads;
   }
 
-  void set_score_threshold_percentage(double percentage) {
-    score_threshold_percentage_ = percentage;
-  }
-
   void enable_timeout() {
     use_timeout_ = true;
   }
@@ -119,14 +115,12 @@ private:
   std::vector<Eigen::Vector3d> src_points_;
 
   std::unique_ptr<VoxelMaps> voxelmaps_ptr_;
-  std::string voxelmaps_folder_name_;
 
   double v_rate_;  // voxel expansion rate
   double inv_v_rate_;
   int num_threads_;
 
   int best_score_;
-  double score_threshold_percentage_;
   bool use_timeout_;
   std::chrono::milliseconds timeout_duration_;
   Eigen::Vector3d min_xyz_;

@@ -1,7 +1,7 @@
 #include <bbs3d/voxelmaps.hpp>
 #include <bbs3d/bbs3d.hpp>
 
-BBS3D::BBS3D() : v_rate_(2.0), num_threads_(4), score_threshold_percentage_(0.0), use_timeout_(false), timeout_duration_(10000), has_timed_out_(false), has_localized_(false), voxelmaps_folder_name_("voxelmaps_coords") {
+BBS3D::BBS3D() : v_rate_(2.0), num_threads_(4), use_timeout_(false), timeout_duration_(10000), has_timed_out_(false), has_localized_(false) {
   inv_v_rate_ = 1.0 / v_rate_;
   min_rpy_ << -0.02, -0.02, 0.0;
   max_rpy_ << 0.02, 0.02, 2 * M_PI;
@@ -155,7 +155,7 @@ void BBS3D::localize() {
   has_timed_out_ = false;
 
   best_score_ = 0;
-  const int score_threshold = std::floor(src_points_.size() * score_threshold_percentage_);
+  const int score_threshold = std::floor(src_points_.size());
   int best_score = score_threshold;
   DiscreteTransformation<double> best_trans(best_score);
 
