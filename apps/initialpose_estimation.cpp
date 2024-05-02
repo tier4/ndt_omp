@@ -79,6 +79,18 @@ int main(int argc, char** argv) {
   const std::string& source_pcd = source_pcd_list.front();
   const pcl::PointCloud<pcl::PointXYZ>::Ptr source_cloud = load_pcd(source_pcd);
   mg_ndt_omp->setInputSource(source_cloud);
+
+  // filter target_cloud to avoid overflow in creating voxel grid
+  pcl::PassThrough<pcl::PointXYZ> pass_x;
+  pass_x.setInputCloud(target_cloud);
+  pass_x.setFilterFieldName("x");
+  pass_x.setFilterLimits(initial_pose(0, 3) - 50, initial_pose(0, 3) + 50);
+  pass_x.filter(*target_cloud);
+  pcl::PassThrough<pcl::PointXYZ> pass_y;
+  pass_y.setInputCloud(target_cloud);
+  pass_y.setFilterFieldName("y");
+  pass_y.setFilterLimits(initial_pose(1, 3) - 50, initial_pose(1, 3) + 50);
+  pass_y.filter(*target_cloud);
   mg_ndt_omp->setInputTarget(target_cloud);
 
   const double stddev_x = 1.0;
