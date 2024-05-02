@@ -124,8 +124,7 @@ std::vector<DiscreteTransformation<double>> BBS3D::create_init_transset(const An
 void BBS3D::calc_score(DiscreteTransformation<double>& trans, const double trans_res, const Eigen::Vector3d& rpy_res, const Eigen::Vector3d& min_rpy, const std::vector<Eigen::Vector4i>& buckets, const int max_bucket_scan_count, const std::vector<Eigen::Vector3d>& points) {
   const int num_buckets = buckets.size();
   const double inv_res = 1.0 / trans_res;
-  Eigen::Transform<double, 3, Eigen::Affine> transform;
-  transform = trans.create_matrix(trans_res, rpy_res, min_rpy);
+  const Eigen::Transform<double, 3, Eigen::Affine> transform{trans.create_matrix(trans_res, rpy_res, min_rpy)};
 
   for(int i = 0; i < points.size(); i++) {
     const Eigen::Vector3d transed_point = transform * points[i];
