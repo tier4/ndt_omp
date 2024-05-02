@@ -31,7 +31,7 @@ public:
     return level == 0;
   }
 
-  Matrix4<T> create_matrix(const T trans_res, const Vector3<T>& rpy_res, const Vector3<T>& min_rpy) {
+  Matrix4<T> create_matrix(const T trans_res, const Vector3<T>& rpy_res, const Vector3<T>& min_rpy) const {
     Eigen::Translation<T, 3> translation(x * trans_res, y * trans_res, z * trans_res);
     Eigen::AngleAxis<T> rollAngle(roll * rpy_res.x() + min_rpy.x(), Vector3<T>::UnitX());
     Eigen::AngleAxis<T> pitchAngle(pitch * rpy_res.y() + min_rpy.y(), Vector3<T>::UnitY());
