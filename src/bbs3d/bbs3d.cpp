@@ -337,6 +337,13 @@ void BBS3D::localize_by_chokudai_search() {
   calc_angular_info(ang_info_vec);
   auto init_transset = create_init_transset(ang_info_vec[max_level]);
 
+  auto print_trans = [&](const DiscreteTransformation<double>& t) {
+    const int level = t.level;
+    const Eigen::Matrix4d pose = t.create_matrix(voxelmaps_ptr_->voxelmaps_res_[level], ang_info_vec[level].rpy_res, ang_info_vec[level].min_rpy);
+    const Eigen::Vector3d rpy = pose.block<3, 3>(0, 0).eulerAngles(0, 1, 2);
+    std::cout << "level=" << level << ",score=" << 1.0 * t.score / src_points_.size() << ",x=" << pose(0, 3) << ",y=" << pose(1, 3) << ",yaw=" << rpy.z() << std::endl;
+  };
+
   // Calc initial transset scores
   const auto& top_buckets = voxelmaps_ptr_->multi_buckets_[max_level];
   double init_trans_res = voxelmaps_ptr_->voxelmaps_res_[max_level];
