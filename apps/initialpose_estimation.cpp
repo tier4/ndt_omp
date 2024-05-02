@@ -81,14 +81,17 @@ int main(int argc, char** argv) {
   mg_ndt_omp->setInputSource(source_cloud);
   mg_ndt_omp->setInputTarget(target_cloud);
 
+  const double stddev_x = 1.0;
+  const double stddev_y = 1.0;
+
   geometry_msgs::msg::PoseWithCovarianceStamped base_pose;
   base_pose.pose.pose = initialpose_estimation::matrix4f_to_pose(initial_pose);
-  base_pose.pose.covariance[0] = 1.0;    // x
-  base_pose.pose.covariance[7] = 1.0;    // y
-  base_pose.pose.covariance[14] = 0.01;  // z
-  base_pose.pose.covariance[21] = 0.01;  // roll
-  base_pose.pose.covariance[28] = 0.01;  // pitch
-  base_pose.pose.covariance[35] = 10.0;  // yaw
+  base_pose.pose.covariance[0] = stddev_x * stddev_x;  // x
+  base_pose.pose.covariance[7] = stddev_y * stddev_y;  // y
+  base_pose.pose.covariance[14] = 0.01;                // z
+  base_pose.pose.covariance[21] = 0.01;                // roll
+  base_pose.pose.covariance[28] = 0.01;                // pitch
+  base_pose.pose.covariance[35] = 10.0;                // yaw
   const geometry_msgs::msg::Vector3 base_rpy = initialpose_estimation::quaternion_to_rpy(base_pose.pose.pose.orientation);
 
   std::filesystem::create_directories(output_dir);
@@ -96,9 +99,9 @@ int main(int argc, char** argv) {
   ofs << std::fixed;
   ofs << "id,time_msec,score,initial_trans_x,initial_trans_y,initial_tran_z,initial_angle_x,initial_angle_y,initial_angle_z,result_trans_x,result_trans_y,result_trans_z,result_angle_x,result_angle_y,result_angle_z" << std::endl;
 
-  const double x_unit = 1.0;
-  const double y_unit = 1.0;
-  const double yaw_unit = M_PI / 2.0;
+  const double x_unit = stddev_x / 1.0;
+  const double y_unit = stddev_y / 1.0;
+  const double yaw_unit = 2 * M_PI / 4.0;
   Timer timer;
 
   int64_t count = 0;
