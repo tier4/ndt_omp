@@ -69,16 +69,14 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
   bbs3d.set_tar_points(target_points, min_level_res, max_level);
 
   // set search range
-  Eigen::Vector3d min_xyz = Eigen::Vector3d::Constant(std::numeric_limits<double>::max());
-  Eigen::Vector3d max_xyz = Eigen::Vector3d::Constant(std::numeric_limits<double>::lowest());
-  for(const auto& point : target_points) {
-    min_xyz = min_xyz.cwiseMin(point);
-    max_xyz = max_xyz.cwiseMax(point);
-  }
+  Eigen::Vector3d min_xyz;
   min_xyz.x() = initial_pose(0, 3) - search_width_x;
   min_xyz.y() = initial_pose(1, 3) - search_width_y;
+  min_xyz.z() = initial_pose(2, 3) - search_width_z;
+  Eigen::Vector3d max_xyz;
   max_xyz.x() = initial_pose(0, 3) + search_width_x;
   max_xyz.y() = initial_pose(1, 3) + search_width_y;
+  max_xyz.z() = initial_pose(2, 3) + search_width_z;
   bbs3d.set_trans_search_range(min_xyz, max_xyz);
 
   // other settings
