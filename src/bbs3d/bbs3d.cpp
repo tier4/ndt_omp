@@ -356,18 +356,14 @@ void BBS3D::localize_by_chokudai_search() {
 
   using MultiSet = std::multiset<DiscreteTransformation<double>>;
 
-  std::vector<MultiSet> pq_vec(max_level + 1);
+  std::vector<MultiSet> mset_vec(max_level);
   const int64_t max_set_size = 4000;
 
-  for(const DiscreteTransformation<double>& t : init_transset) {
-    pq_vec[max_level].insert(t);
-    if(pq_vec[max_level].size() > max_set_size) {
-      pq_vec[max_level].erase(pq_vec[max_level].begin());
-    }
-  }
+  // only for max level, use vector instead of multiset
+  std::sort(init_transset.begin(), init_transset.end());
 
   while(true) {
-    if(pq_vec[max_level].empty()) {
+    if(init_transset.empty()) {
       break;
     }
 
@@ -377,13 +373,18 @@ void BBS3D::localize_by_chokudai_search() {
     }
 
     for(int64_t level = max_level; level >= 0; level--) {
-      if(pq_vec[level].empty()) {
-        continue;
+      DiscreteTransformation<double> trans;
+      if (level == max_level) {
+        trans = init_transset.back();
+        init_transset.pop_back();
+      } else {
+        if(mset_vec[level].empty()) {
+          continue;
+        }
+        const auto itr_back = --mset_vec[level].end();
+        trans = *itr_back;
+        mset_vec[level].erase(itr_back);
       }
-
-      const auto itr_back = --pq_vec[level].end();
-      DiscreteTransformation<double> trans = *itr_back;
-      pq_vec[level].erase(itr_back);
 
       if(trans.is_leaf()) {
         if(trans.score > best_score_) {
@@ -406,7 +407,7 @@ void BBS3D::localize_by_chokudai_search() {
         }
 
         for(const auto& child : children) {
-          auto& next_set = pq_vec[child.level];
+          auto& next_set = mset_vec[child.level];
           next_set.insert(child);
           if(next_set.size() > max_set_size) {
             next_set.erase(next_set.begin());
