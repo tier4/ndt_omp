@@ -104,7 +104,6 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
 
     // search
     bbs3d.localize_by_chokudai_search();
-    const int best_score = bbs3d.get_best_score();
     const Eigen::Matrix4d global_pose = bbs3d.get_global_pose();
 
     // align

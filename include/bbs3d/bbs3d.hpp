@@ -63,8 +63,6 @@ public:
     return src_points_;
   }
 
-  bool set_voxelmaps_coords(const std::string& folder_path);
-
   std::pair<Eigen::Vector3d, Eigen::Vector3d> get_trans_search_range() const {
     return std::pair<Eigen::Vector3d, Eigen::Vector3d>{min_xyz_, max_xyz_};
   }
@@ -105,15 +103,6 @@ public:
   void localize_by_beam_search();
 
   void localize_by_chokudai_search();
-
-  // pcd iof
-  bool load_voxel_params(const std::string& voxelmaps_folder_path);
-
-  bool set_multi_buckets(const std::string& folder_path);
-
-  bool save_voxelmaps_pcd(const std::string& folder_path);
-
-  bool save_voxel_params(const std::string& folder_path);
 
 private:
   void calc_angular_info(std::vector<AngularInfo>& ang_info_vec);
