@@ -20,9 +20,23 @@
 namespace initialpose_estimation {
 
 SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov) {
+  // get pose information
   const Eigen::Matrix4f initial_pose = pose_to_matrix4f(initial_pose_with_cov.pose.pose);
-  const pcl::PointCloud<pcl::PointXYZ>::ConstPtr source_cloud = ndt_ptr->getInputSource();
+  const Eigen::Map<const Eigen::Matrix<double, 6, 6>> covariance = {initial_pose_with_cov.pose.covariance.data(), 6, 6};
+  const double stddev_x = std::sqrt(covariance(0, 0));
+  const double stddev_y = std::sqrt(covariance(1, 1));
+  const double stddev_z = std::sqrt(covariance(2, 2));
+  const double stddev_roll = std::sqrt(covariance(3, 3));
+  const double stddev_pitch = std::sqrt(covariance(4, 4));
+  const double coeff = 3.0;  // 3 sigma(99.73%)
+  const double search_width_x = coeff * stddev_x;
+  const double search_width_y = coeff * stddev_y;
+  const double search_width_z = coeff * stddev_z;
+  const double search_width_roll = coeff * stddev_roll;
+  const double search_width_pitch = coeff * stddev_pitch;
 
+  // calc norm of sensor pcd
+  const pcl::PointCloud<pcl::PointXYZ>::ConstPtr source_cloud = ndt_ptr->getInputSource();
   float sensor_pcd_max_norm = 0.0;
   for(const auto& point : source_cloud->points) {
     sensor_pcd_max_norm = std::max(sensor_pcd_max_norm, std::hypot(point.x, point.y, point.z));
