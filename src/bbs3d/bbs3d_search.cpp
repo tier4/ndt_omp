@@ -27,7 +27,12 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
 
   std::vector<Eigen::Vector3d> src_points;
   double max_norm = 0.0;
+  const double kLimitNorm = 20.0;
   for(const auto& point : source_cloud->points) {
+    const double norm = std::hypot(point.x, point.y, point.z);
+    if(norm > kLimitNorm) {
+      continue;
+    }
     src_points.emplace_back(point.x, point.y, point.z);
     max_norm = std::max(max_norm, src_points.back().norm());
   }
