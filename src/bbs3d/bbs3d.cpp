@@ -399,7 +399,7 @@ void BBS3D::localize_by_chokudai_search() {
         }
 
         for(const auto& child : children) {
-          auto & next_set = pq_vec[child.level];
+          auto& next_set = pq_vec[child.level];
           next_set.insert(child);
           if(next_set.size() > max_set_size) {
             next_set.erase(next_set.begin());
