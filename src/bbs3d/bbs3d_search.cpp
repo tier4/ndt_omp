@@ -28,7 +28,7 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
   const double stddev_z = std::sqrt(covariance(2, 2));
   const double stddev_roll = std::sqrt(covariance(3, 3));
   const double stddev_pitch = std::sqrt(covariance(4, 4));
-  const double coeff = 5.0;  // 5 sigma
+  const double coeff = 4.0;  // 4 sigma (99.9936%)
   const double search_width_x = coeff * stddev_x;
   const double search_width_y = coeff * stddev_y;
   const double search_width_z = coeff * stddev_z;
@@ -84,7 +84,7 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
   // other settings
   bbs3d.set_score_threshold_percentage(0.25);
   bbs3d.enable_timeout();
-  bbs3d.set_timeout_duration_in_msec(1000);
+  bbs3d.set_timeout_duration_in_msec(500);
 
   SearchResult result;
   result.score = 0.0;
