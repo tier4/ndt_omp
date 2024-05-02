@@ -78,6 +78,16 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
   max_xyz.y() = initial_pose(1, 3) + search_width_y;
   max_xyz.z() = initial_pose(2, 3) + search_width_z;
   bbs3d.set_trans_search_range(min_xyz, max_xyz);
+  const Eigen::Vector3f base_rpy = initial_pose.block<3, 3>(0, 0).eulerAngles(0, 1, 2);
+  Eigen::Vector3d min_rpy;
+  min_rpy.x() = base_rpy.x() - search_width_roll;
+  min_rpy.y() = base_rpy.y() - search_width_pitch;
+  min_rpy.z() = -M_PI;
+  Eigen::Vector3d max_rpy;
+  max_rpy.x() = base_rpy.x() + search_width_roll;
+  max_rpy.y() = base_rpy.y() + search_width_pitch;
+  max_rpy.z() = M_PI;
+  bbs3d.set_angular_search_range(min_rpy, max_rpy);
 
   // other settings
   bbs3d.set_score_threshold_percentage(0.25);
