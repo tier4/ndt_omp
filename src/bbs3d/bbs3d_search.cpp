@@ -23,13 +23,13 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
   const Eigen::Matrix4f initial_pose = pose_to_matrix4f(initial_pose_with_cov.pose.pose);
   const pcl::PointCloud<pcl::PointXYZ>::ConstPtr source_cloud = ndt_ptr->getInputSource();
 
-  float max_norm = 0.0;
+  float sensor_pcd_max_norm = 0.0;
   for(const auto& point : source_cloud->points) {
-    max_norm = std::max(max_norm, std::hypot(point.x, point.y, point.z));
+    sensor_pcd_max_norm = std::max(sensor_pcd_max_norm, std::hypot(point.x, point.y, point.z));
   }
 
   const double kSearchWidth = 5.0;
-  const double cloud_width = kSearchWidth + max_norm;
+  const double cloud_width = kSearchWidth + sensor_pcd_max_norm;
 
   BBS3D bbs3d;
 
@@ -77,7 +77,7 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
 
   for(const double div : {1.0, 2.0, 4.0}) {
     // set curr src points
-    const double limit_norm = max_norm / div;
+    const double limit_norm = sensor_pcd_max_norm / div;
     std::vector<Eigen::Vector3d> src_points;
     for(const auto& point : source_cloud->points) {
       const double norm = std::hypot(point.x, point.y, point.z);
