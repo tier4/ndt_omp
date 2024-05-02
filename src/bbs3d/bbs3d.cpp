@@ -372,9 +372,9 @@ void BBS3D::localize_by_chokudai_search() {
       break;
     }
 
-    for(int64_t level = max_level; level >= 0; level--) {
+    for(int64_t level = max_level; level > 0; level--) {
       DiscreteTransformation<double> trans;
-      if (level == max_level) {
+      if(level == max_level) {
         trans = init_transset.back();
         init_transset.pop_back();
       } else {
@@ -386,27 +386,29 @@ void BBS3D::localize_by_chokudai_search() {
         mset_vec[level].erase(itr_back);
       }
 
-      if(trans.is_leaf()) {
-        if(trans.score > best_score_) {
-          best_trans = trans;
-          best_score_ = trans.score;
-        }
-      } else {
-        const int child_level = trans.level - 1;
-        const Eigen::Vector3i& num_division = ang_info_vec[child_level].num_division;
-        const Eigen::Vector3d& rpy_res = ang_info_vec[child_level].rpy_res;
-        const Eigen::Vector3d& min_rpy = ang_info_vec[child_level].min_rpy;
-        auto children = trans.branch(child_level, static_cast<int>(v_rate_), num_division);
+      const int child_level = trans.level - 1;
+      const Eigen::Vector3i& num_division = ang_info_vec[child_level].num_division;
+      const Eigen::Vector3d& rpy_res = ang_info_vec[child_level].rpy_res;
+      const Eigen::Vector3d& min_rpy = ang_info_vec[child_level].min_rpy;
+      auto children = trans.branch(child_level, static_cast<int>(v_rate_), num_division);
 
-        const auto& buckets = voxelmaps_ptr_->multi_buckets_[child_level];
-        double trans_res = voxelmaps_ptr_->voxelmaps_res_[child_level];
+      const auto& buckets = voxelmaps_ptr_->multi_buckets_[child_level];
+      double trans_res = voxelmaps_ptr_->voxelmaps_res_[child_level];
 
 #pragma omp parallel for num_threads(num_threads_)
-        for(int i = 0; i < children.size(); i++) {
-          calc_score(children[i], trans_res, rpy_res, min_rpy, buckets, max_bucket_scan_count, src_points_);
-        }
+      for(int i = 0; i < children.size(); i++) {
+        calc_score(children[i], trans_res, rpy_res, min_rpy, buckets, max_bucket_scan_count, src_points_);
+      }
 
-        for(const auto& child : children) {
+      for(const auto& child : children) {
+        if(child.is_leaf()) {
+          // check and update best
+          if(child.score > best_score_) {
+            best_score_ = child.score;
+            best_trans = child;
+          }
+        } else {
+          // insert to next level set
           auto& next_set = mset_vec[child.level];
           next_set.insert(child);
           if(next_set.size() > max_set_size) {
