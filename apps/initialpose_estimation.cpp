@@ -84,12 +84,12 @@ int main(int argc, char** argv) {
   pcl::PassThrough<pcl::PointXYZ> pass_x;
   pass_x.setInputCloud(target_cloud);
   pass_x.setFilterFieldName("x");
-  pass_x.setFilterLimits(initial_pose(0, 3) - 150, initial_pose(0, 3) + 150);
+  pass_x.setFilterLimits(initial_pose(0, 3) - 200, initial_pose(0, 3) + 200);
   pass_x.filter(*target_cloud);
   pcl::PassThrough<pcl::PointXYZ> pass_y;
   pass_y.setInputCloud(target_cloud);
   pass_y.setFilterFieldName("y");
-  pass_y.setFilterLimits(initial_pose(1, 3) - 150, initial_pose(1, 3) + 150);
+  pass_y.setFilterLimits(initial_pose(1, 3) - 200, initial_pose(1, 3) + 200);
   pass_y.filter(*target_cloud);
   mg_ndt_omp->setInputTarget(target_cloud);
 
