@@ -321,7 +321,7 @@ void BBS3D::localize_by_beam_search() {
   has_localized_ = true;
 }
 
-void BBS3D::localize_by_chokudai_search() {
+void BBS3D::localize_by_chokudai_search(std::function<bool(Eigen::Matrix4f)> judge_func) {
   // Calc localize time limit
   const auto start_time = std::chrono::system_clock::now();
   const auto time_limit = start_time + timeout_duration_;
@@ -361,14 +361,26 @@ void BBS3D::localize_by_chokudai_search() {
   // only for max level, use vector instead of multiset
   std::sort(init_transset.begin(), init_transset.end());
 
+  int64_t counter = 0;
+
   while(true) {
     if(init_transset.empty()) {
       break;
     }
 
-    const auto curr_time = std::chrono::system_clock::now();
-    if(curr_time > time_limit) {
-      break;
+    if(counter % 10 == 0 && mset_vec[0].size() > 0) {
+      auto itr = --mset_vec[0].end();
+      DiscreteTransformation<double> best_trans = *itr;
+
+      best_score_ = best_trans.score;
+      double min_res = voxelmaps_ptr_->get_min_res();
+      global_pose_ = best_trans.create_matrix(min_res, ang_info_vec[0].rpy_res, ang_info_vec[0].min_rpy);
+      const bool result = judge_func(global_pose_.cast<float>());
+      if(result) {
+        return;
+      }
+
+      mset_vec[0].erase(itr);
     }
 
     for(int64_t level = max_level; level > 0; level--) {
@@ -400,22 +412,16 @@ void BBS3D::localize_by_chokudai_search() {
       }
 
       for(const auto& child : children) {
-        if(child.is_leaf()) {
-          // check and update best
-          if(child.score > best_score_) {
-            best_score_ = child.score;
-            best_trans = child;
-          }
-        } else {
-          // insert to next level set
-          auto& next_set = mset_vec[child.level];
-          next_set.insert(child);
-          if(next_set.size() > max_set_size) {
-            next_set.erase(next_set.begin());
-          }
+        // insert to next level set
+        auto& next_set = mset_vec[child.level];
+        next_set.insert(child);
+        if(next_set.size() > max_set_size) {
+          next_set.erase(next_set.begin());
         }
       }
     }
+
+    counter++;
   }
 
   // Calc localization elapsed time

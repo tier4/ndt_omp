@@ -8,6 +8,8 @@
 #include <chrono>
 #include <Eigen/Dense>
 
+#include <functional>
+
 #include "discrete_transformation.hpp"
 
 class VoxelMaps;
@@ -98,7 +100,7 @@ public:
 
   void localize_by_beam_search();
 
-  void localize_by_chokudai_search();
+  void localize_by_chokudai_search(std::function<bool(Eigen::Matrix4f)> judge_func);
 
 private:
   void calc_angular_info(std::vector<AngularInfo>& ang_info_vec);

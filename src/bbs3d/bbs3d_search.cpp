@@ -91,7 +91,7 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
 
   // other settings
   bbs3d.enable_timeout();
-  bbs3d.set_timeout_duration_in_msec(250);
+  bbs3d.set_timeout_duration_in_msec(250000);
 
   SearchResult result;
   result.score = 0.0;
@@ -110,7 +110,12 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
     bbs3d.set_src_points(src_points);
 
     // search
-    bbs3d.localize_by_chokudai_search();
+    bbs3d.localize_by_chokudai_search([&](Eigen::Matrix4f global_pose) {
+      ndt_ptr->align(*target_cloud, global_pose.cast<float>());
+      const pclomp::NdtResult ndt_result = ndt_ptr->getResult();
+      const Eigen::Matrix4f ndt_result_pose = ndt_result.pose;
+      return ndt_result.nearest_voxel_transformation_likelihood >= 2.3;
+    });
     const Eigen::Matrix4d global_pose = bbs3d.get_global_pose();
 
     // align
