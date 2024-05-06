@@ -66,7 +66,7 @@ SearchResult random_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr
     ndt_ptr->align(*output_cloud, initial_pose_matrix);
     const pclomp::NdtResult ndt_result = ndt_ptr->getResult();
 
-    Particle particle(initial_pose, matrix4f_to_pose(ndt_result.pose), ndt_result.transform_probability, ndt_result.iteration_num);
+    Particle particle(initial_pose, matrix4f_to_pose(ndt_result.pose), ndt_result.nearest_voxel_transformation_likelihood, ndt_result.iteration_num);
     particle_array.push_back(particle);
   }
 
