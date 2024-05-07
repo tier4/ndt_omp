@@ -28,7 +28,10 @@ struct Particle {
   int iteration;
 };
 
-SearchResult random_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov, const int64_t particles_num) {
+SearchResult random_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov, const int64_t limit_msec) {
+  Timer timer;
+  timer.start();
+
   const geometry_msgs::msg::Vector3 base_rpy = quaternion_to_rpy(initial_pose_with_cov.pose.pose.orientation);
   const Eigen::Map<const Eigen::Matrix<double, 6, 6>> covariance = {initial_pose_with_cov.pose.covariance.data(), 6, 6};
   const double stddev_x = std::sqrt(covariance(0, 0));
@@ -49,7 +52,7 @@ SearchResult random_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr
   std::normal_distribution<double> normal_ap(base_rpy.y, stddev_pitch);
   std::uniform_real_distribution<double> uniform_ar(-M_PI, M_PI);
 
-  for(int64_t i = 0; i < particles_num; i++) {
+  for(int64_t i = 0; timer.elapsed_milli_seconds() < limit_msec; i++) {
     geometry_msgs::msg::Pose initial_pose;
     initial_pose.position.x = normal_tx(engine);
     initial_pose.position.y = normal_ty(engine);

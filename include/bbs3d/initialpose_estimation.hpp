@@ -33,9 +33,24 @@ struct SearchResult {
   double score;
 };
 
+class Timer {
+public:
+  void start() {
+    start_time_ = std::chrono::steady_clock::now();
+  }
+
+  int64_t elapsed_milli_seconds() const {
+    auto elapsed = std::chrono::steady_clock::now() - start_time_;
+    return std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+  }
+
+private:
+  std::chrono::steady_clock::time_point start_time_;
+};
+
 // main functions
-SearchResult random_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov, const int64_t particles_num);
-SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov);
+SearchResult random_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov, const int64_t limit_msec);
+SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov, const int64_t limit_msec);
 
 // utils
 inline Eigen::Affine3d pose_to_affine3d(const geometry_msgs::msg::Pose& ros_pose) {

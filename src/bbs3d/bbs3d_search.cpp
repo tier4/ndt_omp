@@ -19,7 +19,7 @@
 
 namespace initialpose_estimation {
 
-SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov) {
+SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, const geometry_msgs::msg::PoseWithCovarianceStamped& initial_pose_with_cov, const int64_t limit_msec) {
   // get pose information
   const Eigen::Matrix4f initial_pose = pose_to_matrix4f(initial_pose_with_cov.pose.pose);
   const Eigen::Map<const Eigen::Matrix<double, 6, 6>> covariance = {initial_pose_with_cov.pose.covariance.data(), 6, 6};
@@ -91,12 +91,12 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
 
   // other settings
   bbs3d.enable_timeout();
-  bbs3d.set_timeout_duration_in_msec(250000);
+  bbs3d.set_timeout_duration_in_msec(limit_msec);
 
   SearchResult result;
   result.score = 0.0;
 
-  for(const double div : {1.0, 2.0, 4.0}) {
+  for(const double div : {1.0}) {
     // set curr src points
     const double limit_norm = sensor_pcd_max_norm / div;
     std::vector<Eigen::Vector3d> src_points;
