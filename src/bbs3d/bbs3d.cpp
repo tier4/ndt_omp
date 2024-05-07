@@ -408,7 +408,7 @@ void BBS3D::localize_by_chokudai_search(std::function<double(Eigen::Matrix4f)> s
 
     counter++;
 
-    if(counter % 100 == 0) {
+    if(counter % 200 == 0) {
       auto itr = --mset_vec[0].end();
       DiscreteTransformation<double> curr_trans = *itr;
       const double min_res = voxelmaps_ptr_->get_min_res();

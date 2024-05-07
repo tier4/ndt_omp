@@ -91,12 +91,12 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
 
   // other settings
   bbs3d.enable_timeout();
-  bbs3d.set_timeout_duration_in_msec(limit_msec);
+  bbs3d.set_timeout_duration_in_msec(limit_msec / 2);
 
   SearchResult result;
   result.score = 0.0;
 
-  for(const double div : {1.0}) {
+  for(const double div : {1.0, 2.0}) {
     // set curr src points
     const double limit_norm = sensor_pcd_max_norm / div;
     std::vector<Eigen::Vector3d> src_points;
