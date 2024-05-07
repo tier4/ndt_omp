@@ -406,22 +406,24 @@ void BBS3D::localize_by_chokudai_search(std::function<double(Eigen::Matrix4f)> s
       }
     }
 
-    auto itr = --mset_vec[0].end();
-    DiscreteTransformation<double> curr_trans = *itr;
-    const double min_res = voxelmaps_ptr_->get_min_res();
-    const Eigen::Matrix4d curr_pose = curr_trans.create_matrix(min_res, ang_info_vec[0].rpy_res, ang_info_vec[0].min_rpy);
-    const double curr_score = score_func(curr_pose.cast<float>());
-    if(curr_score > best_score_) {
-      best_score_ = curr_score;
-      best_trans = curr_trans;
-      global_pose_ = curr_pose;
-    }
-    mset_vec[0].erase(itr);
-
     counter++;
 
-    if(std::chrono::system_clock::now() > time_limit) {
-      break;
+    if(counter % 100 == 0) {
+      auto itr = --mset_vec[0].end();
+      DiscreteTransformation<double> curr_trans = *itr;
+      const double min_res = voxelmaps_ptr_->get_min_res();
+      const Eigen::Matrix4d curr_pose = curr_trans.create_matrix(min_res, ang_info_vec[0].rpy_res, ang_info_vec[0].min_rpy);
+      const double curr_score = score_func(curr_pose.cast<float>());
+      if(curr_score > best_score_) {
+        best_score_ = curr_score;
+        best_trans = curr_trans;
+        global_pose_ = curr_pose;
+      }
+      mset_vec[0].erase(itr);
+
+      if(std::chrono::system_clock::now() > time_limit) {
+        break;
+      }
     }
   }
 
