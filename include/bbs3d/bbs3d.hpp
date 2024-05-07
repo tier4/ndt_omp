@@ -100,7 +100,7 @@ public:
 
   void localize_by_beam_search();
 
-  void localize_by_chokudai_search(std::function<bool(Eigen::Matrix4f)> judge_func);
+  void localize_by_chokudai_search(std::function<double(Eigen::Matrix4f)> score_func);
 
 private:
   void calc_angular_info(std::vector<AngularInfo>& ang_info_vec);

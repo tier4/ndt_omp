@@ -114,7 +114,7 @@ SearchResult bbs3d_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr,
       ndt_ptr->align(*target_cloud, global_pose.cast<float>());
       const pclomp::NdtResult ndt_result = ndt_ptr->getResult();
       const Eigen::Matrix4f ndt_result_pose = ndt_result.pose;
-      return ndt_result.nearest_voxel_transformation_likelihood >= 2.3;
+      return ndt_result.nearest_voxel_transformation_likelihood;
     });
     const Eigen::Matrix4d global_pose = bbs3d.get_global_pose();
 

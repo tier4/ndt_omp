@@ -321,7 +321,7 @@ void BBS3D::localize_by_beam_search() {
   has_localized_ = true;
 }
 
-void BBS3D::localize_by_chokudai_search(std::function<bool(Eigen::Matrix4f)> judge_func) {
+void BBS3D::localize_by_chokudai_search(std::function<double(Eigen::Matrix4f)> score_func) {
   // Calc localize time limit
   const auto start_time = std::chrono::system_clock::now();
   const auto time_limit = start_time + timeout_duration_;
@@ -368,21 +368,6 @@ void BBS3D::localize_by_chokudai_search(std::function<bool(Eigen::Matrix4f)> jud
       break;
     }
 
-    if(counter % 10 == 0 && mset_vec[0].size() > 0) {
-      auto itr = --mset_vec[0].end();
-      DiscreteTransformation<double> best_trans = *itr;
-
-      best_score_ = best_trans.score;
-      double min_res = voxelmaps_ptr_->get_min_res();
-      global_pose_ = best_trans.create_matrix(min_res, ang_info_vec[0].rpy_res, ang_info_vec[0].min_rpy);
-      const bool result = judge_func(global_pose_.cast<float>());
-      if(result) {
-        return;
-      }
-
-      mset_vec[0].erase(itr);
-    }
-
     for(int64_t level = max_level; level > 0; level--) {
       DiscreteTransformation<double> trans;
       if(level == max_level) {
@@ -421,7 +406,23 @@ void BBS3D::localize_by_chokudai_search(std::function<bool(Eigen::Matrix4f)> jud
       }
     }
 
+    auto itr = --mset_vec[0].end();
+    DiscreteTransformation<double> curr_trans = *itr;
+    const double min_res = voxelmaps_ptr_->get_min_res();
+    const Eigen::Matrix4d curr_pose = curr_trans.create_matrix(min_res, ang_info_vec[0].rpy_res, ang_info_vec[0].min_rpy);
+    const double curr_score = score_func(curr_pose.cast<float>());
+    if(curr_score > best_score_) {
+      best_score_ = curr_score;
+      best_trans = curr_trans;
+      global_pose_ = curr_pose;
+    }
+    mset_vec[0].erase(itr);
+
     counter++;
+
+    if(std::chrono::system_clock::now() > time_limit) {
+      break;
+    }
   }
 
   // Calc localization elapsed time
