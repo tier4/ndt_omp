@@ -60,6 +60,7 @@ ament_auto_add_library(multigrid_ndt_omp SHARED
   src/multigrid_pclomp/multi_voxel_grid_covariance_omp.cpp
   src/multigrid_pclomp/multigrid_ndt_omp.cpp
   src/estimate_covariance/estimate_covariance.cpp
+  src/particle_filter/particle_filter.cpp
 )
 target_link_libraries(multigrid_ndt_omp ${PCL_LIBRARIES})
 if(OpenMP_CXX_FOUND)
@@ -107,6 +108,21 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/include
 )
 target_link_libraries(check_covariance
+  ${PCL_LIBRARIES}
+  ndt_omp multigrid_ndt_omp
+)
+
+# exec_particle_filter
+add_executable(exec_particle_filter
+  apps/exec_particle_filter.cpp
+)
+add_dependencies(exec_particle_filter
+  ndt_omp multigrid_ndt_omp
+)
+include_directories(
+  ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(exec_particle_filter
   ${PCL_LIBRARIES}
   ndt_omp multigrid_ndt_omp
 )
