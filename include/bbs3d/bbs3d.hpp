@@ -38,10 +38,6 @@ public:
     max_rpy_ = max_rpy;
   }
 
-  void set_voxel_expantion_rate(const double rate) {
-    v_rate_ = rate;
-  }
-
   void set_num_threads(const int num_threads) {
     num_threads_ = num_threads;
   }
@@ -117,7 +113,7 @@ private:
 
   std::unique_ptr<VoxelMaps> voxelmaps_ptr_;
 
-  double v_rate_;  // voxel expansion rate
+  const int v_rate_ = 2;  // voxel expansion rate
   int num_threads_;
 
   int best_score_;

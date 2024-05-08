@@ -1,7 +1,7 @@
 #include <bbs3d/voxelmaps.hpp>
 #include <bbs3d/bbs3d.hpp>
 
-BBS3D::BBS3D() : v_rate_(2.0), num_threads_(4), use_timeout_(false), timeout_duration_(10000), has_timed_out_(false), has_localized_(false) {
+BBS3D::BBS3D() : num_threads_(4), use_timeout_(false), timeout_duration_(10000), has_timed_out_(false), has_localized_(false) {
   min_rpy_ << -0.02, -0.02, 0.0;
   max_rpy_ << 0.02, 0.02, 2 * M_PI;
 }
@@ -199,7 +199,7 @@ void BBS3D::localize() {
       const Eigen::Vector3i& num_division = ang_info_vec[child_level].num_division;
       const Eigen::Vector3d& rpy_res = ang_info_vec[child_level].rpy_res;
       const Eigen::Vector3d& min_rpy = ang_info_vec[child_level].min_rpy;
-      auto children = trans.branch(child_level, static_cast<int>(v_rate_), num_division);
+      auto children = trans.branch(child_level, v_rate_, num_division);
 
       const auto& buckets = voxelmaps_ptr_->multi_buckets_[child_level];
       double trans_res = voxelmaps_ptr_->voxelmaps_res_[child_level];
@@ -289,7 +289,7 @@ void BBS3D::localize_by_beam_search() {
         const Eigen::Vector3i& num_division = ang_info_vec[child_level].num_division;
         const Eigen::Vector3d& rpy_res = ang_info_vec[child_level].rpy_res;
         const Eigen::Vector3d& min_rpy = ang_info_vec[child_level].min_rpy;
-        auto children = trans.branch(child_level, static_cast<int>(v_rate_), num_division);
+        auto children = trans.branch(child_level, v_rate_, num_division);
 
         const auto& buckets = voxelmaps_ptr_->multi_buckets_[child_level];
         double trans_res = voxelmaps_ptr_->voxelmaps_res_[child_level];
@@ -386,7 +386,7 @@ void BBS3D::localize_by_chokudai_search(std::function<double(Eigen::Matrix4f)> s
       const Eigen::Vector3i& num_division = ang_info_vec[child_level].num_division;
       const Eigen::Vector3d& rpy_res = ang_info_vec[child_level].rpy_res;
       const Eigen::Vector3d& min_rpy = ang_info_vec[child_level].min_rpy;
-      auto children = trans.branch(child_level, static_cast<int>(v_rate_), num_division);
+      auto children = trans.branch(child_level, v_rate_, num_division);
 
       const auto& buckets = voxelmaps_ptr_->multi_buckets_[child_level];
       double trans_res = voxelmaps_ptr_->voxelmaps_res_[child_level];
