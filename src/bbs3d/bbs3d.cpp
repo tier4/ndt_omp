@@ -2,7 +2,6 @@
 #include <bbs3d/bbs3d.hpp>
 
 BBS3D::BBS3D() : v_rate_(2.0), num_threads_(4), use_timeout_(false), timeout_duration_(10000), has_timed_out_(false), has_localized_(false) {
-  inv_v_rate_ = 1.0 / v_rate_;
   min_rpy_ << -0.02, -0.02, 0.0;
   max_rpy_ << 0.02, 0.02, 2 * M_PI;
 }

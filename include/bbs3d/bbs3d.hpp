@@ -40,7 +40,6 @@ public:
 
   void set_voxel_expantion_rate(const double rate) {
     v_rate_ = rate;
-    inv_v_rate_ = 1.0 / rate;
   }
 
   void set_num_threads(const int num_threads) {
@@ -119,7 +118,6 @@ private:
   std::unique_ptr<VoxelMaps> voxelmaps_ptr_;
 
   double v_rate_;  // voxel expansion rate
-  double inv_v_rate_;
   int num_threads_;
 
   int best_score_;
