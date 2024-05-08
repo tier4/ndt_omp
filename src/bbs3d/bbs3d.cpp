@@ -43,12 +43,6 @@ void BBS3D::set_trans_search_range(const std::vector<Eigen::Vector3d>& points) {
 void BBS3D::set_trans_search_range(const Eigen::Vector3d& min_xyz, const Eigen::Vector3d& max_xyz) {
   min_xyz_ = min_xyz;
   max_xyz_ = max_xyz;
-
-  const int max_level = voxelmaps_ptr_->get_max_level();
-  const double top_res = voxelmaps_ptr_->voxelmaps_res_[max_level];
-  init_tx_range_ = std::make_pair<int, int>(std::floor(min_xyz.x() / top_res), std::ceil(max_xyz.x() / top_res));
-  init_ty_range_ = std::make_pair<int, int>(std::floor(min_xyz.y() / top_res), std::ceil(max_xyz.y() / top_res));
-  init_tz_range_ = std::make_pair<int, int>(std::floor(min_xyz.z() / top_res), std::ceil(max_xyz.z() / top_res));
 }
 
 void BBS3D::calc_angular_info(std::vector<AngularInfo>& ang_info_vec) {
@@ -98,10 +92,17 @@ void BBS3D::calc_angular_info(std::vector<AngularInfo>& ang_info_vec) {
 }
 
 std::vector<DiscreteTransformation<double>> BBS3D::create_init_transset(const AngularInfo& init_ang_info) {
+  const int max_level = voxelmaps_ptr_->get_max_level();
+  const double top_res = voxelmaps_ptr_->voxelmaps_res_[max_level];
+  std::pair<int, int> init_tx_range_;
+  std::pair<int, int> init_ty_range_;
+  std::pair<int, int> init_tz_range_;
+  init_tx_range_ = std::make_pair<int, int>(std::floor(min_xyz_.x() / top_res), std::ceil(max_xyz_.x() / top_res));
+  init_ty_range_ = std::make_pair<int, int>(std::floor(min_xyz_.y() / top_res), std::ceil(max_xyz_.y() / top_res));
+  init_tz_range_ = std::make_pair<int, int>(std::floor(min_xyz_.z() / top_res), std::ceil(max_xyz_.z() / top_res));
+
   const int init_transset_size = (init_tx_range_.second - init_tx_range_.first + 1) * (init_ty_range_.second - init_ty_range_.first + 1) * (init_tz_range_.second - init_tz_range_.first + 1) * (init_ang_info.num_division.x()) * (init_ang_info.num_division.y()) *
                                  (init_ang_info.num_division.z());
-
-  const int max_level = voxelmaps_ptr_->get_max_level();
 
   std::vector<DiscreteTransformation<double>> transset;
   transset.reserve(init_transset_size);

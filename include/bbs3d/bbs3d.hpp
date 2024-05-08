@@ -129,9 +129,6 @@ private:
   Eigen::Vector3d max_xyz_;
   Eigen::Vector3d min_rpy_;
   Eigen::Vector3d max_rpy_;
-  std::pair<int, int> init_tx_range_;
-  std::pair<int, int> init_ty_range_;
-  std::pair<int, int> init_tz_range_;
 };
 
 #endif  // BBS3D_HPP
