@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
   pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr mg_ndt_omp(new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
   mg_ndt_omp->setResolution(2.0);
   mg_ndt_omp->setNumThreads(4);
-  mg_ndt_omp->setMaximumIterations(3);
+  mg_ndt_omp->setMaximumIterations(30);
   mg_ndt_omp->setTransformationEpsilon(0.0);
   mg_ndt_omp->createVoxelKdtree();
 
@@ -77,13 +77,14 @@ int main(int argc, char** argv) {
   params.num_particles = 100;
   params.initial_pose = initial_pose_list[0];
   params.covariance_diagonal = {1.0f, 1.0f, 0.01f, 0.01f, 0.01f, 10.0f};
-  params.score_function = [&](const Eigen::Matrix4f& pose) {
+  params.score_function = [&](particle_filter::Particle& particle) {
     std::lock_guard<std::mutex> lock(mutex_ndt);
     pcl::PointCloud<pcl::PointXYZ>::Ptr aligned_pcd(new pcl::PointCloud<pcl::PointXYZ>());
-    mg_ndt_omp->align(*aligned_pcd, pose);
+    mg_ndt_omp->align(*aligned_pcd, particle.pose);
     const pclomp::NdtResult ndt_result = mg_ndt_omp->getResult();
-    // return ndt_result.nearest_voxel_transformation_likelihood;
-    return ndt_result.transform_probability;
+    particle.pose = ndt_result.pose;
+    particle.score = ndt_result.transform_probability;
+    // particle.score = ndt_result.nearest_voxel_transformation_likelihood;
   };
   particle_filter::ParticleFilter particle_filter(params);
 
@@ -103,7 +104,7 @@ int main(int argc, char** argv) {
   for(int64_t i = 1; i < n_data; i++) {
     // get input
     const Eigen::Matrix4f curr_pose = initial_pose_list[i];
-    const Eigen::Matrix4f delta_pose = initial_pose_list[i - 1].inverse() * initial_pose_list[i];
+    const Eigen::Matrix4f delta_pose = Eigen::Matrix4f::Identity();
     const std::string& source_pcd = source_pcd_list[i];
     const pcl::PointCloud<pcl::PointXYZ>::Ptr source_cloud = load_pcd(source_pcd);
     mg_ndt_omp->setInputSource(source_cloud);

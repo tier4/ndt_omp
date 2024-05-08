@@ -27,7 +27,7 @@ struct Particle {
 
 struct ParticleFilterParams {
   int64_t num_particles;
-  std::function<float(const Eigen::Matrix4f &)> score_function;
+  std::function<void(Particle &)> score_function;
   Eigen::Matrix4f initial_pose;
   std::array<float, 6> covariance_diagonal;  // trans_x, trans_y, trans_z, angle_x, angle_y, angle_z (angle_z is ignored)
 };

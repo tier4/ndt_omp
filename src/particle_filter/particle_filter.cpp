@@ -31,14 +31,14 @@ ParticleFilter::ParticleFilter(const ParticleFilterParams &params) {
 void ParticleFilter::predict(const Eigen::Matrix4f &delta_pose) {
   for(Particle &particle : particles_) {
     particle.pose = particle.pose * delta_pose;
-    add_randomness(particle.pose, params_.covariance_diagonal, 0.04f);
+    add_randomness(particle.pose, params_.covariance_diagonal, 0.1f);
   }
 }
 
 void ParticleFilter::update() {
   float sum_weight = 0.0f;
   for(Particle &particle : particles_) {
-    particle.score = params_.score_function(particle.pose);
+    params_.score_function(particle);
     particle.weight *= std::exp(particle.score);
     sum_weight += particle.weight;
   }
@@ -59,6 +59,7 @@ void ParticleFilter::resample() {
   const float start = dist(engine);
   int64_t index = 1;
   float sum = particles_[0].weight;
+  float new_sum = 0.0f;
   std::vector<Particle> new_particles(params_.num_particles);
   for(int64_t i = 0; i < params_.num_particles; i++) {
     const float target = start + i * step;
@@ -67,8 +68,12 @@ void ParticleFilter::resample() {
       index++;
     }
     new_particles[i] = particles_[index - 1];
+    new_sum += new_particles[i].weight;
   }
   particles_ = new_particles;
+  for(Particle &particle : particles_) {
+    particle.weight /= new_sum;
+  }
 }
 
 bool ParticleFilter::is_converged() const {
