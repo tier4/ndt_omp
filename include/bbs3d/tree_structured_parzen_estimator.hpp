@@ -60,9 +60,6 @@ public:
 private:
   static constexpr double BASE_STDDEV_COEFF = 0.2;
   static constexpr double MAX_GOOD_RATE = 0.10;
-  static constexpr double MAX_VALUE = 1.0;
-  static constexpr double MIN_VALUE = -1.0;
-  static constexpr double VALUE_WIDTH = MAX_VALUE - MIN_VALUE;
   static constexpr int64_t N_EI_CANDIDATES = 100;
   static constexpr double PRIOR_WEIGHT = 0.0;
 
@@ -81,7 +78,7 @@ private:
   const int64_t input_dimension_;
   const std::vector<double> sample_mean_;
   const std::vector<double> sample_stddev_;
-  const Input base_stddev_;
+  Input base_stddev_;
 };
 
 #endif  // TREE_STRUCTURED_PARZEN_ESTIMATOR__TREE_STRUCTURED_PARZEN_ESTIMATOR_HPP_

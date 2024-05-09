@@ -21,11 +21,9 @@
 
 // random number generator
 std::mt19937_64 TreeStructuredParzenEstimator::engine(std::random_device{}());
-std::uniform_real_distribution<double> TreeStructuredParzenEstimator::dist_uniform(TreeStructuredParzenEstimator::MIN_VALUE, TreeStructuredParzenEstimator::MAX_VALUE);
-std::normal_distribution<double> TreeStructuredParzenEstimator::dist_normal(0.0, 1.0);
 
 TreeStructuredParzenEstimator::TreeStructuredParzenEstimator(const Direction direction, const int64_t n_startup_trials, const std::vector<double>& sample_mean, const std::vector<double>& sample_stddev)
-    : above_num_(0), direction_(direction), n_startup_trials_(n_startup_trials), input_dimension_(INDEX_NUM), sample_mean_(sample_mean), sample_stddev_(sample_stddev), base_stddev_(input_dimension_, VALUE_WIDTH) {
+    : above_num_(0), direction_(direction), n_startup_trials_(n_startup_trials), input_dimension_(INDEX_NUM), sample_mean_(sample_mean), sample_stddev_(sample_stddev) {
   if(sample_mean_.size() != ANGLE_Z) {
     std::cerr << "sample_mean size is invalid" << std::endl;
     throw std::runtime_error("sample_mean size is invalid");
@@ -34,13 +32,19 @@ TreeStructuredParzenEstimator::TreeStructuredParzenEstimator(const Direction dir
     std::cerr << "sample_stddev size is invalid" << std::endl;
     throw std::runtime_error("sample_stddev size is invalid");
   }
+  base_stddev_.resize(input_dimension_);
+  base_stddev_[TRANS_X] = 2.0;                  // [m]
+  base_stddev_[TRANS_Y] = 2.0;                  // [m]
+  base_stddev_[TRANS_Z] = 2.0;                  // [m]
+  base_stddev_[ANGLE_X] = 10.0 / 180.0 * M_PI;  // [rad]
+  base_stddev_[ANGLE_Y] = 10.0 / 180.0 * M_PI;  // [rad]
+  base_stddev_[ANGLE_Z] = 10.0 / 180.0 * M_PI;  // [rad]
 }
 
 void TreeStructuredParzenEstimator::add_trial(const Trial& trial) {
   trials_.push_back(trial);
   std::sort(trials_.begin(), trials_.end(), [this](const Trial& lhs, const Trial& rhs) { return (direction_ == Direction::MAXIMIZE ? lhs.score > rhs.score : lhs.score < rhs.score); });
-  const int64_t num_over_threshold = std::count_if(trials_.begin(), trials_.end(), [this](const Trial& t) { return (t.score >= 2.3); });
-  above_num_ = std::min({static_cast<int64_t>(25), static_cast<int64_t>(trials_.size() * MAX_GOOD_RATE), num_over_threshold});
+  above_num_ = std::min({static_cast<int64_t>(25), static_cast<int64_t>(trials_.size() * MAX_GOOD_RATE)});
 }
 
 TreeStructuredParzenEstimator::Input TreeStructuredParzenEstimator::get_next_input() const {
