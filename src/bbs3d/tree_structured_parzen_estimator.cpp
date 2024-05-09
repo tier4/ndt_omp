@@ -38,13 +38,13 @@ TreeStructuredParzenEstimator::TreeStructuredParzenEstimator(const Direction dir
   base_stddev_[TRANS_Z] = 2.0;                  // [m]
   base_stddev_[ANGLE_X] = 10.0 / 180.0 * M_PI;  // [rad]
   base_stddev_[ANGLE_Y] = 10.0 / 180.0 * M_PI;  // [rad]
-  base_stddev_[ANGLE_Z] = 10.0 / 180.0 * M_PI;  // [rad]
+  base_stddev_[ANGLE_Z] = 20.0 / 180.0 * M_PI;  // [rad]
 }
 
 void TreeStructuredParzenEstimator::add_trial(const Trial& trial) {
   trials_.push_back(trial);
   std::sort(trials_.begin(), trials_.end(), [this](const Trial& lhs, const Trial& rhs) { return (direction_ == Direction::MAXIMIZE ? lhs.score > rhs.score : lhs.score < rhs.score); });
-  above_num_ = std::min({static_cast<int64_t>(25), static_cast<int64_t>(trials_.size() * MAX_GOOD_RATE)});
+  above_num_ = std::min({static_cast<int64_t>(10), static_cast<int64_t>(trials_.size() * MAX_GOOD_RATE)});
 }
 
 TreeStructuredParzenEstimator::Input TreeStructuredParzenEstimator::get_next_input() const {
@@ -94,46 +94,17 @@ double TreeStructuredParzenEstimator::compute_log_likelihood_ratio(const Input& 
   std::vector<double> above_logs;
   std::vector<double> below_logs;
 
-  // Scott's rule
-  const double coeff_above = BASE_STDDEV_COEFF * std::pow(above_num_, -1.0 / (4 + input_dimension_));
-  const double coeff_below = BASE_STDDEV_COEFF * std::pow(n - above_num_, -1.0 / (4 + input_dimension_));
-  Input sigma_above = base_stddev_;
-  Input sigma_below = base_stddev_;
-  for(int64_t j = 0; j < input_dimension_; j++) {
-    sigma_above[j] *= coeff_above;
-    sigma_below[j] *= coeff_below;
-  }
-
-  std::vector<double> above_weights = get_weights(above_num_);
-  std::vector<double> below_weights = get_weights(n - above_num_);
-  std::reverse(below_weights.begin(), below_weights.end());  // below_weights is ascending order
-
-  // calculate the sum of weights to normalize
-  double above_sum = std::accumulate(above_weights.begin(), above_weights.end(), 0.0);
-  double below_sum = std::accumulate(below_weights.begin(), below_weights.end(), 0.0);
-
-  // above includes prior
-  above_sum += PRIOR_WEIGHT;
-
   for(int64_t i = 0; i < n; i++) {
+    const double log_p = log_gaussian_pdf(input, trials_[i].input, base_stddev_);
     if(i < above_num_) {
-      const double log_p = log_gaussian_pdf(input, trials_[i].input, sigma_above);
-      const double w = above_weights[i] / above_sum;
+      const double w = 1.0 / above_num_;
       const double log_w = std::log(w);
       above_logs.push_back(log_p + log_w);
     } else {
-      const double log_p = log_gaussian_pdf(input, trials_[i].input, sigma_below);
-      const double w = below_weights[i - above_num_] / below_sum;
+      const double w = 1.0 / (n - above_num_);
       const double log_w = std::log(w);
       below_logs.push_back(log_p + log_w);
     }
-  }
-
-  // prior
-  if(PRIOR_WEIGHT > 0.0) {
-    const double log_p = log_gaussian_pdf(input, Input(input_dimension_, 0.0), base_stddev_);
-    const double log_w = std::log(PRIOR_WEIGHT / above_sum);
-    above_logs.push_back(log_p + log_w);
   }
 
   auto log_sum_exp = [](const std::vector<double>& log_vec) {
@@ -147,7 +118,7 @@ double TreeStructuredParzenEstimator::compute_log_likelihood_ratio(const Input& 
 
   const double above = log_sum_exp(above_logs);
   const double below = log_sum_exp(below_logs);
-  const double r = above - below;
+  const double r = above * 1.0 - below * 2.0;
   return r;
 }
 
@@ -172,24 +143,4 @@ double TreeStructuredParzenEstimator::log_gaussian_pdf(const Input& input, const
     result += log_gaussian_pdf_1d(diff, sigma[i]);
   }
   return result;
-}
-
-std::vector<double> TreeStructuredParzenEstimator::get_weights(const int64_t n) {
-  // See optuna
-  // https://github.com/optuna/optuna/blob/4bfab78e98bf786f6a2ce6e593a26e3f8403e08d/optuna/samplers/_tpe/sampler.py#L50-L58
-  std::vector<double> weights;
-  constexpr int64_t WEIGHT_ALPHA = 25;
-  if(n == 0) {
-    return weights;
-  } else if(n < WEIGHT_ALPHA) {
-    weights.resize(n, 1.0);
-  } else {
-    weights.resize(n);
-    const double unit = (1.0 - 1.0 / n) / (n - WEIGHT_ALPHA);
-    for(int64_t i = 0; i < n; i++) {
-      weights[i] = (i < WEIGHT_ALPHA ? 1.0 : 1.0 - unit * (i - WEIGHT_ALPHA));
-    }
-  }
-
-  return weights;
 }
