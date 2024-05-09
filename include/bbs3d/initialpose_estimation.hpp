@@ -31,6 +31,7 @@ using NormalDistributionsTransform = pclomp::MultiGridNormalDistributionsTransfo
 struct SearchResult {
   geometry_msgs::msg::PoseWithCovarianceStamped pose_with_cov;
   double score;
+  int64_t search_count;
 };
 
 class Timer {

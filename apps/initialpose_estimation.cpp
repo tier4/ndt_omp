@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
   std::filesystem::create_directories(output_dir);
   std::ofstream ofs(output_dir + "/initialpose_estimation.csv");
   ofs << std::fixed;
-  ofs << "id,time_msec,score,initial_trans_x,initial_trans_y,initial_tran_z,initial_angle_x,initial_angle_y,initial_angle_z,result_trans_x,result_trans_y,result_trans_z,result_angle_x,result_angle_y,result_angle_z" << std::endl;
+  ofs << "id,time_msec,score,search_count,initial_trans_x,initial_trans_y,initial_tran_z,initial_angle_x,initial_angle_y,initial_angle_z,result_trans_x,result_trans_y,result_trans_z,result_angle_x,result_angle_y,result_angle_z" << std::endl;
 
   const double x_unit = stddev_x / 1.0;
   const double y_unit = stddev_y / 1.0;
@@ -130,8 +130,8 @@ int main(int argc, char** argv) {
 
         timer.start();
         const int64_t limit_msec = 1000;
-        // const initialpose_estimation::SearchResult result = initialpose_estimation::random_search(mg_ndt_omp, curr_initial_pose, limit_msec);
-        const initialpose_estimation::SearchResult result = initialpose_estimation::bbs3d_search(mg_ndt_omp, curr_initial_pose, limit_msec);
+        const initialpose_estimation::SearchResult result = initialpose_estimation::random_search(mg_ndt_omp, curr_initial_pose, limit_msec);
+        // const initialpose_estimation::SearchResult result = initialpose_estimation::bbs3d_search(mg_ndt_omp, curr_initial_pose, limit_msec);
         const double elapsed_time = timer.elapsed_milliseconds();
 
         const geometry_msgs::msg::PoseWithCovarianceStamped result_pose = result.pose_with_cov;
@@ -141,6 +141,7 @@ int main(int argc, char** argv) {
         ofs << count << ",";
         ofs << elapsed_time << ",";
         ofs << score << ",";
+        ofs << result.search_count << ",";
         ofs << curr_initial_pose.pose.pose.position.x << ",";
         ofs << curr_initial_pose.pose.pose.position.y << ",";
         ofs << curr_initial_pose.pose.pose.position.z << ",";

@@ -84,6 +84,8 @@ SearchResult random_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr
 
   search_result.score = best_particle_ptr->score;
 
+  search_result.search_count = particle_array.size();
+
   return search_result;
 }
 
