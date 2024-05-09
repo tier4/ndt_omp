@@ -24,8 +24,17 @@ std::mt19937_64 TreeStructuredParzenEstimator::engine(std::random_device{}());
 std::uniform_real_distribution<double> TreeStructuredParzenEstimator::dist_uniform(TreeStructuredParzenEstimator::MIN_VALUE, TreeStructuredParzenEstimator::MAX_VALUE);
 std::normal_distribution<double> TreeStructuredParzenEstimator::dist_normal(0.0, 1.0);
 
-TreeStructuredParzenEstimator::TreeStructuredParzenEstimator(const Direction direction, const int64_t n_startup_trials)
-    : above_num_(0), direction_(direction), n_startup_trials_(n_startup_trials), input_dimension_(INDEX_NUM), base_stddev_(input_dimension_, VALUE_WIDTH) {}
+TreeStructuredParzenEstimator::TreeStructuredParzenEstimator(const Direction direction, const int64_t n_startup_trials, const std::vector<double>& sample_mean, const std::vector<double>& sample_stddev)
+    : above_num_(0), direction_(direction), n_startup_trials_(n_startup_trials), input_dimension_(INDEX_NUM), sample_mean_(sample_mean), sample_stddev_(sample_stddev), base_stddev_(input_dimension_, VALUE_WIDTH) {
+  if(sample_mean_.size() != ANGLE_Z) {
+    std::cerr << "sample_mean size is invalid" << std::endl;
+    throw std::runtime_error("sample_mean size is invalid");
+  }
+  if(sample_stddev_.size() != ANGLE_Z) {
+    std::cerr << "sample_stddev size is invalid" << std::endl;
+    throw std::runtime_error("sample_stddev size is invalid");
+  }
+}
 
 void TreeStructuredParzenEstimator::add_trial(const Trial& trial) {
   trials_.push_back(trial);
@@ -35,12 +44,22 @@ void TreeStructuredParzenEstimator::add_trial(const Trial& trial) {
 }
 
 TreeStructuredParzenEstimator::Input TreeStructuredParzenEstimator::get_next_input() const {
+  std::normal_distribution<double> dist_normal_trans_x(sample_mean_[TRANS_X], sample_stddev_[TRANS_X]);
+  std::normal_distribution<double> dist_normal_trans_y(sample_mean_[TRANS_Y], sample_stddev_[TRANS_Y]);
+  std::normal_distribution<double> dist_normal_trans_z(sample_mean_[TRANS_Z], sample_stddev_[TRANS_Z]);
+  std::normal_distribution<double> dist_normal_angle_x(sample_mean_[ANGLE_X], sample_stddev_[ANGLE_X]);
+  std::normal_distribution<double> dist_normal_angle_y(sample_mean_[ANGLE_Y], sample_stddev_[ANGLE_Y]);
+  std::uniform_real_distribution<double> dist_uniform_angle_z(-M_PI, M_PI);
+
   if(static_cast<int64_t>(trials_.size()) < n_startup_trials_ || above_num_ == 0) {
     // Random sampling based on prior until the number of trials reaches `n_startup_trials_`.
     Input input(input_dimension_);
-    for(int64_t j = 0; j < input_dimension_; j++) {
-      input[j] = dist_uniform(engine);
-    }
+    input[TRANS_X] = dist_normal_trans_x(engine);
+    input[TRANS_Y] = dist_normal_trans_y(engine);
+    input[TRANS_Z] = dist_normal_trans_z(engine);
+    input[ANGLE_X] = dist_normal_angle_x(engine);
+    input[ANGLE_Y] = dist_normal_angle_y(engine);
+    input[ANGLE_Z] = dist_uniform_angle_z(engine);
     return input;
   }
 
@@ -48,9 +67,12 @@ TreeStructuredParzenEstimator::Input TreeStructuredParzenEstimator::get_next_inp
   double best_log_likelihood_ratio = std::numeric_limits<double>::lowest();
   for(int64_t i = 0; i < N_EI_CANDIDATES; i++) {
     Input input(input_dimension_);
-    for(int64_t j = 0; j < input_dimension_; j++) {
-      input[j] = dist_uniform(engine);
-    }
+    input[TRANS_X] = dist_normal_trans_x(engine);
+    input[TRANS_Y] = dist_normal_trans_y(engine);
+    input[TRANS_Z] = dist_normal_trans_z(engine);
+    input[ANGLE_X] = dist_normal_angle_x(engine);
+    input[ANGLE_Y] = dist_normal_angle_y(engine);
+    input[ANGLE_Z] = dist_uniform_angle_z(engine);
     const double log_likelihood_ratio = compute_log_likelihood_ratio(input);
     if(log_likelihood_ratio > best_log_likelihood_ratio) {
       best_log_likelihood_ratio = log_likelihood_ratio;
@@ -135,7 +157,13 @@ double TreeStructuredParzenEstimator::log_gaussian_pdf(const Input& input, const
   for(int64_t i = 0; i < n; i++) {
     double diff = input[i] - mu[i];
     if(i == ANGLE_Z) {
-      diff = normalize_loop_variable(diff);
+      // Normalize the loop variable to [-pi, pi)
+      while(diff >= M_PI) {
+        diff -= 2 * M_PI;
+      }
+      while(diff < M_PI) {
+        diff += 2 * M_PI;
+      }
     }
     result += log_gaussian_pdf_1d(diff, sigma[i]);
   }
@@ -160,16 +188,4 @@ std::vector<double> TreeStructuredParzenEstimator::get_weights(const int64_t n) 
   }
 
   return weights;
-}
-
-double TreeStructuredParzenEstimator::normalize_loop_variable(const double value) {
-  // Normalize the loop variable to [-1, 1)
-  double result = value;
-  while(result >= MAX_VALUE) {
-    result -= VALUE_WIDTH;
-  }
-  while(result < MIN_VALUE) {
-    result += VALUE_WIDTH;
-  }
-  return result;
 }

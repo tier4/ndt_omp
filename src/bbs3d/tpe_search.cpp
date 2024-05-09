@@ -39,25 +39,11 @@ SearchResult tpe_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, c
   const double stddev_roll = std::sqrt(covariance(3, 3));
   const double stddev_pitch = std::sqrt(covariance(4, 4));
 
-  // Let phi be the cumulative distribution function of the standard normal distribution.
-  // It has the following relationship with the error function (erf).
-  //   phi(x) = 1/2 (1 + erf(x / sqrt(2)))
-  // so, 2 * phi(x) - 1 = erf(x / sqrt(2)).
-  // The range taken by 2 * phi(x) - 1 is [-1, 1], so it can be used as a uniform distribution in
-  // TPE. Let u = 2 * phi(x) - 1, then x = sqrt(2) * erf_inv(u). Computationally, it is not a good
-  // to give erf_inv -1 and 1, so it is rounded off at (-1 + eps, 1 - eps).
-  const double sqrt2 = std::sqrt(2);
-  auto uniform_to_normal = [&sqrt2](const double uniform) {
-    assert(-1.0 <= uniform && uniform <= 1.0);
-    constexpr double epsilon = 1.0e-6;
-    const double clamped = std::clamp(uniform, -1.0 + epsilon, 1.0 - epsilon);
-    return boost::math::erf_inv(clamped) * sqrt2;
-  };
-
-  auto normal_to_uniform = [&sqrt2](const double normal) { return boost::math::erf(normal / sqrt2); };
+  const std::vector<double> sample_mean{initial_pose_with_cov.pose.pose.position.x, initial_pose_with_cov.pose.pose.position.y, initial_pose_with_cov.pose.pose.position.z, base_rpy.x, base_rpy.y};
+  const std::vector<double> sample_stddev{stddev_x, stddev_y, stddev_z, stddev_roll, stddev_pitch};
 
   // Optimizing (x, y, z, roll, pitch, yaw) 6 dimensions.
-  TreeStructuredParzenEstimator tpe(TreeStructuredParzenEstimator::Direction::MAXIMIZE, 20);
+  TreeStructuredParzenEstimator tpe(TreeStructuredParzenEstimator::Direction::MAXIMIZE, 20, sample_mean, sample_stddev);
 
   std::vector<Particle> particle_array;
   auto output_cloud = std::make_shared<pcl::PointCloud<PointSource>>();
@@ -66,13 +52,13 @@ SearchResult tpe_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, c
     const TreeStructuredParzenEstimator::Input input = tpe.get_next_input();
 
     geometry_msgs::msg::Pose initial_pose;
-    initial_pose.position.x = initial_pose_with_cov.pose.pose.position.x + uniform_to_normal(input[0]) * stddev_x;
-    initial_pose.position.y = initial_pose_with_cov.pose.pose.position.y + uniform_to_normal(input[1]) * stddev_y;
-    initial_pose.position.z = initial_pose_with_cov.pose.pose.position.z + uniform_to_normal(input[2]) * stddev_z;
+    initial_pose.position.x = input[0];
+    initial_pose.position.y = input[1];
+    initial_pose.position.z = input[2];
     geometry_msgs::msg::Vector3 init_rpy;
-    init_rpy.x = base_rpy.x + uniform_to_normal(input[3]) * stddev_roll;
-    init_rpy.y = base_rpy.y + uniform_to_normal(input[4]) * stddev_pitch;
-    init_rpy.z = base_rpy.z + input[5] * M_PI;
+    init_rpy.x = input[3];
+    init_rpy.y = input[4];
+    init_rpy.z = input[5];
     tf2::Quaternion tf_quaternion;
     tf_quaternion.setRPY(init_rpy.x, init_rpy.y, init_rpy.z);
     initial_pose.orientation = tf2::toMsg(tf_quaternion);
@@ -87,22 +73,13 @@ SearchResult tpe_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, c
     const geometry_msgs::msg::Pose pose = matrix4f_to_pose(ndt_result.pose);
     const geometry_msgs::msg::Vector3 rpy = quaternion_to_rpy(pose.orientation);
 
-    const double diff_x = pose.position.x - initial_pose_with_cov.pose.pose.position.x;
-    const double diff_y = pose.position.y - initial_pose_with_cov.pose.pose.position.y;
-    const double diff_z = pose.position.z - initial_pose_with_cov.pose.pose.position.z;
-    const double diff_roll = rpy.x - base_rpy.x;
-    const double diff_pitch = rpy.y - base_rpy.y;
-    const double diff_yaw = rpy.z - base_rpy.z;
-
-    // Only yaw is a loop_variable, so only simple normalization is performed.
-    // All other variables are converted from normal distribution to uniform distribution.
     TreeStructuredParzenEstimator::Input result(6);
-    result[0] = normal_to_uniform(diff_x / stddev_x);
-    result[1] = normal_to_uniform(diff_y / stddev_y);
-    result[2] = normal_to_uniform(diff_z / stddev_z);
-    result[3] = normal_to_uniform(diff_roll / stddev_roll);
-    result[4] = normal_to_uniform(diff_pitch / stddev_pitch);
-    result[5] = diff_yaw / M_PI;
+    result[0] = pose.position.x;
+    result[1] = pose.position.y;
+    result[2] = pose.position.z;
+    result[3] = rpy.x;
+    result[4] = rpy.y;
+    result[5] = rpy.z;
     tpe.add_trial(TreeStructuredParzenEstimator::Trial{result, ndt_result.nearest_voxel_transformation_likelihood});
   }
 
