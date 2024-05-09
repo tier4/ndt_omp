@@ -28,13 +28,11 @@ https://github.com/optuna/optuna
 #include <random>
 #include <vector>
 
-class TreeStructuredParzenEstimator
-{
+class TreeStructuredParzenEstimator {
 public:
   using Input = std::vector<double>;
   using Score = double;
-  struct Trial
-  {
+  struct Trial {
     Input input;
     Score score;
   };
@@ -45,9 +43,8 @@ public:
   };
 
   TreeStructuredParzenEstimator() = delete;
-  TreeStructuredParzenEstimator(
-    const Direction direction, const int64_t n_startup_trials, std::vector<bool> is_loop_variable);
-  void add_trial(const Trial & trial);
+  TreeStructuredParzenEstimator(const Direction direction, const int64_t n_startup_trials, std::vector<bool> is_loop_variable);
+  void add_trial(const Trial& trial);
   Input get_next_input() const;
 
 private:
@@ -63,8 +60,8 @@ private:
   static std::uniform_real_distribution<double> dist_uniform;
   static std::normal_distribution<double> dist_normal;
 
-  double compute_log_likelihood_ratio(const Input & input) const;
-  double log_gaussian_pdf(const Input & input, const Input & mu, const Input & sigma) const;
+  double compute_log_likelihood_ratio(const Input& input) const;
+  double log_gaussian_pdf(const Input& input, const Input& mu, const Input& sigma) const;
   static std::vector<double> get_weights(const int64_t n);
   static double normalize_loop_variable(const double value);
 
