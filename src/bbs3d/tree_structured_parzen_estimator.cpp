@@ -30,7 +30,8 @@ TreeStructuredParzenEstimator::TreeStructuredParzenEstimator(const Direction dir
 void TreeStructuredParzenEstimator::add_trial(const Trial& trial) {
   trials_.push_back(trial);
   std::sort(trials_.begin(), trials_.end(), [this](const Trial& lhs, const Trial& rhs) { return (direction_ == Direction::MAXIMIZE ? lhs.score > rhs.score : lhs.score < rhs.score); });
-  above_num_ = std::min(static_cast<int64_t>(25), static_cast<int64_t>(trials_.size() * MAX_GOOD_RATE));
+  const int64_t num_over_threshold = std::count_if(trials_.begin(), trials_.end(), [this](const Trial& t) { return (t.score >= 2.3); });
+  above_num_ = std::min({static_cast<int64_t>(25), static_cast<int64_t>(trials_.size() * MAX_GOOD_RATE), num_over_threshold});
 }
 
 TreeStructuredParzenEstimator::Input TreeStructuredParzenEstimator::get_next_input() const {

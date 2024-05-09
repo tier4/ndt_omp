@@ -57,7 +57,7 @@ SearchResult tpe_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, c
   auto normal_to_uniform = [&sqrt2](const double normal) { return boost::math::erf(normal / sqrt2); };
 
   // Optimizing (x, y, z, roll, pitch, yaw) 6 dimensions.
-  TreeStructuredParzenEstimator tpe(TreeStructuredParzenEstimator::Direction::MAXIMIZE, 100);
+  TreeStructuredParzenEstimator tpe(TreeStructuredParzenEstimator::Direction::MAXIMIZE, 20);
 
   std::vector<Particle> particle_array;
   auto output_cloud = std::make_shared<pcl::PointCloud<PointSource>>();
