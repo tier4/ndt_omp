@@ -161,7 +161,7 @@ double TreeStructuredParzenEstimator::log_gaussian_pdf(const Input& input, const
       while(diff >= M_PI) {
         diff -= 2 * M_PI;
       }
-      while(diff < M_PI) {
+      while(diff < -M_PI) {
         diff += 2 * M_PI;
       }
     }
