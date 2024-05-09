@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
   mg_ndt_omp->setResolution(2.0);
   mg_ndt_omp->setNumThreads(4);
   mg_ndt_omp->setMaximumIterations(30);
-  mg_ndt_omp->setTransformationEpsilon(0.0);
+  mg_ndt_omp->setTransformationEpsilon(0.01);
   mg_ndt_omp->createVoxelKdtree();
 
   std::cout << std::fixed;
