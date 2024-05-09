@@ -117,13 +117,19 @@ ament_auto_add_executable(initialpose_estimation
   src/bbs3d/voxelmaps.cpp
   src/bbs3d/bbs3d_search.cpp
   src/bbs3d/random_search.cpp
+  src/bbs3d/tpe_search.cpp
+  src/bbs3d/tree_structured_parzen_estimator.cpp
 )
 add_dependencies(initialpose_estimation
   ndt_omp multigrid_ndt_omp
 )
+find_package(Boost REQUIRED COMPONENTS math_c99)
+target_include_directories(initialpose_estimation PUBLIC ${Boost_INCLUDE_DIRS})
 target_link_libraries(initialpose_estimation
   ${PCL_LIBRARIES}
   ndt_omp multigrid_ndt_omp
+  ${Boost_LIBRARIES}
+  boost_math_c99
 )
 
 ament_auto_package()
