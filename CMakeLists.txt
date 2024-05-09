@@ -129,7 +129,6 @@ target_link_libraries(initialpose_estimation
   ${PCL_LIBRARIES}
   ndt_omp multigrid_ndt_omp
   ${Boost_LIBRARIES}
-  boost_math_c99
 )
 
 ament_auto_package()
