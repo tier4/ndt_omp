@@ -45,30 +45,10 @@ TreeStructuredParzenEstimator::Input TreeStructuredParzenEstimator::get_next_inp
 
   Input best_input;
   double best_log_likelihood_ratio = std::numeric_limits<double>::lowest();
-  const double coeff = BASE_STDDEV_COEFF * std::pow(above_num_, -1.0 / (4 + input_dimension_));
-  std::vector<double> weights = get_weights(above_num_);
-  weights.push_back(PRIOR_WEIGHT);
-  std::discrete_distribution<int64_t> dist(weights.begin(), weights.end());
   for(int64_t i = 0; i < N_EI_CANDIDATES; i++) {
-    Input mu, sigma;
-    const int64_t index = dist(engine);
-    if(index == above_num_) {
-      mu = Input(input_dimension_, 0.0);
-      sigma = base_stddev_;
-    } else {
-      mu = trials_[index].input;
-      sigma = base_stddev_;
-      for(int64_t j = 0; j < input_dimension_; j++) {
-        sigma[j] *= coeff;
-      }
-    }
-    // sample from the normal distribution
     Input input(input_dimension_);
     for(int64_t j = 0; j < input_dimension_; j++) {
-      input[j] = mu[j] + dist_normal(engine) * sigma[j];
-      if(j == ANGLE_Z) {
-        input[j] = normalize_loop_variable(input[j]);
-      }
+      input[j] = dist_uniform(engine);
     }
     const double log_likelihood_ratio = compute_log_likelihood_ratio(input);
     if(log_likelihood_ratio > best_log_likelihood_ratio) {
