@@ -42,8 +42,18 @@ public:
     MAXIMIZE = 1,
   };
 
+  enum Index {
+    TRANS_X = 0,
+    TRANS_Y = 1,
+    TRANS_Z = 2,
+    ANGLE_X = 3,
+    ANGLE_Y = 4,
+    ANGLE_Z = 5,
+    INDEX_NUM = 6,
+  };
+
   TreeStructuredParzenEstimator() = delete;
-  TreeStructuredParzenEstimator(const Direction direction, const int64_t n_startup_trials, std::vector<bool> is_loop_variable);
+  TreeStructuredParzenEstimator(const Direction direction, const int64_t n_startup_trials);
   void add_trial(const Trial& trial);
   Input get_next_input() const;
 
@@ -70,7 +80,6 @@ private:
   const Direction direction_;
   const int64_t n_startup_trials_;
   const int64_t input_dimension_;
-  const std::vector<bool> is_loop_variable_;
   const Input base_stddev_;
 };
 

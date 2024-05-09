@@ -24,8 +24,8 @@ std::mt19937_64 TreeStructuredParzenEstimator::engine(std::random_device{}());
 std::uniform_real_distribution<double> TreeStructuredParzenEstimator::dist_uniform(TreeStructuredParzenEstimator::MIN_VALUE, TreeStructuredParzenEstimator::MAX_VALUE);
 std::normal_distribution<double> TreeStructuredParzenEstimator::dist_normal(0.0, 1.0);
 
-TreeStructuredParzenEstimator::TreeStructuredParzenEstimator(const Direction direction, const int64_t n_startup_trials, std::vector<bool> is_loop_variable)
-    : above_num_(0), direction_(direction), n_startup_trials_(n_startup_trials), input_dimension_(is_loop_variable.size()), is_loop_variable_(is_loop_variable), base_stddev_(input_dimension_, VALUE_WIDTH) {}
+TreeStructuredParzenEstimator::TreeStructuredParzenEstimator(const Direction direction, const int64_t n_startup_trials)
+    : above_num_(0), direction_(direction), n_startup_trials_(n_startup_trials), input_dimension_(INDEX_NUM), base_stddev_(input_dimension_, VALUE_WIDTH) {}
 
 void TreeStructuredParzenEstimator::add_trial(const Trial& trial) {
   trials_.push_back(trial);
@@ -66,7 +66,9 @@ TreeStructuredParzenEstimator::Input TreeStructuredParzenEstimator::get_next_inp
     Input input(input_dimension_);
     for(int64_t j = 0; j < input_dimension_; j++) {
       input[j] = mu[j] + dist_normal(engine) * sigma[j];
-      input[j] = (is_loop_variable_[j] ? normalize_loop_variable(input[j]) : std::clamp(input[j], MIN_VALUE, MAX_VALUE));
+      if(j == ANGLE_Z) {
+        input[j] = normalize_loop_variable(input[j]);
+      }
     }
     const double log_likelihood_ratio = compute_log_likelihood_ratio(input);
     if(log_likelihood_ratio > best_log_likelihood_ratio) {
@@ -151,7 +153,7 @@ double TreeStructuredParzenEstimator::log_gaussian_pdf(const Input& input, const
   double result = 0.0;
   for(int64_t i = 0; i < n; i++) {
     double diff = input[i] - mu[i];
-    if(is_loop_variable_[i]) {
+    if(i == ANGLE_Z) {
       diff = normalize_loop_variable(diff);
     }
     result += log_gaussian_pdf_1d(diff, sigma[i]);

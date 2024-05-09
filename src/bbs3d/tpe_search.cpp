@@ -57,12 +57,7 @@ SearchResult tpe_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, c
   auto normal_to_uniform = [&sqrt2](const double normal) { return boost::math::erf(normal / sqrt2); };
 
   // Optimizing (x, y, z, roll, pitch, yaw) 6 dimensions.
-  // The last dimension (yaw) is a loop variable.
-  // Although roll and pitch are also angles, they are considered non-looping variables that follow
-  // a normal distribution with a small standard deviation. This assumes that the initial pose of
-  // the ego vehicle is aligned with the ground to some extent about roll and pitch.
-  const std::vector<bool> is_loop_variable = {false, false, false, false, false, true};
-  TreeStructuredParzenEstimator tpe(TreeStructuredParzenEstimator::Direction::MAXIMIZE, 100, is_loop_variable);
+  TreeStructuredParzenEstimator tpe(TreeStructuredParzenEstimator::Direction::MAXIMIZE, 100);
 
   std::vector<Particle> particle_array;
   auto output_cloud = std::make_shared<pcl::PointCloud<PointSource>>();
@@ -101,7 +96,7 @@ SearchResult tpe_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, c
 
     // Only yaw is a loop_variable, so only simple normalization is performed.
     // All other variables are converted from normal distribution to uniform distribution.
-    TreeStructuredParzenEstimator::Input result(is_loop_variable.size());
+    TreeStructuredParzenEstimator::Input result(6);
     result[0] = normal_to_uniform(diff_x / stddev_x);
     result[1] = normal_to_uniform(diff_y / stddev_y);
     result[2] = normal_to_uniform(diff_z / stddev_z);
