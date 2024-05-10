@@ -16,6 +16,8 @@
 #include "bbs3d/tree_structured_parzen_estimator.hpp"
 #include <boost/math/special_functions/erf.hpp>
 
+#include <fstream>
+
 namespace initialpose_estimation {
 
 struct Particle {
@@ -47,6 +49,10 @@ SearchResult tpe_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, c
 
   std::vector<Particle> particle_array;
   auto output_cloud = std::make_shared<pcl::PointCloud<PointSource>>();
+
+  std::ofstream ofs("tpe_search.csv");
+  ofs << std::fixed;
+  ofs << "index,trans_x,trans_y,trans_z,angle_x,angle_y,angle_z,score" << std::endl;
 
   for(int64_t i = 0; timer.elapsed_milli_seconds() < limit_msec; i++) {
     const TreeStructuredParzenEstimator::Input input = tpe.get_next_input();
@@ -81,6 +87,8 @@ SearchResult tpe_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, c
     result[4] = rpy.y;
     result[5] = rpy.z;
     tpe.add_trial(TreeStructuredParzenEstimator::Trial{result, ndt_result.nearest_voxel_transformation_likelihood});
+
+    ofs << i << "," << pose.position.x << "," << pose.position.y << "," << pose.position.z << "," << rpy.x << "," << rpy.y << "," << rpy.z << "," << ndt_result.nearest_voxel_transformation_likelihood << std::endl;
   }
 
   auto best_particle_ptr = std::max_element(std::begin(particle_array), std::end(particle_array), [](const Particle& lhs, const Particle& rhs) { return lhs.score < rhs.score; });
