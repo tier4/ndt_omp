@@ -39,12 +39,12 @@ TreeStructuredParzenEstimator::TreeStructuredParzenEstimator(const Direction dir
     throw std::runtime_error("sample_stddev size is invalid");
   }
   base_stddev_.resize(input_dimension_);
-  base_stddev_[TRANS_X] = 2.0;                  // [m]
-  base_stddev_[TRANS_Y] = 2.0;                  // [m]
-  base_stddev_[TRANS_Z] = 2.0;                  // [m]
-  base_stddev_[ANGLE_X] = 10.0 / 180.0 * M_PI;  // [rad]
-  base_stddev_[ANGLE_Y] = 10.0 / 180.0 * M_PI;  // [rad]
-  base_stddev_[ANGLE_Z] = 20.0 / 180.0 * M_PI;  // [rad]
+  base_stddev_[TRANS_X] = 0.25;                // [m]
+  base_stddev_[TRANS_Y] = 0.25;                // [m]
+  base_stddev_[TRANS_Z] = 0.25;                // [m]
+  base_stddev_[ANGLE_X] = 1.0 / 180.0 * M_PI;  // [rad]
+  base_stddev_[ANGLE_Y] = 1.0 / 180.0 * M_PI;  // [rad]
+  base_stddev_[ANGLE_Z] = 2.5 / 180.0 * M_PI;  // [rad]
 }
 
 void TreeStructuredParzenEstimator::add_trial(const Trial& trial) {
@@ -57,6 +57,7 @@ TreeStructuredParzenEstimator::Input TreeStructuredParzenEstimator::get_next_inp
 #ifdef OUTPUT_DEBUG_INFO
   static int64_t counter = -1;
   counter++;
+  counter %= 200;
   auto to_string = [](const Input& input) {
     std::stringstream ss;
     ss << std::fixed;
@@ -153,7 +154,7 @@ double TreeStructuredParzenEstimator::compute_log_likelihood_ratio(const Input& 
 
   const double above = log_sum_exp(above_logs);
   const double below = log_sum_exp(below_logs);
-  const double r = above * 1.0 - below * 2.0;
+  const double r = above - below * 20.0;
   return r;
 }
 
@@ -174,6 +175,9 @@ double TreeStructuredParzenEstimator::log_gaussian_pdf(const Input& input, const
       while(diff < -M_PI) {
         diff += 2 * M_PI;
       }
+    }
+    if(i == TRANS_Z || i == ANGLE_X || i == ANGLE_Y) {
+      continue;
     }
     result += log_gaussian_pdf_1d(diff, sigma[i]);
   }
