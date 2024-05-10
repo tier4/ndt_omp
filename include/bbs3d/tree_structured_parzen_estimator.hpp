@@ -60,7 +60,7 @@ public:
 private:
   static constexpr double BASE_STDDEV_COEFF = 0.2;
   static constexpr double MAX_GOOD_RATE = 0.10;
-  static constexpr int64_t N_EI_CANDIDATES = 200;
+  static constexpr int64_t N_EI_CANDIDATES = 100;
 
   static std::mt19937_64 engine;
   static std::uniform_real_distribution<double> dist_uniform;
