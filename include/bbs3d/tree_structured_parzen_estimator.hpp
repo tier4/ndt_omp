@@ -62,8 +62,6 @@ private:
   static constexpr int64_t N_EI_CANDIDATES = 100;
 
   static std::mt19937_64 engine;
-  static std::uniform_real_distribution<double> dist_uniform;
-  static std::normal_distribution<double> dist_normal;
 
   double compute_log_likelihood_ratio(const Input& input) const;
   double log_gaussian_pdf(const Input& input, const Input& mu, const Input& sigma) const;
