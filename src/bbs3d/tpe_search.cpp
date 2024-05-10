@@ -54,7 +54,7 @@ SearchResult tpe_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, c
   ofs << std::fixed;
   ofs << "index,trans_x,trans_y,trans_z,angle_x,angle_y,angle_z,score" << std::endl;
 
-  for(int64_t i = 0; timer.elapsed_milli_seconds() < limit_msec; i++) {
+  for(int64_t i = 0; timer.elapsed_milli_seconds() < limit_msec && i < 200; i++) {
     const TreeStructuredParzenEstimator::Input input = tpe.get_next_input();
 
     geometry_msgs::msg::Pose initial_pose;
