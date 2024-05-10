@@ -52,7 +52,7 @@ SearchResult random_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr
   std::normal_distribution<double> normal_ap(base_rpy.y, stddev_pitch);
   std::uniform_real_distribution<double> uniform_ar(-M_PI, M_PI);
 
-  for(int64_t i = 0; timer.elapsed_milli_seconds() < limit_msec; i++) {
+  for(int64_t i = 0; timer.elapsed_milli_seconds() < limit_msec && i < 200; i++) {
     geometry_msgs::msg::Pose initial_pose;
     initial_pose.position.x = normal_tx(engine);
     initial_pose.position.y = normal_ty(engine);
@@ -69,7 +69,7 @@ SearchResult random_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr
     ndt_ptr->align(*output_cloud, initial_pose_matrix);
     const pclomp::NdtResult ndt_result = ndt_ptr->getResult();
 
-    Particle particle(initial_pose, matrix4f_to_pose(ndt_result.pose), ndt_result.nearest_voxel_transformation_likelihood, ndt_result.iteration_num);
+    Particle particle(initial_pose, matrix4f_to_pose(ndt_result.pose), ndt_result.transform_probability, ndt_result.iteration_num);
     particle_array.push_back(particle);
   }
 
