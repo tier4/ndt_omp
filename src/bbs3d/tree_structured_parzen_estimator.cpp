@@ -19,6 +19,12 @@
 #include <iostream>
 #include <numeric>
 
+// #define OUTPUT_DEBUG_INFO
+#ifdef OUTPUT_DEBUG_INFO
+#include <fstream>
+#include <filesystem>
+#endif
+
 // random number generator
 std::mt19937_64 TreeStructuredParzenEstimator::engine(std::random_device{}());
 
@@ -48,6 +54,32 @@ void TreeStructuredParzenEstimator::add_trial(const Trial& trial) {
 }
 
 TreeStructuredParzenEstimator::Input TreeStructuredParzenEstimator::get_next_input() const {
+#ifdef OUTPUT_DEBUG_INFO
+  static int64_t counter = -1;
+  counter++;
+  auto to_string = [](const Input& input) {
+    std::stringstream ss;
+    ss << std::fixed;
+    ss << input[TRANS_X] << "," << input[TRANS_Y] << "," << input[TRANS_Z] << "," << input[ANGLE_X] << "," << input[ANGLE_Y] << "," << input[ANGLE_Z];
+    return ss.str();
+  };
+  std::stringstream ss;
+  ss << std::setw(8) << std::setfill('0') << counter << ".csv";
+
+  std::filesystem::create_directories("tpe_trials");
+  std::ofstream ofs_trials("tpe_trials/" + ss.str());
+  ofs_trials << std::fixed;
+  ofs_trials << "index,is_above,trans_x,trans_y,trans_z,angle_x,angle_y,angle_z,score" << std::endl;
+  for(int64_t i = 0; i < static_cast<int64_t>(trials_.size()); i++) {
+    ofs_trials << i << "," << (i < above_num_) << "," << to_string(trials_[i].input) << "," << trials_[i].score << std::endl;
+  }
+
+  std::filesystem::create_directories("tpe_candidates");
+  std::ofstream ofs_candidates("tpe_candidates/" + ss.str());
+  ofs_candidates << std::fixed;
+  ofs_candidates << "index,trans_x,trans_y,trans_z,angle_x,angle_y,angle_z,score" << std::endl;
+#endif
+
   std::normal_distribution<double> dist_normal_trans_x(sample_mean_[TRANS_X], sample_stddev_[TRANS_X]);
   std::normal_distribution<double> dist_normal_trans_y(sample_mean_[TRANS_Y], sample_stddev_[TRANS_Y]);
   std::normal_distribution<double> dist_normal_trans_z(sample_mean_[TRANS_Z], sample_stddev_[TRANS_Z]);
@@ -82,6 +114,9 @@ TreeStructuredParzenEstimator::Input TreeStructuredParzenEstimator::get_next_inp
       best_log_likelihood_ratio = log_likelihood_ratio;
       best_input = input;
     }
+#ifdef OUTPUT_DEBUG_INFO
+    ofs_candidates << i << "," << input[TRANS_X] << "," << to_string(input) << "," << log_likelihood_ratio << std::endl;
+#endif
   }
   return best_input;
 }
