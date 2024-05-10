@@ -73,7 +73,8 @@ SearchResult tpe_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, c
     ndt_ptr->align(*output_cloud, initial_pose_matrix);
     const pclomp::NdtResult ndt_result = ndt_ptr->getResult();
 
-    Particle particle(initial_pose, matrix4f_to_pose(ndt_result.pose), ndt_result.nearest_voxel_transformation_likelihood, ndt_result.iteration_num);
+    const float score = ndt_result.transform_probability;
+    Particle particle(initial_pose, matrix4f_to_pose(ndt_result.pose), score, ndt_result.iteration_num);
     particle_array.push_back(particle);
 
     const geometry_msgs::msg::Pose pose = matrix4f_to_pose(ndt_result.pose);
@@ -86,9 +87,9 @@ SearchResult tpe_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, c
     result[3] = rpy.x;
     result[4] = rpy.y;
     result[5] = rpy.z;
-    tpe.add_trial(TreeStructuredParzenEstimator::Trial{result, ndt_result.nearest_voxel_transformation_likelihood});
+    tpe.add_trial(TreeStructuredParzenEstimator::Trial{result, score});
 
-    ofs << i << "," << pose.position.x << "," << pose.position.y << "," << pose.position.z << "," << rpy.x << "," << rpy.y << "," << rpy.z << "," << ndt_result.nearest_voxel_transformation_likelihood << std::endl;
+    ofs << i << "," << pose.position.x << "," << pose.position.y << "," << pose.position.z << "," << rpy.x << "," << rpy.y << "," << rpy.z << "," << score << std::endl;
   }
 
   auto best_particle_ptr = std::max_element(std::begin(particle_array), std::end(particle_array), [](const Particle& lhs, const Particle& rhs) { return lhs.score < rhs.score; });
