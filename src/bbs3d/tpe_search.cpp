@@ -50,9 +50,9 @@ SearchResult tpe_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, c
   std::vector<Particle> particle_array;
   auto output_cloud = std::make_shared<pcl::PointCloud<PointSource>>();
 
-  std::ofstream ofs("tpe_search.csv");
-  ofs << std::fixed;
-  ofs << "index,trans_x,trans_y,trans_z,angle_x,angle_y,angle_z,score" << std::endl;
+  // std::ofstream ofs("tpe_search.csv");
+  // ofs << std::fixed;
+  // ofs << "index,trans_x,trans_y,trans_z,angle_x,angle_y,angle_z,score" << std::endl;
 
   for(int64_t i = 0; timer.elapsed_milli_seconds() < limit_msec && i < 200; i++) {
     const TreeStructuredParzenEstimator::Input input = tpe.get_next_input();
@@ -89,7 +89,7 @@ SearchResult tpe_search(std::shared_ptr<NormalDistributionsTransform> ndt_ptr, c
     result[5] = rpy.z;
     tpe.add_trial(TreeStructuredParzenEstimator::Trial{result, score});
 
-    ofs << i << "," << pose.position.x << "," << pose.position.y << "," << pose.position.z << "," << rpy.x << "," << rpy.y << "," << rpy.z << "," << score << std::endl;
+    // ofs << i << "," << pose.position.x << "," << pose.position.y << "," << pose.position.z << "," << rpy.x << "," << rpy.y << "," << rpy.z << "," << score << std::endl;
   }
 
   auto best_particle_ptr = std::max_element(std::begin(particle_array), std::end(particle_array), [](const Particle& lhs, const Particle& rhs) { return lhs.score < rhs.score; });
