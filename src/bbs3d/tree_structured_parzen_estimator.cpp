@@ -154,7 +154,7 @@ double TreeStructuredParzenEstimator::compute_log_likelihood_ratio(const Input& 
 
   const double above = log_sum_exp(above_logs);
   const double below = log_sum_exp(below_logs);
-  const double r = above - below * 20.0;
+  const double r = above - below * 5.0;
   return r;
 }
 
