@@ -421,12 +421,7 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeD
     nearest_voxel_transformation_likelihood_ = 0.0;
   }
   nearest_voxel_transformation_likelihood_array_.push_back(nearest_voxel_transformation_likelihood_);
-  float transform_probability;
-  if(input_->points.empty()) {
-    transform_probability = 0.0f;
-  } else {
-    transform_probability = score / static_cast<double>(input_->points.size());
-  }
+  const float transform_probability = (input_->points.empty() ? 0.0f : score / static_cast<double>(input_->points.size()));
   transform_probability_array_.push_back(transform_probability);
   return (score);
 }
