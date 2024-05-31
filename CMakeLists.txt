@@ -59,6 +59,7 @@ endif()
 ament_auto_add_library(multigrid_ndt_omp SHARED
   src/multigrid_pclomp/multi_voxel_grid_covariance_omp.cpp
   src/multigrid_pclomp/multigrid_ndt_omp.cpp
+  src/estimate_covariance/estimate_covariance.cpp
 )
 target_link_libraries(multigrid_ndt_omp ${PCL_LIBRARIES})
 if(OpenMP_CXX_FOUND)
@@ -72,6 +73,17 @@ endif()
 
 ament_auto_package()
 
+add_executable(align
+  apps/align.cpp
+)
+add_dependencies(align
+  ndt_omp multigrid_ndt_omp
+)
+target_link_libraries(align
+  ${PCL_LIBRARIES}
+  ndt_omp multigrid_ndt_omp
+)
+
 # regression test
 add_executable(regression_test
   apps/regression_test.cpp
@@ -80,6 +92,21 @@ add_dependencies(regression_test
   ndt_omp multigrid_ndt_omp
 )
 target_link_libraries(regression_test
+  ${PCL_LIBRARIES}
+  ndt_omp multigrid_ndt_omp
+)
+
+# check_covariance
+add_executable(check_covariance
+  apps/check_covariance.cpp
+)
+add_dependencies(check_covariance
+  ndt_omp multigrid_ndt_omp
+)
+include_directories(
+  ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(check_covariance
   ${PCL_LIBRARIES}
   ndt_omp multigrid_ndt_omp
 )

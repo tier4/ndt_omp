@@ -23,15 +23,12 @@ if __name__ == "__main__":
     reference_df = pd.read_csv(reference_output_dir / "result.csv")
 
     """
-    elapsed_milliseconds,score
-    884.714000,3.959331
-    15.413000,3.725043
+    elapsed_milliseconds,nvtl_score,tp_score
+    25.296000,3.245870,6.492360
+    21.354000,3.222864,6.484425
+    21.320000,3.249374,6.525939
     ...
     """
-
-    # The first data point in results is slow, so remove it.
-    current_df = current_df.iloc[1:]
-    reference_df = reference_df.iloc[1:]
 
     # calculate the ratio of elapsed time
     elapsed_milliseconds_ratio = (
@@ -56,13 +53,19 @@ if __name__ == "__main__":
     plt.close()
 
     # calculate difference of score
-    score_diff = current_df["score"] - reference_df["score"]
-    all_zero = (score_diff == 0).all()
-    if all_zero:
+    score_diff_nvtl = current_df["nvtl_score"] - reference_df["nvtl_score"]
+    all_zero_nvtl = (score_diff_nvtl == 0).all()
+
+    score_diff_tp = current_df["tp_score"] - reference_df["tp_score"]
+    all_zero_tp = (score_diff_tp == 0).all()
+
+    if all_zero_nvtl and all_zero_tp:
         print("The scores are perfectly the same.")
         print("OK")
         exit(0)
 
-    score_diff_abs_mean = score_diff.abs().mean()
-    print(f"{score_diff_abs_mean=:.3f}")
-    assert score_diff_abs_mean < 0.1, "The score is too different."
+    score_diff_abs_mean_nvtl = score_diff_nvtl.abs().mean()
+    score_diff_abs_mean_tp = score_diff_tp.abs().mean()
+    print(f"{score_diff_abs_mean_nvtl=:.3f}, {score_diff_abs_mean_tp=:.3f}")
+    assert score_diff_abs_mean_nvtl < 0.1, "The nvtl_score is too different."
+    assert score_diff_abs_mean_tp < 0.1, "The tp_score is too different."

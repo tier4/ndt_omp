@@ -46,31 +46,11 @@
 #include <pcl/registration/registration.h>
 #include <pcl/search/impl/search.hpp>
 #include "voxel_grid_covariance_omp.h"
+#include "ndt_struct.hpp"
 
 #include <unsupported/Eigen/NonLinearOptimization>
 
 namespace pclomp {
-enum NeighborSearchMethod { KDTREE, DIRECT26, DIRECT7, DIRECT1 };
-
-struct NdtResult {
-  Eigen::Matrix4f pose;
-  float transform_probability;
-  float nearest_voxel_transformation_likelihood;
-  int iteration_num;
-  std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array;
-  Eigen::Matrix<double, 6, 6> hessian;
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};
-
-struct NdtParams {
-  double trans_epsilon;
-  double step_size;
-  double resolution;
-  int max_iterations;
-  pclomp::NeighborSearchMethod search_method;
-  int num_threads;
-  float regularization_scale_factor;
-};
 
 /** \brief A 3D Normal Distribution Transform registration implementation for point cloud data.
  * \note For more information please see
@@ -116,7 +96,7 @@ public:
 #endif
 
   /** \brief Constructor.
-   * Sets \ref outlier_ratio_ to 0.35, \ref step_size_ to 0.05 and \ref resolution_ to 1.0
+   * Sets \ref outlier_ratio_ to 0.35, \ref step_size_ to 0.05 and \ref params_.resolution to 1.0
    */
   NormalDistributionsTransform();
 
@@ -124,11 +104,11 @@ public:
   virtual ~NormalDistributionsTransform() {}
 
   void setNumThreads(int n) {
-    num_threads_ = n;
+    params_.num_threads = n;
   }
 
   inline int getNumThreads() const {
-    return num_threads_;
+    return params_.num_threads;
   }
 
   /** \brief Provide a pointer to the input target (e.g., the point cloud that we want to align the input source to).
@@ -144,8 +124,8 @@ public:
    */
   inline void setResolution(float resolution) {
     // Prevents unnecessary voxel initiations
-    if(resolution_ != resolution) {
-      resolution_ = resolution;
+    if(params_.resolution != resolution) {
+      params_.resolution = resolution;
       if(input_) init();
     }
   }
@@ -154,21 +134,21 @@ public:
    * \return side length of voxels
    */
   inline float getResolution() const {
-    return (resolution_);
+    return (params_.resolution);
   }
 
   /** \brief Get the newton line search maximum step length.
    * \return maximum step length
    */
   inline double getStepSize() const {
-    return (step_size_);
+    return (params_.step_size);
   }
 
   /** \brief Set/change the newton line search maximum step length.
    * \param[in] step_size maximum step length
    */
   inline void setStepSize(double step_size) {
-    step_size_ = step_size;
+    params_.step_size = step_size;
   }
 
   /** \brief Get the point cloud outlier ratio.
@@ -186,11 +166,11 @@ public:
   }
 
   inline void setNeighborhoodSearchMethod(NeighborSearchMethod method) {
-    search_method = method;
+    params_.search_method = method;
   }
 
   inline NeighborSearchMethod getNeighborhoodSearchMethod() const {
-    return search_method;
+    return params_.search_method;
   }
 
   /** \brief Get the registration alignment probability.
@@ -246,7 +226,7 @@ public:
   double calculateNearestVoxelTransformationLikelihood(const PointCloudSource &cloud) const;
 
   inline void setRegularizationScaleFactor(float regularization_scale_factor) {
-    regularization_scale_factor_ = regularization_scale_factor;
+    params_.regularization_scale_factor = regularization_scale_factor;
   }
 
   inline void setRegularizationPose(Eigen::Matrix4f regularization_pose) {
@@ -268,26 +248,36 @@ public:
     return ndt_result;
   }
 
+  /** \brief Set the transformation epsilon (maximum allowable translation squared
+   * difference between two consecutive transformations) in order for an optimization to
+   * be considered as having converged to the final solution. \param[in] epsilon the
+   * transformation epsilon in order for an optimization to be considered as having
+   * converged to the final solution.
+   */
+  inline void setTransformationEpsilon(double epsilon) {
+    params_.trans_epsilon = epsilon;
+  }
+
+  /** \brief Get the transformation epsilon (maximum allowable translation squared
+   * difference between two consecutive transformations) as set by the user.
+   */
+  inline double getTransformationEpsilon() {
+    return (params_.trans_epsilon);
+  }
+
+  inline void setMaximumIterations(int max_iterations) {
+    params_.max_iterations = max_iterations;
+  }
+  inline int getMaxIterations() const {
+    return params_.max_iterations;
+  }
+
   void setParams(const NdtParams &ndt_params) {
-    this->setTransformationEpsilon(ndt_params.trans_epsilon);
-    this->setStepSize(ndt_params.step_size);
-    this->setResolution(ndt_params.resolution);
-    this->setMaximumIterations(ndt_params.max_iterations);
-    setRegularizationScaleFactor(ndt_params.regularization_scale_factor);
-    setNeighborhoodSearchMethod(ndt_params.search_method);
-    setNumThreads(ndt_params.num_threads);
+    params_ = ndt_params;
   }
 
   NdtParams getParams() const {
-    NdtParams ndt_params;
-    ndt_params.trans_epsilon = transformation_epsilon_;
-    ndt_params.step_size = getStepSize();
-    ndt_params.resolution = getResolution();
-    ndt_params.max_iterations = max_iterations_;
-    ndt_params.regularization_scale_factor = regularization_scale_factor_;
-    ndt_params.search_method = getNeighborhoodSearchMethod();
-    ndt_params.num_threads = num_threads_;
-    return ndt_params;
+    return params_;
   }
 
 protected:
@@ -297,11 +287,9 @@ protected:
   using pcl::Registration<PointSource, PointTarget>::indices_;
   using pcl::Registration<PointSource, PointTarget>::target_;
   using pcl::Registration<PointSource, PointTarget>::nr_iterations_;
-  using pcl::Registration<PointSource, PointTarget>::max_iterations_;
   using pcl::Registration<PointSource, PointTarget>::previous_transformation_;
   using pcl::Registration<PointSource, PointTarget>::final_transformation_;
   using pcl::Registration<PointSource, PointTarget>::transformation_;
-  using pcl::Registration<PointSource, PointTarget>::transformation_epsilon_;
   using pcl::Registration<PointSource, PointTarget>::converged_;
   using pcl::Registration<PointSource, PointTarget>::corr_dist_threshold_;
   using pcl::Registration<PointSource, PointTarget>::inlier_threshold_;
@@ -323,7 +311,7 @@ protected:
 
   /** \brief Initiate covariance voxel structure. */
   void inline init() {
-    target_cells_.setLeafSize(resolution_, resolution_, resolution_);
+    target_cells_.setLeafSize(params_.resolution, params_.resolution, params_.resolution);
     target_cells_.setInputCloud(target_);
     // Initiate voxel structure.
     target_cells_.filter(true);
@@ -459,12 +447,6 @@ protected:
 
   // double fitness_epsilon_;
 
-  /** \brief The side length of voxels. */
-  float resolution_;
-
-  /** \brief The maximum step length. */
-  double step_size_;
-
   /** \brief The ratio of outliers of points w.r.t. a normal distribution, Equation 6.7 [Magnusson 2009]. */
   double outlier_ratio_;
 
@@ -496,19 +478,16 @@ protected:
   /** \brief The second order derivative of the transformation of a point w.r.t. the transform vector, \f$ H_E \f$ in Equation 6.20 [Magnusson 2009]. */
   //      Eigen::Matrix<double, 18, 6> point_hessian_;
 
-  int num_threads_;
-
   Eigen::Matrix<double, 6, 6> hessian_;
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array_;
   double nearest_voxel_transformation_likelihood_;
 
-  float regularization_scale_factor_;
   boost::optional<Eigen::Matrix4f> regularization_pose_;
   Eigen::Vector3f regularization_pose_translation_;
 
-public:
-  NeighborSearchMethod search_method;
+  NdtParams params_;
 
+public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 

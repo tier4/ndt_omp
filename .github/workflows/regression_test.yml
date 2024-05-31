@@ -5,6 +5,8 @@ on:
     types:
       - opened
       - synchronize
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
   regression_test:
@@ -21,7 +23,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y wget unzip libpcl-dev python3-pip
-          pip3 install pandas matplotlib
+          pip3 install pandas matplotlib tqdm
 
       - name: Download data
         run: |
@@ -37,13 +39,19 @@ jobs:
           make -j
           cd ..
 
-      - name: Run
+      - name: Run regression test
         run: |
           ./script/execute_regression_test.sh
+
+      - name: Run check_covariance
+        run: |
+          ./script/execute_check_covariance.sh ./regression_test_data/input/ ./regression_test_data/output_check_covariance/
 
       - name: Upload output files
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: regression-test-output
-          path: ./regression_test_data/output/
+          path: |
+            ./regression_test_data/output/
+            ./regression_test_data/output_check_covariance/

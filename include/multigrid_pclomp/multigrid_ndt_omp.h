@@ -60,42 +60,11 @@
 #include <pcl/search/impl/search.hpp>
 #include <pcl/registration/registration.h>
 #include "multigrid_pclomp/multi_voxel_grid_covariance_omp.h"
+#include "../pclomp/ndt_struct.hpp"
 
 #include <unsupported/Eigen/NonLinearOptimization>
 
 namespace pclomp {
-enum NeighborSearchMethod { KDTREE, DIRECT26, DIRECT7, DIRECT1 };
-
-struct NdtResult {
-  Eigen::Matrix4f pose;
-  float transform_probability;
-  float nearest_voxel_transformation_likelihood;
-  int iteration_num;
-  Eigen::Matrix<double, 6, 6> hessian;
-  std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array;
-  std::vector<float> transform_probability_array;
-  std::vector<float> nearest_voxel_transformation_likelihood_array;
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-  friend std::ostream &operator<<(std::ostream &os, const NdtResult &val) {
-    os << "Pose: " << std::endl << val.pose << std::endl;
-    os << "TP: " << val.transform_probability << std::endl;
-    os << "NVTP: " << val.nearest_voxel_transformation_likelihood << std::endl;
-    os << "Iteration num: " << val.iteration_num << std::endl;
-    os << "Hessian: " << std::endl << val.hessian << std::endl;
-
-    return os;
-  }
-};
-
-struct NdtParams {
-  double trans_epsilon;
-  double step_size;
-  double resolution;
-  int max_iterations;
-  int num_threads;
-  float regularization_scale_factor;
-};
 
 /** \brief A 3D Normal Distribution Transform registration implementation for point cloud data.
  * \note For more information please see
@@ -111,27 +80,19 @@ struct NdtParams {
 template<typename PointSource, typename PointTarget>
 class MultiGridNormalDistributionsTransform : public pcl::Registration<PointSource, PointTarget> {
 protected:
-  typedef typename pcl::Registration<PointSource, PointTarget>::PointCloudSource PointCloudSource;
+  typedef pcl::Registration<PointSource, PointTarget> BaseRegType;
+  typedef typename BaseRegType::PointCloudSource PointCloudSource;
   typedef typename PointCloudSource::Ptr PointCloudSourcePtr;
   typedef typename PointCloudSource::ConstPtr PointCloudSourceConstPtr;
 
-  typedef typename pcl::Registration<PointSource, PointTarget>::PointCloudTarget PointCloudTarget;
+  typedef typename BaseRegType::PointCloudTarget PointCloudTarget;
   typedef typename PointCloudTarget::Ptr PointCloudTargetPtr;
   typedef typename PointCloudTarget::ConstPtr PointCloudTargetConstPtr;
 
-  typedef pcl::PointIndices::Ptr PointIndicesPtr;
-  typedef pcl::PointIndices::ConstPtr PointIndicesConstPtr;
-
   /** \brief Typename of searchable voxel grid containing mean and covariance. */
   typedef pclomp::MultiVoxelGridCovariance<PointTarget> TargetGrid;
-  /** \brief Typename of pointer to searchable voxel grid. */
-  typedef TargetGrid *TargetGridPtr;
-  /** \brief Typename of const pointer to searchable voxel grid. */
-  typedef const TargetGrid *TargetGridConstPtr;
   /** \brief Typename of const pointer to searchable voxel grid leaf. */
   typedef typename TargetGrid::LeafConstPtr TargetGridLeafConstPtr;
-
-  typedef pcl::Registration<PointSource, PointTarget> BaseRegType;
 
 public:
 #if PCL_VERSION >= PCL_VERSION_CALC(1, 10, 0)
@@ -143,7 +104,7 @@ public:
 #endif
 
   /** \brief Constructor.
-   * Sets \ref outlier_ratio_ to 0.35, \ref step_size_ to 0.05 and \ref resolution_ to 1.0
+   * Sets \ref outlier_ratio_ to 0.35, \ref params_.step_size to 0.05 and \ref params_.resolution to 1.0
    */
   MultiGridNormalDistributionsTransform();
 
@@ -159,18 +120,23 @@ public:
   virtual ~MultiGridNormalDistributionsTransform() {}
 
   void setNumThreads(int n) {
-    num_threads_ = n;
+    params_.num_threads = n;
+
+    target_cells_.setThreadNum(params_.num_threads);
   }
 
   inline int getNumThreads() const {
-    return num_threads_;
+    return params_.num_threads;
   }
 
   inline void setInputSource(const PointCloudSourceConstPtr &input) {
     // This is to avoid segmentation fault when setting null input
     // No idea why PCL does not check the nullity of input
     if(input) {
-      pcl::Registration<PointSource, PointTarget>::setInputSource(input);
+      BaseRegType::setInputSource(input);
+    } else {
+      std::cerr << "Error: Null input source cloud is not allowed" << std::endl;
+      exit(EXIT_FAILURE);
     }
   }
 
@@ -184,8 +150,8 @@ public:
    * \param[in] cloud the input point cloud target
    */
   inline void addTarget(const PointCloudTargetConstPtr &cloud, const std::string &target_id) {
-    pcl::Registration<PointSource, PointTarget>::setInputTarget(cloud);
-    target_cells_.setLeafSize(resolution_, resolution_, resolution_);
+    BaseRegType::setInputTarget(cloud);
+    target_cells_.setLeafSize(params_.resolution, params_.resolution, params_.resolution);
     target_cells_.setInputCloudAndFilter(cloud, target_id);
   }
 
@@ -195,6 +161,7 @@ public:
 
   inline void createVoxelKdtree() {
     target_cells_.createKdtree();
+    target_cloud_updated_ = false;
   }
 
   /** \brief Set/change the voxel grid resolution.
@@ -202,8 +169,8 @@ public:
    */
   inline void setResolution(float resolution) {
     // Prevents unnecessary voxel initiations
-    if(resolution_ != resolution) {
-      resolution_ = resolution;
+    if(params_.resolution != resolution) {
+      params_.resolution = resolution;
       if(input_) init();
     }
   }
@@ -212,21 +179,21 @@ public:
    * \return side length of voxels
    */
   inline float getResolution() const {
-    return (resolution_);
+    return (params_.resolution);
   }
 
   /** \brief Get the newton line search maximum step length.
    * \return maximum step length
    */
   inline double getStepSize() const {
-    return (step_size_);
+    return (params_.step_size);
   }
 
   /** \brief Set/change the newton line search maximum step length.
    * \param[in] step_size maximum step length
    */
   inline void setStepSize(double step_size) {
-    step_size_ = step_size;
+    params_.step_size = step_size;
   }
 
   /** \brief Get the point cloud outlier ratio.
@@ -291,12 +258,11 @@ public:
 
   // negative log likelihood function
   // lower is better
-  double calculateScore(const PointCloudSource &cloud) const;
   double calculateTransformationProbability(const PointCloudSource &cloud) const;
   double calculateNearestVoxelTransformationLikelihood(const PointCloudSource &cloud) const;
 
   inline void setRegularizationScaleFactor(float regularization_scale_factor) {
-    regularization_scale_factor_ = regularization_scale_factor;
+    params_.regularization_scale_factor = regularization_scale_factor;
   }
 
   inline void setRegularizationPose(Eigen::Matrix4f regularization_pose) {
@@ -320,24 +286,45 @@ public:
     return ndt_result;
   }
 
+  /** \brief Set the transformation epsilon (maximum allowable translation squared
+   * difference between two consecutive transformations) in order for an optimization to
+   * be considered as having converged to the final solution. \param[in] epsilon the
+   * transformation epsilon in order for an optimization to be considered as having
+   * converged to the final solution.
+   */
+  inline void setTransformationEpsilon(double epsilon) {
+    params_.trans_epsilon = epsilon;
+  }
+
+  /** \brief Get the transformation epsilon (maximum allowable translation squared
+   * difference between two consecutive transformations) as set by the user.
+   */
+  inline double getTransformationEpsilon() {
+    return (params_.trans_epsilon);
+  }
+
+  inline void setMaximumIterations(int max_iterations) {
+    params_.max_iterations = max_iterations;
+    max_iterations_ = params_.max_iterations;
+  }
+
+  inline int getMaxIterations() const {
+    return params_.max_iterations;
+  }
+
+  inline int getMaxIterations() {
+    return params_.max_iterations;
+  }
+
   void setParams(const NdtParams &ndt_params) {
-    this->setTransformationEpsilon(ndt_params.trans_epsilon);
-    this->setStepSize(ndt_params.step_size);
-    this->setResolution(ndt_params.resolution);
-    this->setMaximumIterations(ndt_params.max_iterations);
-    setRegularizationScaleFactor(ndt_params.regularization_scale_factor);
-    setNumThreads(ndt_params.num_threads);
+    params_ = ndt_params;
+    max_iterations_ = params_.max_iterations;
+
+    target_cells_.setThreadNum(params_.num_threads);
   }
 
   NdtParams getParams() const {
-    NdtParams ndt_params;
-    ndt_params.trans_epsilon = transformation_epsilon_;
-    ndt_params.step_size = getStepSize();
-    ndt_params.resolution = getResolution();
-    ndt_params.max_iterations = max_iterations_;
-    ndt_params.regularization_scale_factor = regularization_scale_factor_;
-    ndt_params.num_threads = num_threads_;
-    return ndt_params;
+    return params_;
   }
 
   pcl::PointCloud<PointTarget> getVoxelPCD() const {
@@ -349,18 +336,19 @@ public:
   }
 
 protected:
-  using pcl::Registration<PointSource, PointTarget>::reg_name_;
-  using pcl::Registration<PointSource, PointTarget>::input_;
-  using pcl::Registration<PointSource, PointTarget>::target_;
-  using pcl::Registration<PointSource, PointTarget>::nr_iterations_;
-  using pcl::Registration<PointSource, PointTarget>::max_iterations_;
-  using pcl::Registration<PointSource, PointTarget>::previous_transformation_;
-  using pcl::Registration<PointSource, PointTarget>::final_transformation_;
-  using pcl::Registration<PointSource, PointTarget>::transformation_;
-  using pcl::Registration<PointSource, PointTarget>::transformation_epsilon_;
-  using pcl::Registration<PointSource, PointTarget>::converged_;
+  using BaseRegType::reg_name_;
+  using BaseRegType::input_;
+  using BaseRegType::target_;
+  using BaseRegType::nr_iterations_;
+  using BaseRegType::max_iterations_;
+  using BaseRegType::previous_transformation_;
+  using BaseRegType::final_transformation_;
+  using BaseRegType::transformation_;
+  using BaseRegType::transformation_epsilon_;
+  using BaseRegType::converged_;
+  using BaseRegType::target_cloud_updated_;
 
-  using pcl::Registration<PointSource, PointTarget>::update_visualizer_;
+  using BaseRegType::update_visualizer_;
 
   /** \brief Estimate the transformation and returns the transformed source (input) as output.
    * \param[out] output the resultant input transformed point cloud dataset
@@ -396,7 +384,7 @@ protected:
    * \param[in] c_inv covariance of occupied covariance voxel
    * \param[in] compute_hessian flag to calculate hessian, unnecessary for step calculation.
    */
-  double updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<float, 4, 6> &point_gradient_, const Eigen::Matrix<float, 24, 6> &point_hessian_, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv, bool compute_hessian = true) const;
+  double updateDerivatives(Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 4, 6> &point_gradient, const Eigen::Matrix<double, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv, bool compute_hessian = true) const;
 
   /** \brief Precompute angular components of derivatives.
    * \note Equation 6.19 and 6.21 [Magnusson 2009].
@@ -410,9 +398,7 @@ protected:
    * \param[in] x point from the input cloud
    * \param[in] compute_hessian flag to calculate hessian, unnecessary for step calculation.
    */
-  void computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<double, 3, 6> &point_gradient_, Eigen::Matrix<double, 18, 6> &point_hessian_, bool compute_hessian = true) const;
-
-  void computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<float, 4, 6> &point_gradient_, Eigen::Matrix<float, 24, 6> &point_hessian_, bool compute_hessian = true) const;
+  void computePointDerivatives(Eigen::Vector3d &x, Eigen::Matrix<double, 4, 6> &point_gradient, Eigen::Matrix<double, 24, 6> &point_hessian, bool compute_hessian = true) const;
 
   /** \brief Compute hessian of probability function w.r.t. the transformation vector.
    * \note Equation 6.13 [Magnusson 2009].
@@ -428,7 +414,7 @@ protected:
    * \param[in] x_trans transformed point minus mean of occupied covariance voxel
    * \param[in] c_inv covariance of occupied covariance voxel
    */
-  void updateHessian(Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 3, 6> &point_gradient_, const Eigen::Matrix<double, 18, 6> &point_hessian_, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv) const;
+  void updateHessian(Eigen::Matrix<double, 6, 6> &hessian, const Eigen::Matrix<double, 4, 6> &point_gradient, const Eigen::Matrix<double, 24, 6> &point_hessian, const Eigen::Vector3d &x_trans, const Eigen::Matrix3d &c_inv) const;
 
   /** \brief Compute line search step length and update transform and probability derivatives using More-Thuente method.
    * \note Search Algorithm [More, Thuente 1994]
@@ -508,12 +494,6 @@ protected:
 
   // double fitness_epsilon_;
 
-  /** \brief The side length of voxels. */
-  float resolution_;
-
-  /** \brief The maximum step length. */
-  double step_size_;
-
   /** \brief The ratio of outliers of points w.r.t. a normal distribution, Equation 6.7 [Magnusson 2009]. */
   double outlier_ratio_;
 
@@ -527,25 +507,13 @@ protected:
    *
    * The precomputed angular derivatives for the jacobian of a transformation vector, Equation 6.19 [Magnusson 2009].
    */
-  Eigen::Vector3d j_ang_a_, j_ang_b_, j_ang_c_, j_ang_d_, j_ang_e_, j_ang_f_, j_ang_g_, j_ang_h_;
-
-  Eigen::Matrix<float, 8, 4> j_ang;
+  Eigen::Matrix<double, 8, 4> j_ang_;
 
   /** \brief Precomputed Angular Hessian
    *
    * The precomputed angular derivatives for the hessian of a transformation vector, Equation 6.19 [Magnusson 2009].
    */
-  Eigen::Vector3d h_ang_a2_, h_ang_a3_, h_ang_b2_, h_ang_b3_, h_ang_c2_, h_ang_c3_, h_ang_d1_, h_ang_d2_, h_ang_d3_, h_ang_e1_, h_ang_e2_, h_ang_e3_, h_ang_f1_, h_ang_f2_, h_ang_f3_;
-
-  Eigen::Matrix<float, 16, 4> h_ang;
-
-  /** \brief The first order derivative of the transformation of a point w.r.t. the transform vector, \f$ J_E \f$ in Equation 6.18 [Magnusson 2009]. */
-  //      Eigen::Matrix<double, 3, 6> point_gradient_;
-
-  /** \brief The second order derivative of the transformation of a point w.r.t. the transform vector, \f$ H_E \f$ in Equation 6.20 [Magnusson 2009]. */
-  //      Eigen::Matrix<double, 18, 6> point_hessian_;
-
-  int num_threads_;
+  Eigen::Matrix<double, 16, 4> h_ang_;
 
   Eigen::Matrix<double, 6, 6> hessian_;
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array_;
@@ -553,9 +521,10 @@ protected:
   std::vector<float> nearest_voxel_transformation_likelihood_array_;
   double nearest_voxel_transformation_likelihood_;
 
-  float regularization_scale_factor_;
   boost::optional<Eigen::Matrix4f> regularization_pose_;
   Eigen::Vector3f regularization_pose_translation_;
+
+  NdtParams params_;
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
