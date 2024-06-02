@@ -278,7 +278,9 @@ public:
     ndt_result.pose = this->getFinalTransformation();
     ndt_result.transformation_array = getFinalTransformationArray();
     ndt_result.transform_probability = getTransformationProbability();
+    ndt_result.transform_probability_array = transform_probability_array_;
     ndt_result.nearest_voxel_transformation_likelihood = getNearestVoxelTransformationLikelihood();
+    ndt_result.nearest_voxel_transformation_likelihood_array = nearest_voxel_transformation_likelihood_array_;
     ndt_result.iteration_num = getFinalNumIteration();
     ndt_result.hessian = getHessian();
     return ndt_result;
@@ -515,6 +517,8 @@ protected:
 
   Eigen::Matrix<double, 6, 6> hessian_;
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array_;
+  std::vector<float> transform_probability_array_;
+  std::vector<float> nearest_voxel_transformation_likelihood_array_;
   double nearest_voxel_transformation_likelihood_;
 
   boost::optional<Eigen::Matrix4f> regularization_pose_;

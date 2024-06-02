@@ -69,6 +69,8 @@ struct NdtResult {
   int iteration_num;
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array;
   Eigen::Matrix<double, 6, 6> hessian;
+  std::vector<float> transform_probability_array;
+  std::vector<float> nearest_voxel_transformation_likelihood_array;
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   friend std::ostream &operator<<(std::ostream &os, const NdtResult &val) {

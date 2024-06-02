@@ -71,6 +71,8 @@ MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormal
 
   hessian_ = other.hessian_;
   transformation_array_ = other.transformation_array_;
+  transform_probability_array_ = other.transform_probability_array_;
+  nearest_voxel_transformation_likelihood_array_ = other.nearest_voxel_transformation_likelihood_array_;
   nearest_voxel_transformation_likelihood_ = other.nearest_voxel_transformation_likelihood_;
 
   regularization_pose_ = other.regularization_pose_;
@@ -88,6 +90,8 @@ MultiGridNormalDistributionsTransform<PointSource, PointTarget>::MultiGridNormal
 
   hessian_ = other.hessian_;
   transformation_array_ = other.transformation_array_;
+  transform_probability_array_ = other.transform_probability_array_;
+  nearest_voxel_transformation_likelihood_array_ = other.nearest_voxel_transformation_likelihood_array_;
   nearest_voxel_transformation_likelihood_ = other.nearest_voxel_transformation_likelihood_;
 
   regularization_pose_ = other.regularization_pose_;
@@ -109,6 +113,8 @@ MultiGridNormalDistributionsTransform<PointSource, PointTarget> &MultiGridNormal
 
   hessian_ = other.hessian_;
   transformation_array_ = other.transformation_array_;
+  transform_probability_array_ = other.transform_probability_array_;
+  nearest_voxel_transformation_likelihood_array_ = other.nearest_voxel_transformation_likelihood_array_;
   nearest_voxel_transformation_likelihood_ = other.nearest_voxel_transformation_likelihood_;
 
   regularization_pose_ = other.regularization_pose_;
@@ -132,6 +138,8 @@ MultiGridNormalDistributionsTransform<PointSource, PointTarget> &MultiGridNormal
 
   hessian_ = other.hessian_;
   transformation_array_ = other.transformation_array_;
+  transform_probability_array_ = other.transform_probability_array_;
+  nearest_voxel_transformation_likelihood_array_ = other.nearest_voxel_transformation_likelihood_array_;
   nearest_voxel_transformation_likelihood_ = other.nearest_voxel_transformation_likelihood_;
 
   regularization_pose_ = other.regularization_pose_;
@@ -191,6 +199,9 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
   eig_transformation.matrix() = final_transformation_;
   transformation_array_.clear();
   transformation_array_.push_back(final_transformation_);
+
+  transform_probability_array_.clear();
+  nearest_voxel_transformation_likelihood_array_.clear();
 
   // Convert initial guess matrix to 6 element transformation vector
   Eigen::Matrix<double, 6, 1> p, delta_p, score_gradient;
@@ -409,7 +420,9 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeD
   } else {
     nearest_voxel_transformation_likelihood_ = 0.0;
   }
-
+  nearest_voxel_transformation_likelihood_array_.push_back(nearest_voxel_transformation_likelihood_);
+  const float transform_probability = (input_->points.empty() ? 0.0f : score / static_cast<double>(input_->points.size()));
+  transform_probability_array_.push_back(transform_probability);
   return (score);
 }
 

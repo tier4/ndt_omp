@@ -107,6 +107,9 @@ int main(int argc, char** argv) {
     const pclomp::NdtResult ndt_result = mg_ndt_omp->getResult();
     const double elapsed = timer.elapsed_milliseconds();
 
+    const float gain_tp = ndt_result.transform_probability - ndt_result.transform_probability_array.front();
+    const float gain_nvtl = ndt_result.nearest_voxel_transformation_likelihood - ndt_result.nearest_voxel_transformation_likelihood_array.front();
+
     // output result
     const double tp = ndt_result.transform_probability;
     const double nvtl = ndt_result.nearest_voxel_transformation_likelihood;
@@ -114,7 +117,7 @@ int main(int argc, char** argv) {
     nvtl_scores.push_back(nvtl);
     tp_scores.push_back(tp);
     if(i % update_interval == 0) {
-      std::cout << "source_cloud->size()=" << std::setw(4) << source_cloud->size() << ", time=" << elapsed << " [msec], nvtl=" << nvtl << ", tp = " << tp << std::endl;
+      std::cout << "source_cloud->size()=" << std::setw(4) << source_cloud->size() << ", time=" << elapsed << " [msec], nvtl=" << nvtl << ", tp = " << tp << ", gain_nvtl=" << gain_nvtl << ", gain_tp=" << gain_tp << std::endl;
     }
   }
 
