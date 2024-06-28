@@ -332,11 +332,12 @@ namespace pclomp
           auto leaf = leaves_.find(leaf_indices_[*iter]);
           if (leaf == leaves_.end()) {
             std::cerr << "error : could not find the leaf corresponding to the voxel" << std::endl;
-            std::cin.ignore(1);
+            // std::cin.ignore(1);
+          } else {
+           k_leaves.push_back(&(leaf->second));
           }
-          k_leaves.push_back (&(leaf->second));
         }
-        return k;
+        return k_leaves.size();
       }
 
       /** \brief Search for all the nearest occupied voxels of the query point in a given radius.
