@@ -12,28 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <iostream>
-#include <chrono>
-#include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
-#include <pcl/point_cloud.h>
-#include <pcl/registration/ndt.h>
-#include <pcl/registration/gicp.h>
-#include <pcl/filters/voxel_grid.h>
-#include <pcl/visualization/pcl_visualizer.h>
-#include <omp.h>
-#include <glob.h>
-#include <filesystem>
-
-#include <pclomp/gicp_omp.h>
-#include <multigrid_pclomp/multigrid_ndt_omp.h>
-
-#include "util.hpp"
-#include "pcd_map_grid_manager.hpp"
 #include "timer.hpp"
 
-int main(int argc, char** argv) {
-  if(argc != 3) {
+#include <glob.h>
+#include <multigrid_pclomp/multigrid_ndt_omp.h>
+#include <omp.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/registration/gicp.h>
+#include <pcl/registration/ndt.h>
+#include <pcl/visualization/pcl_visualizer.h>
+#include <pclomp/gicp_omp.h>
+
+// must include after including pcl header
+// clang-format off
+#include "pcd_map_grid_manager.hpp"
+#include "util.hpp"
+// clang-format on
+
+#include <chrono>
+#include <filesystem>
+#include <iostream>
+
+int main(int argc, char ** argv)
+{
+  if (argc != 3) {
     std::cout << "usage: ./regression_test <input_dir> <output_dir>" << std::endl;
     return 0;
   }
@@ -50,16 +55,18 @@ int main(int argc, char** argv) {
   const std::vector<std::string> source_pcd_list = glob(source_pcd_dir);
 
   // load kinematic_state.csv
-  const std::vector<Eigen::Matrix4f> initial_pose_list = load_pose_list(input_dir + "/kinematic_state.csv");
+  const std::vector<Eigen::Matrix4f> initial_pose_list =
+    load_pose_list(input_dir + "/kinematic_state.csv");
 
-  if(initial_pose_list.size() != source_pcd_list.size()) {
+  if (initial_pose_list.size() != source_pcd_list.size()) {
     std::cerr << "initial_pose_list.size() != source_pcd_list.size()" << std::endl;
     return 1;
   }
   const int64_t n_data = initial_pose_list.size();
 
   // prepare ndt
-  pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr mg_ndt_omp(new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
+  pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr mg_ndt_omp(
+    new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
   mg_ndt_omp->setResolution(2.0);
   mg_ndt_omp->setNumThreads(4);
   mg_ndt_omp->setMaximumIterations(30);
@@ -80,21 +87,22 @@ int main(int argc, char** argv) {
   Timer timer;
 
   // execute align
-  for(int64_t i = 0; i < n_data; i++) {
+  for (int64_t i = 0; i < n_data; i++) {
     // get input
     const Eigen::Matrix4f initial_pose = initial_pose_list[i];
-    const std::string& source_pcd = source_pcd_list[i];
+    const std::string & source_pcd = source_pcd_list[i];
     const pcl::PointCloud<pcl::PointXYZ>::Ptr source_cloud = load_pcd(source_pcd);
     mg_ndt_omp->setInputSource(source_cloud);
 
     // update map
-    if(i % update_interval == 0) {
+    if (i % update_interval == 0) {
       const auto [add_result, remove_result] = map_grid_manager.query(initial_pose);
-      std::cout << "add_result.size()=" << std::setw(3) << add_result.size() << ", remove_result.size()=" << std::setw(3) << remove_result.size() << ", ";
-      for(const auto& [key, cloud] : add_result) {
+      std::cout << "add_result.size()=" << std::setw(3) << add_result.size()
+                << ", remove_result.size()=" << std::setw(3) << remove_result.size() << ", ";
+      for (const auto & [key, cloud] : add_result) {
         mg_ndt_omp->addTarget(cloud, key);
       }
-      for(const auto& key : remove_result) {
+      for (const auto & key : remove_result) {
         mg_ndt_omp->removeTarget(key);
       }
       mg_ndt_omp->createVoxelKdtree();
@@ -107,8 +115,10 @@ int main(int argc, char** argv) {
     const pclomp::NdtResult ndt_result = mg_ndt_omp->getResult();
     const double elapsed = timer.elapsed_milliseconds();
 
-    const float gain_tp = ndt_result.transform_probability - ndt_result.transform_probability_array.front();
-    const float gain_nvtl = ndt_result.nearest_voxel_transformation_likelihood - ndt_result.nearest_voxel_transformation_likelihood_array.front();
+    const float gain_tp =
+      ndt_result.transform_probability - ndt_result.transform_probability_array.front();
+    const float gain_nvtl = ndt_result.nearest_voxel_transformation_likelihood -
+                            ndt_result.nearest_voxel_transformation_likelihood_array.front();
 
     // output result
     const double tp = ndt_result.transform_probability;
@@ -116,8 +126,10 @@ int main(int argc, char** argv) {
     elapsed_milliseconds.push_back(elapsed);
     nvtl_scores.push_back(nvtl);
     tp_scores.push_back(tp);
-    if(i % update_interval == 0) {
-      std::cout << "source_cloud->size()=" << std::setw(4) << source_cloud->size() << ", time=" << elapsed << " [msec], nvtl=" << nvtl << ", tp = " << tp << ", gain_nvtl=" << gain_nvtl << ", gain_tp=" << gain_tp << std::endl;
+    if (i % update_interval == 0) {
+      std::cout << "source_cloud->size()=" << std::setw(4) << source_cloud->size()
+                << ", time=" << elapsed << " [msec], nvtl=" << nvtl << ", tp = " << tp
+                << ", gain_nvtl=" << gain_nvtl << ", gain_tp=" << gain_tp << std::endl;
     }
   }
 
@@ -126,7 +138,7 @@ int main(int argc, char** argv) {
   std::ofstream ofs(output_dir + "/result.csv");
   ofs << "elapsed_milliseconds,nvtl_score,tp_score" << std::endl;
   ofs << std::fixed;
-  for(size_t i = 0; i < elapsed_milliseconds.size(); i++) {
+  for (size_t i = 0; i < elapsed_milliseconds.size(); i++) {
     ofs << elapsed_milliseconds[i] << "," << nvtl_scores[i] << "," << tp_scores[i] << std::endl;
   }
 }

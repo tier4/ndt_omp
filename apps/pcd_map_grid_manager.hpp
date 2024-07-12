@@ -21,21 +21,25 @@ using AddPair = std::pair<std::string, pcl::PointCloud<pcl::PointXYZ>::Ptr>;
 using AddResult = std::vector<AddPair>;
 using RemoveResult = std::vector<std::string>;
 
-class MapGridManager {
+class MapGridManager
+{
 public:
-  MapGridManager(const pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud) : target_cloud_(target_cloud) {
-    for(const auto& point : target_cloud_->points) {
+  MapGridManager(const pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud)
+  : target_cloud_(target_cloud)
+  {
+    for (const auto & point : target_cloud_->points) {
       const int x = static_cast<int>(std::ceil(point.x / resolution_));
       const int y = static_cast<int>(std::ceil(point.y / resolution_));
       const std::pair<int, int> key = std::make_pair(x, y);
-      if(map_grid_.count(key) == 0) {
+      if (map_grid_.count(key) == 0) {
         map_grid_[key].reset(new pcl::PointCloud<pcl::PointXYZ>());
       }
       map_grid_[key]->points.push_back(point);
     }
   }
 
-  std::pair<AddResult, RemoveResult> query(const Eigen::Matrix4f& pose) {
+  std::pair<AddResult, RemoveResult> query(const Eigen::Matrix4f & pose)
+  {
     // get around
     const float x = pose(0, 3);
     const float y = pose(1, 3);
@@ -44,9 +48,9 @@ public:
     const int y_min = static_cast<int>(std::ceil((y - get_around_) / resolution_));
     const int y_max = static_cast<int>(std::ceil((y + get_around_) / resolution_));
     std::vector<std::pair<int, int>> curr_keys;
-    for(int x = x_min; x <= x_max; x++) {
-      for(int y = y_min; y <= y_max; y++) {
-        if(map_grid_.count(std::make_pair(x, y)) == 0) {
+    for (int x = x_min; x <= x_max; x++) {
+      for (int y = y_min; y <= y_max; y++) {
+        if (map_grid_.count(std::make_pair(x, y)) == 0) {
           continue;
         }
         curr_keys.push_back(std::make_pair(x, y));
@@ -55,16 +59,16 @@ public:
 
     // get remove keys
     RemoveResult remove_result;
-    for(const auto& key : held_keys_) {
-      if(std::find(curr_keys.begin(), curr_keys.end(), key) == curr_keys.end()) {
+    for (const auto & key : held_keys_) {
+      if (std::find(curr_keys.begin(), curr_keys.end(), key) == curr_keys.end()) {
         remove_result.push_back(to_string_key(key));
       }
     }
 
     // get add keys
     AddResult add_result;
-    for(const auto& key : curr_keys) {
-      if(std::find(held_keys_.begin(), held_keys_.end(), key) == held_keys_.end()) {
+    for (const auto & key : curr_keys) {
+      if (std::find(held_keys_.begin(), held_keys_.end(), key) == held_keys_.end()) {
         add_result.push_back(std::make_pair(to_string_key(key), map_grid_[key]));
       }
     }
@@ -80,7 +84,8 @@ private:
   std::map<std::pair<int, int>, pcl::PointCloud<pcl::PointXYZ>::Ptr> map_grid_;
   std::vector<std::pair<int, int>> held_keys_;
 
-  std::string to_string_key(const std::pair<int, int>& key) {
+  std::string to_string_key(const std::pair<int, int> & key)
+  {
     return std::to_string(key.first) + "_" + std::to_string(key.second);
   }
 };

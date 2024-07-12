@@ -16,19 +16,20 @@
 #define NDT_OMP__APPS__TIMER_HPP_
 
 #include <chrono>
-#include <string>
 #include <iomanip>
+#include <string>
 
-class Timer {
+class Timer
+{
 public:
-  void start() {
-    start_time_ = std::chrono::steady_clock::now();
-  }
+  void start() { start_time_ = std::chrono::steady_clock::now(); }
 
-  double elapsed_milliseconds() const {
+  double elapsed_milliseconds() const
+  {
     const auto end_time = std::chrono::steady_clock::now();
     const auto elapsed_time = end_time - start_time_;
-    const double microseconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed_time).count();
+    const double microseconds =
+      std::chrono::duration_cast<std::chrono::microseconds>(elapsed_time).count();
     return microseconds / 1000.0;
   }
 
