@@ -25,13 +25,13 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr align(
   auto t1 = std::chrono::system_clock::now();
   registration->align(*aligned);
   auto t2 = std::chrono::system_clock::now();
-  std::cout << "single : " << (t2 - t1).count() / 1e6 << "[msec]" << std::endl;
+  std::cout << "single : " << static_cast<double>((t2 - t1).count()) / 1e6 << "[msec]" << std::endl;
 
   for (int i = 0; i < 10; i++) {
     registration->align(*aligned);
   }
   auto t3 = std::chrono::system_clock::now();
-  std::cout << "10times: " << (t3 - t2).count() / 1e6 << "[msec]" << std::endl;
+  std::cout << "10times: " << static_cast<double>((t3 - t2).count()) / 1e6 << "[msec]" << std::endl;
   std::cout << "fitness: " << registration->getFitnessScore() << std::endl << std::endl;
 
   return aligned;
@@ -73,11 +73,13 @@ int main(int argc, char ** argv)
   voxelgrid.filter(*downsampled);
   source_cloud = downsampled;
 
+  pcl::PointCloud<pcl::PointXYZ>::Ptr aligned;
+
   // benchmark
   std::cout << "--- pcl::GICP ---" << std::endl;
   pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>::Ptr gicp(
     new pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>());
-  pcl::PointCloud<pcl::PointXYZ>::Ptr aligned = align(gicp, target_cloud, source_cloud);
+  align(gicp, target_cloud, source_cloud);
 
   std::cout << "--- pclomp::GICP ---" << std::endl;
   pclomp::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>::Ptr gicp_omp(
@@ -88,7 +90,7 @@ int main(int argc, char ** argv)
   pcl::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr ndt(
     new pcl::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
   ndt->setResolution(1.0);
-  aligned = align(ndt, target_cloud, source_cloud);
+  align(ndt, target_cloud, source_cloud);
 
   std::vector<int> num_threads = {1, omp_get_max_threads()};
   std::vector<std::pair<std::string, pclomp::NeighborSearchMethod>> search_methods = {
@@ -108,7 +110,7 @@ int main(int argc, char ** argv)
                 << std::endl;
       ndt_omp->setNumThreads(n);
       ndt_omp->setNeighborhoodSearchMethod(search_method.second);
-      aligned = align(ndt_omp, target_cloud, source_cloud);
+      align(ndt_omp, target_cloud, source_cloud);
     }
 
     std::cout << "--- multigrid_pclomp::NDT (" << n << " threads) ---" << std::endl;

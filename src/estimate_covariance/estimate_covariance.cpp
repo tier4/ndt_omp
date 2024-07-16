@@ -6,18 +6,18 @@
 namespace pclomp
 {
 
-Eigen::Matrix2d estimate_xy_covariance_by_Laplace_approximation(
+Eigen::Matrix2d estimate_xy_covariance_by_laplace_approximation(
   const Eigen::Matrix<double, 6, 6> & hessian)
 {
   const Eigen::Matrix2d hessian_xy = hessian.block<2, 2>(0, 0);
-  const Eigen::Matrix2d covariance_xy = -hessian_xy.inverse();
+  Eigen::Matrix2d covariance_xy = -hessian_xy.inverse();
   return covariance_xy;
 }
 
 ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt(
   const NdtResult & ndt_result,
-  std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>>
-    ndt_ptr,
+  const std::shared_ptr<
+    pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> & ndt_ptr,
   const std::vector<Eigen::Matrix4f> & poses_to_search)
 {
   // initialize by the main result
@@ -52,8 +52,8 @@ ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt(
 
 ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt_score(
   const NdtResult & ndt_result,
-  std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>>
-    ndt_ptr,
+  const std::shared_ptr<
+    pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> & ndt_ptr,
   const std::vector<Eigen::Matrix4f> & poses_to_search, const double temperature)
 {
   // initialize by the main result
@@ -77,7 +77,7 @@ ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt_score(
     NdtResult sub_ndt_result{};
     sub_ndt_result.pose = curr_pose;
     sub_ndt_result.iteration_num = 0;
-    sub_ndt_result.nearest_voxel_transformation_likelihood = nvtl;
+    sub_ndt_result.nearest_voxel_transformation_likelihood = static_cast<float>(nvtl);
     ndt_results.push_back(sub_ndt_result);
   }
 
@@ -182,7 +182,7 @@ Eigen::Matrix2d adjust_diagonal_covariance(
   Eigen::Matrix2d cov_base_link = rotate_covariance_to_base_link(covariance, pose);
   cov_base_link(0, 0) = std::max(cov_base_link(0, 0), fixed_cov00);
   cov_base_link(1, 1) = std::max(cov_base_link(1, 1), fixed_cov11);
-  const Eigen::Matrix2d cov_map = rotate_covariance_to_map(cov_base_link, pose);
+  Eigen::Matrix2d cov_map = rotate_covariance_to_map(cov_base_link, pose);
   return cov_map;
 }
 

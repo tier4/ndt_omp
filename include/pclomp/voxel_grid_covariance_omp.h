@@ -386,7 +386,7 @@ public:
 
     // Find leaves corresponding to neighbors
     k_leaves.reserve(k);
-    for (std::vector<int>::iterator iter = k_indices.begin(); iter != k_indices.end(); iter++) {
+    for (std::vector<int>::iterator iter = k_indices.begin(); iter != k_indices.end(); ++iter) {
       k_leaves.push_back(&leaves_[voxel_centroids_leaf_indices_[*iter]]);
     }
     return k;
@@ -436,7 +436,7 @@ public:
 
     // Find leaves corresponding to neighbors
     k_leaves.reserve(k);
-    for (std::vector<int>::iterator iter = k_indices.begin(); iter != k_indices.end(); iter++) {
+    for (std::vector<int>::iterator iter = k_indices.begin(); iter != k_indices.end(); ++iter) {
       auto leaf = leaves_.find(voxel_centroids_leaf_indices_[*iter]);
       if (leaf == leaves_.end()) {
         std::cerr << "error : could not find the leaf corresponding to the voxel" << std::endl;

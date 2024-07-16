@@ -15,20 +15,29 @@
 #ifndef NDT_OMP__APPS__UTIL_HPP_
 #define NDT_OMP__APPS__UTIL_HPP_
 
-std::vector<std::string> glob(const std::string & input_dir)
+#include <glob.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+
+#include <algorithm>
+#include <string>
+#include <vector>
+
+inline std::vector<std::string> glob(const std::string & input_dir)
 {
   glob_t buffer;
   std::vector<std::string> files;
-  glob((input_dir + "/*").c_str(), 0, NULL, &buffer);
+  glob((input_dir + "/*").c_str(), 0, nullptr, &buffer);
   for (size_t i = 0; i < buffer.gl_pathc; i++) {
-    files.push_back(buffer.gl_pathv[i]);
+    files.emplace_back(buffer.gl_pathv[i]);
   }
   globfree(&buffer);
   std::sort(files.begin(), files.end());
   return files;
 }
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr load_pcd(const std::string & path)
+inline pcl::PointCloud<pcl::PointXYZ>::Ptr load_pcd(const std::string & path)
 {
   pcl::PointCloud<pcl::PointXYZ>::Ptr pcd(new pcl::PointCloud<pcl::PointXYZ>());
   if (pcl::io::loadPCDFile(path, *pcd)) {
@@ -38,7 +47,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr load_pcd(const std::string & path)
   return pcd;
 }
 
-std::vector<Eigen::Matrix4f> load_pose_list(const std::string & path)
+inline std::vector<Eigen::Matrix4f> load_pose_list(const std::string & path)
 {
   /*
   timestamp,pose_x,pose_y,pose_z,quat_w,quat_x,quat_y,quat_z,twist_linear_x,twist_linear_y,twist_linear_z,twist_angular_x,twist_angular_y,twist_angular_z
@@ -66,8 +75,12 @@ std::vector<Eigen::Matrix4f> load_pose_list(const std::string & path)
     const double quat_y = std::stod(tokens[6]);
     const double quat_z = std::stod(tokens[7]);
     Eigen::Matrix4f pose = Eigen::Matrix4f::Identity();
-    pose.block<3, 3>(0, 0) = Eigen::Quaternionf(quat_w, quat_x, quat_y, quat_z).toRotationMatrix();
-    pose.block<3, 1>(0, 3) = Eigen::Vector3f(pose_x, pose_y, pose_z);
+    pose.block<3, 3>(0, 0) = Eigen::Quaternionf(
+                               static_cast<float>(quat_w), static_cast<float>(quat_x),
+                               static_cast<float>(quat_y), static_cast<float>(quat_z))
+                               .toRotationMatrix();
+    pose.block<3, 1>(0, 3) = Eigen::Vector3f(
+      static_cast<float>(pose_x), static_cast<float>(pose_y), static_cast<float>(pose_z));
     pose_list.push_back(pose);
   }
   return pose_list;

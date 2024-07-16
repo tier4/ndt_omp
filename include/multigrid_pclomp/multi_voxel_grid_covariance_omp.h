@@ -277,10 +277,10 @@ public:
   }
 
   MultiVoxelGridCovariance(const MultiVoxelGridCovariance & other);
-  MultiVoxelGridCovariance(MultiVoxelGridCovariance && other);
+  MultiVoxelGridCovariance(MultiVoxelGridCovariance && other) noexcept;
 
   MultiVoxelGridCovariance & operator=(const MultiVoxelGridCovariance & other);
-  MultiVoxelGridCovariance & operator=(MultiVoxelGridCovariance && other);
+  MultiVoxelGridCovariance & operator=(MultiVoxelGridCovariance && other) noexcept;
 
   /** \brief Add a cloud to the voxel grid list and build a ND voxel grid from it.
    */
@@ -328,10 +328,6 @@ public:
   void setThreadNum(int thread_num)
   {
     sync();
-
-    if (thread_num <= 0) {
-      thread_num_ = 1;
-    }
 
     thread_num_ = thread_num;
     thread_futs_.resize(thread_num_);

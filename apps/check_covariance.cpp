@@ -47,7 +47,7 @@ int main(int argc, char ** argv)
     std::cerr << "initial_pose_list.size() != source_pcd_list.size()" << std::endl;
     return 1;
   }
-  const int64_t n_data = initial_pose_list.size();
+  const auto n_data = static_cast<int64_t>(initial_pose_list.size());
 
   // prepare ndt
   std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>>
@@ -93,7 +93,7 @@ int main(int argc, char ** argv)
 
   // execute align
   for (int64_t i = 0; i < n_data; i++) {
-    const Eigen::Matrix4f initial_pose = initial_pose_list[i];
+    const Eigen::Matrix4f & initial_pose = initial_pose_list[i];
     const std::string & source_pcd = source_pcd_list[i];
     pcl::PointCloud<pcl::PointXYZ>::Ptr source_cloud(new pcl::PointCloud<pcl::PointXYZ>());
     if (pcl::io::loadPCDFile(source_pcd, *source_cloud)) {
@@ -115,10 +115,11 @@ int main(int argc, char ** argv)
     // (1) Laplace approximation
     t1 = std::chrono::system_clock::now();
     const Eigen::Matrix2d cov_by_la =
-      pclomp::estimate_xy_covariance_by_Laplace_approximation(ndt_result.hessian);
+      pclomp::estimate_xy_covariance_by_laplace_approximation(ndt_result.hessian);
     t2 = std::chrono::system_clock::now();
     const auto elapsed_la =
-      std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000.0;
+      static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count()) /
+      1000.0;
 
     // (2) Multi NDT
     t1 = std::chrono::system_clock::now();
@@ -128,7 +129,8 @@ int main(int argc, char ** argv)
       result_of_mndt.covariance, ndt_result.pose, 0.0225, 0.0225);
     t2 = std::chrono::system_clock::now();
     const auto elapsed_mndt =
-      std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000.0;
+      static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count()) /
+      1000.0;
 
     // (3) Multi NDT with score
     const double temperature = 0.1;
@@ -140,7 +142,8 @@ int main(int argc, char ** argv)
       result_of_mndt_score.covariance, ndt_result.pose, 0.0225, 0.0225);
     t2 = std::chrono::system_clock::now();
     const auto elapsed_mndt_score =
-      std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000.0;
+      static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count()) /
+      1000.0;
 
     // output result
     const auto result_x = ndt_result.pose(0, 3);
@@ -174,7 +177,7 @@ int main(int argc, char ** argv)
 
     // output multi ndt result
     std::ofstream ofs_mndt(multi_ndt_dir + "/" + filename_ss.str());
-    const int n_mndt = result_of_mndt.ndt_results.size();
+    const auto n_mndt = static_cast<int64_t>(result_of_mndt.ndt_results.size());
     ofs_mndt << "index,score,initial_x,initial_y,result_x,result_y" << std::endl;
     ofs_mndt << std::fixed;
     for (int j = 0; j < n_mndt; j++) {
@@ -190,7 +193,7 @@ int main(int argc, char ** argv)
 
     // output multi ndt score result
     std::ofstream ofs_mndt_score(multi_ndt_score_dir + "/" + filename_ss.str());
-    const int n_mndt_score = result_of_mndt_score.ndt_results.size();
+    const auto n_mndt_score = static_cast<int64_t>(result_of_mndt_score.ndt_results.size());
     ofs_mndt_score << "index,score,initial_x,initial_y,result_x,result_y" << std::endl;
     ofs_mndt_score << std::fixed;
     for (int j = 0; j < n_mndt_score; j++) {

@@ -182,7 +182,7 @@ public:
   inline Eigen::Matrix<double, 6, 6> getHessian() const { return hessian_; }
 
   /** \brief Return the transformation array */
-  inline const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>>
+  inline const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> &
   getFinalTransformationArray() const
   {
     return transformation_array_;
@@ -322,7 +322,7 @@ protected:
    */
   double updateDerivatives(
     Eigen::Matrix<double, 6, 1> & score_gradient, Eigen::Matrix<double, 6, 6> & hessian,
-    const Eigen::Matrix<float, 4, 6> & point_gradient_,
+    const Eigen::Matrix<float, 4, 6> & point_gradient4,
     const Eigen::Matrix<float, 24, 6> & point_hessian_, const Eigen::Vector3d & x_trans,
     const Eigen::Matrix3d & c_inv, bool compute_hessian = true) const;
 
