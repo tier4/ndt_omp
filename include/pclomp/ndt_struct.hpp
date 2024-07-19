@@ -54,15 +54,18 @@
 #ifndef PCLOMP_NDT_STRUCT_HPP_
 #define PCLOMP_NDT_STRUCT_HPP_
 
-#include <vector>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-namespace pclomp {
+#include <vector>
+
+namespace pclomp
+{
 
 enum NeighborSearchMethod { KDTREE, DIRECT26, DIRECT7, DIRECT1 };
 
-struct NdtResult {
+struct NdtResult
+{
   Eigen::Matrix4f pose;
   float transform_probability;
   float nearest_voxel_transformation_likelihood;
@@ -73,7 +76,8 @@ struct NdtResult {
   std::vector<float> nearest_voxel_transformation_likelihood_array;
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  friend std::ostream &operator<<(std::ostream &os, const NdtResult &val) {
+  friend std::ostream & operator<<(std::ostream & os, const NdtResult & val)
+  {
     os << "Pose: " << std::endl << val.pose << std::endl;
     os << "TP: " << val.transform_probability << std::endl;
     os << "NVTP: " << val.nearest_voxel_transformation_likelihood << std::endl;
@@ -83,7 +87,8 @@ struct NdtResult {
   }
 };
 
-struct NdtParams {
+struct NdtParams
+{
   double trans_epsilon;
   double step_size;
   double resolution;

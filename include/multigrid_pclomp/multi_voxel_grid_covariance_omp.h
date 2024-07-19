@@ -52,18 +52,25 @@
 #ifndef PCL_MULTI_VOXEL_GRID_COVARIANCE_OMP_H_
 #define PCL_MULTI_VOXEL_GRID_COVARIANCE_OMP_H_
 
+#include <Eigen/Cholesky>
+#include <Eigen/Dense>
+
+// pcl_macros.h must come first
+// clang-format off
 #include <pcl/pcl_macros.h>
+// clang-format on
 #include <pcl/filters/boost.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/pcl_macros.h>
+#include <pcl/point_types.h>
+
+#include <future>
 #include <map>
 #include <unordered_map>
-#include <pcl/point_types.h>
-#include <pcl/kdtree/kdtree_flann.h>
-#include <Eigen/Dense>
-#include <Eigen/Cholesky>
-#include <future>
 
-namespace pclomp {
+namespace pclomp
+{
 /** \brief A searchable voxel structure containing the mean and covariance of the data.
  * \note For more information please see
  * <b>Magnusson, M. (2009). The Three-Dimensional Normal-Distributions Transform —
@@ -71,8 +78,9 @@ namespace pclomp {
  * PhD thesis, Orebro University. Orebro Studies in Technology 36</b>
  * \author Brian Okorn (Space and Naval Warfare Systems Center Pacific)
  */
-template<typename PointT>
-class MultiVoxelGridCovariance : public pcl::VoxelGrid<PointT> {
+template <typename PointT>
+class MultiVoxelGridCovariance : public pcl::VoxelGrid<PointT>
+{
 protected:
   using pcl::VoxelGrid<PointT>::filter_name_;
   using pcl::VoxelGrid<PointT>::getClassName;
@@ -106,21 +114,47 @@ public:
 
   /** \brief Simple structure to hold a centroid, covariance and the number of points in a leaf.
    * Inverse covariance, eigen vectors and eigen values are precomputed. */
-  struct Leaf {
+  struct Leaf
+  {
     /** \brief Constructor.
-     * Sets \ref nr_points_, \ref icov_, \ref mean_ and \ref evals_ to 0 and \ref cov_ and \ref evecs_ to the identity matrix
+     * Sets \ref nr_points_, \ref icov_, \ref mean_ and \ref evals_ to 0 and \ref cov_ and \ref
+     * evecs_ to the identity matrix
      */
-    Leaf() : nr_points_(0), mean_(Eigen::Vector3d::Zero()), centroid_(), cov_(Eigen::Matrix3d::Identity()), icov_(Eigen::Matrix3d::Zero()), evecs_(Eigen::Matrix3d::Identity()), evals_(Eigen::Vector3d::Zero()) {}
+    Leaf()
+    : nr_points_(0),
+      mean_(Eigen::Vector3d::Zero()),
+      centroid_(),
+      cov_(Eigen::Matrix3d::Identity()),
+      icov_(Eigen::Matrix3d::Zero()),
+      evecs_(Eigen::Matrix3d::Identity()),
+      evals_(Eigen::Vector3d::Zero())
+    {
+    }
 
-    Leaf(const Leaf &other) : mean_(other.mean_), centroid_(other.centroid_), cov_(other.cov_), icov_(other.icov_), evecs_(other.evecs_), evals_(other.evals_) {
+    Leaf(const Leaf & other)
+    : mean_(other.mean_),
+      centroid_(other.centroid_),
+      cov_(other.cov_),
+      icov_(other.icov_),
+      evecs_(other.evecs_),
+      evals_(other.evals_)
+    {
       nr_points_ = other.nr_points_;
     }
 
-    Leaf(Leaf &&other) : mean_(std::move(other.mean_)), centroid_(std::move(other.centroid_)), cov_(std::move(other.cov_)), icov_(std::move(other.icov_)), evecs_(std::move(other.evecs_)), evals_(std::move(other.evals_)) {
+    Leaf(Leaf && other)
+    : mean_(std::move(other.mean_)),
+      centroid_(std::move(other.centroid_)),
+      cov_(std::move(other.cov_)),
+      icov_(std::move(other.icov_)),
+      evecs_(std::move(other.evecs_)),
+      evals_(std::move(other.evals_))
+    {
       nr_points_ = other.nr_points_;
     }
 
-    Leaf &operator=(const Leaf &other) {
+    Leaf & operator=(const Leaf & other)
+    {
       mean_ = other.mean_;
       centroid_ = other.centroid_;
       cov_ = other.cov_;
@@ -132,7 +166,8 @@ public:
       return *this;
     }
 
-    Leaf &operator=(Leaf &&other) {
+    Leaf & operator=(Leaf && other)
+    {
       mean_ = std::move(other.mean_);
       centroid_ = std::move(other.centroid_);
       cov_ = std::move(other.cov_);
@@ -147,65 +182,43 @@ public:
     /** \brief Get the voxel covariance.
      * \return covariance matrix
      */
-    const Eigen::Matrix3d &getCov() const {
-      return (cov_);
-    }
-    Eigen::Matrix3d &getCov() {
-      return (cov_);
-    }
+    const Eigen::Matrix3d & getCov() const { return (cov_); }
+    Eigen::Matrix3d & getCov() { return (cov_); }
 
     /** \brief Get the inverse of the voxel covariance.
      * \return inverse covariance matrix
      */
-    const Eigen::Matrix3d &getInverseCov() const {
-      return (icov_);
-    }
+    const Eigen::Matrix3d & getInverseCov() const { return (icov_); }
 
-    Eigen::Matrix3d &getInverseCov() {
-      return (icov_);
-    }
+    Eigen::Matrix3d & getInverseCov() { return (icov_); }
 
     /** \brief Get the voxel centroid.
      * \return centroid
      */
-    const Eigen::Vector3d &getMean() const {
-      return (mean_);
-    }
+    const Eigen::Vector3d & getMean() const { return (mean_); }
 
-    Eigen::Vector3d &getMean() {
-      return (mean_);
-    }
+    Eigen::Vector3d & getMean() { return (mean_); }
 
     /** \brief Get the eigen vectors of the voxel covariance.
      * \note Order corresponds with \ref getEvals
      * \return matrix whose columns contain eigen vectors
      */
-    const Eigen::Matrix3d &getEvecs() const {
-      return (evecs_);
-    }
+    const Eigen::Matrix3d & getEvecs() const { return (evecs_); }
 
-    Eigen::Matrix3d &getEvecs() {
-      return (evecs_);
-    }
+    Eigen::Matrix3d & getEvecs() { return (evecs_); }
 
     /** \brief Get the eigen values of the voxel covariance.
      * \note Order corresponds with \ref getEvecs
      * \return vector of eigen values
      */
-    const Eigen::Vector3d &getEvals() const {
-      return (evals_);
-    }
+    const Eigen::Vector3d & getEvals() const { return (evals_); }
 
-    Eigen::Vector3d &getEvals() {
-      return (evals_);
-    }
+    Eigen::Vector3d & getEvals() { return (evals_); }
 
     /** \brief Get the number of points contained by this voxel.
      * \return number of points
      */
-    int getPointCount() const {
-      return (nr_points_);
-    }
+    int getPointCount() const { return (nr_points_); }
 
     /** \brief Number of points contained by voxel */
     int nr_points_;
@@ -232,12 +245,13 @@ public:
   };
 
   /** \brief Pointer to MultiVoxelGridCovariance leaf structure */
-  typedef Leaf *LeafPtr;
+  typedef Leaf * LeafPtr;
 
   /** \brief Const pointer to MultiVoxelGridCovariance leaf structure */
-  typedef const Leaf *LeafConstPtr;
+  typedef const Leaf * LeafConstPtr;
 
-  struct BoundingBox {
+  struct BoundingBox
+  {
     Eigen::Vector4i max;
     Eigen::Vector4i min;
     Eigen::Vector4i div_mul;
@@ -251,7 +265,8 @@ public:
   /** \brief Constructor.
    * Sets \ref leaf_size_ to 0
    */
-  MultiVoxelGridCovariance() : min_points_per_voxel_(6), min_covar_eigvalue_mult_(0.01) {
+  MultiVoxelGridCovariance() : min_points_per_voxel_(6), min_covar_eigvalue_mult_(0.01)
+  {
     leaf_size_.setZero();
     min_b_.setZero();
     max_b_.setZero();
@@ -261,19 +276,19 @@ public:
     last_check_tid_ = -1;
   }
 
-  MultiVoxelGridCovariance(const MultiVoxelGridCovariance &other);
-  MultiVoxelGridCovariance(MultiVoxelGridCovariance &&other);
+  MultiVoxelGridCovariance(const MultiVoxelGridCovariance & other);
+  MultiVoxelGridCovariance(MultiVoxelGridCovariance && other);
 
-  MultiVoxelGridCovariance &operator=(const MultiVoxelGridCovariance &other);
-  MultiVoxelGridCovariance &operator=(MultiVoxelGridCovariance &&other);
+  MultiVoxelGridCovariance & operator=(const MultiVoxelGridCovariance & other);
+  MultiVoxelGridCovariance & operator=(MultiVoxelGridCovariance && other);
 
   /** \brief Add a cloud to the voxel grid list and build a ND voxel grid from it.
    */
-  void setInputCloudAndFilter(const PointCloudConstPtr &cloud, const std::string &grid_id);
+  void setInputCloudAndFilter(const PointCloudConstPtr & cloud, const std::string & grid_id);
 
   /** \brief Remove a ND voxel grid corresponding to the specified id
    */
-  void removeCloud(const std::string &grid_id);
+  void removeCloud(const std::string & grid_id);
 
   /** \brief Build Kdtrees from the NDT voxel for later radius search
    */
@@ -287,7 +302,9 @@ public:
    * \param[in] max_nn
    * \return number of neighbors found
    */
-  int radiusSearch(const PointT &point, double radius, std::vector<LeafConstPtr> &k_leaves, unsigned int max_nn = 0) const;
+  int radiusSearch(
+    const PointT & point, double radius, std::vector<LeafConstPtr> & k_leaves,
+    unsigned int max_nn = 0) const;
 
   /** \brief Search for all the nearest occupied voxels of the query point in a given radius.
    * \note Only voxels containing a sufficient number of points are used.
@@ -298,7 +315,9 @@ public:
    * \param[in] max_nn
    * \return number of neighbors found
    */
-  int radiusSearch(const PointCloud &cloud, int index, double radius, std::vector<LeafConstPtr> &k_leaves, unsigned int max_nn = 0) const;
+  int radiusSearch(
+    const PointCloud & cloud, int index, double radius, std::vector<LeafConstPtr> & k_leaves,
+    unsigned int max_nn = 0) const;
 
   // Return a pointer to avoid multiple deep copies
   PointCloud getVoxelPCD() const;
@@ -306,10 +325,11 @@ public:
   // Return the string indices of currently loaded map pieces
   std::vector<std::string> getCurrentMapIDs() const;
 
-  void setThreadNum(int thread_num) {
+  void setThreadNum(int thread_num)
+  {
     sync();
 
-    if(thread_num <= 0) {
+    if (thread_num <= 0) {
       thread_num_ = 1;
     }
 
@@ -318,7 +338,8 @@ public:
     processing_inputs_.resize(thread_num_);
   }
 
-  ~MultiVoxelGridCovariance() {
+  ~MultiVoxelGridCovariance()
+  {
     // Stop all threads in the case an intermediate interrupt occurs
     sync();
   }
@@ -326,20 +347,21 @@ public:
 protected:
   // Return the index of an idle thread, which is not running any
   // job, or has already finished its job and waiting for a join.
-  inline int get_idle_tid() {
+  inline int get_idle_tid()
+  {
     int tid = (last_check_tid_ == thread_num_ - 1) ? 0 : last_check_tid_ + 1;
     std::chrono::microseconds span(50);
 
     // Loop until an idle thread is found
-    while(true) {
+    while (true) {
       // Return immediately if a thread that has not been given a job is found
-      if(!thread_futs_[tid].valid()) {
+      if (!thread_futs_[tid].valid()) {
         last_check_tid_ = tid;
         return tid;
       }
 
       // If no such thread is found, wait for the current thread to finish its job
-      if(thread_futs_[tid].wait_for(span) == std::future_status::ready) {
+      if (thread_futs_[tid].wait_for(span) == std::future_status::ready) {
         last_check_tid_ = tid;
         return tid;
       }
@@ -350,16 +372,18 @@ protected:
   }
 
   // Wait for all running threads to finish
-  inline void sync() {
-    for(auto &tf : thread_futs_) {
-      if(tf.valid()) {
+  inline void sync()
+  {
+    for (auto & tf : thread_futs_) {
+      if (tf.valid()) {
         tf.wait();
       }
     }
   }
 
   // A wraper of the real applyFilter
-  inline bool applyFilterThread(int tid, GridNodeType &node) {
+  inline bool applyFilterThread(int tid, GridNodeType & node)
+  {
     applyFilter(processing_inputs_[tid], node);
     processing_inputs_[tid].reset();
 
@@ -367,15 +391,18 @@ protected:
   }
 
   /** \brief Filter cloud and initializes voxel structure.
-   * \param[out] output cloud containing centroids of voxels containing a sufficient number of points
+   * \param[out] output cloud containing centroids of voxels containing a sufficient number of
+   * points
    */
-  void applyFilter(const PointCloudConstPtr &input, GridNodeType &node);
+  void applyFilter(const PointCloudConstPtr & input, GridNodeType & node);
 
-  void updateLeaf(const PointT &point, const int &centroid_size, Leaf &leaf) const;
+  void updateLeaf(const PointT & point, const int & centroid_size, Leaf & leaf) const;
 
-  void computeLeafParams(const Eigen::Vector3d &pt_sum, Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> &eigensolver, Leaf &leaf) const;
+  void computeLeafParams(
+    const Eigen::Vector3d & pt_sum, Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> & eigensolver,
+    Leaf & leaf) const;
 
-  int64_t getLeafID(const PointT &point, const BoundingBox &bbox) const;
+  int64_t getLeafID(const PointT & point, const BoundingBox & bbox) const;
 
   /** \brief Minimum points contained with in a voxel to allow it to be usable. */
   int min_points_per_voxel_;
