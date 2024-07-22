@@ -191,7 +191,7 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
         // ---[ RGB special case
         if (rgba_index >= 0) {
           // fill r/g/b data
-          unsigned int rgb;
+          unsigned int rgb = 0;
           memcpy(
             &rgb, reinterpret_cast<const char *>(&input_->points[cp]) + rgba_index,
             sizeof(unsigned int));
@@ -250,7 +250,7 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
         // ---[ RGB special case
         if (rgba_index >= 0) {
           // Fill r/g/b data, assuming that the order is BGRA
-          unsigned int rgb;
+          unsigned int rgb = 0;
           memcpy(
             &rgb, reinterpret_cast<const char *>(&input_->points[cp]) + rgba_index, sizeof(int));
           centroid[centroid_size - 3] = static_cast<float>((rgb >> 16u) & 0x0000ffu);
@@ -278,7 +278,7 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
 
   // Eigen values less than a threshold of max eigen value are inflated to a set fraction of the max
   // eigen value.
-  double min_covar_eigvalue;
+  double min_covar_eigvalue = NAN;
 
   for (auto it = leaves_.begin(); it != leaves_.end(); ++it) {
     // Normalize the centroid

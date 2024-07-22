@@ -69,8 +69,8 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::NormalDistributi
   params_.regularization_scale_factor = 0.0f;
   params_.use_line_search = false;
 
-  double gauss_c1;
-  double gauss_c2;
+  double gauss_c1 = NAN;
+  double gauss_c2 = NAN;
 
   // Initializes the gaussian fitting parameters (eq. 6.8) [Magnusson 2009]
   gauss_c1 = 10.0 * (1 - outlier_ratio_);
@@ -88,8 +88,8 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeTran
   nr_iterations_ = 0;
   converged_ = false;
 
-  double gauss_c1;
-  double gauss_c2;
+  double gauss_c1 = NAN;
+  double gauss_c2 = NAN;
 
   // Initializes the gaussian fitting parameters (eq. 6.8) [Magnusson 2009]
   gauss_c1 = 10 * (1 - outlier_ratio_);
@@ -122,7 +122,7 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeTran
   Eigen::Matrix<double, 6, 6> hessian;
 
   double score = 0;
-  double delta_p_norm;
+  double delta_p_norm = NAN;
 
   if (regularization_pose_) {
     Eigen::Transform<float, 3, Eigen::Affine, Eigen::ColMajor> regularization_pose_transformation;
@@ -400,12 +400,12 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeAngl
   Eigen::Matrix<double, 6, 1> & p, bool compute_hessian)
 {
   // Simplified math for near 0 angles
-  double cx;
-  double cy;
-  double cz;
-  double sx;
-  double sy;
-  double sz;
+  double cx = NAN;
+  double cy = NAN;
+  double cz = NAN;
+  double sx = NAN;
+  double sy = NAN;
+  double sz = NAN;
   if (fabs(p(3)) < 10e-5) {
     // p(3) = 0;
     cx = 1.0;
@@ -898,7 +898,7 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::trialValu
     // Equation 2.4.5 [Sun, Yuan 2006]
     double a_s = a_l - (a_l - a_t) / (g_l - g_t) * g_l;
 
-    double a_t_next;
+    double a_t_next = NAN;
 
     if (std::fabs(a_c - a_t) < std::fabs(a_s - a_t))
       a_t_next = a_c;
