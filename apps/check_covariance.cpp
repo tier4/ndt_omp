@@ -181,14 +181,14 @@ int main(int argc, char ** argv)
     ofs_mndt << "index,score,initial_x,initial_y,result_x,result_y" << std::endl;
     ofs_mndt << std::fixed;
     for (int j = 0; j < n_mndt; j++) {
-      const pclomp::NdtResult & ndt_result = result_of_mndt.ndt_results[j];
-      const auto nvtl = ndt_result.nearest_voxel_transformation_likelihood;
+      const pclomp::NdtResult & multi_ndt_result = result_of_mndt.ndt_results[j];
+      const auto nvtl = multi_ndt_result.nearest_voxel_transformation_likelihood;
       const auto initial_x = result_of_mndt.ndt_initial_poses[j](0, 3);
       const auto initial_y = result_of_mndt.ndt_initial_poses[j](1, 3);
-      const auto result_x = ndt_result.pose(0, 3);
-      const auto result_y = ndt_result.pose(1, 3);
-      ofs_mndt << j << "," << nvtl << "," << initial_x << "," << initial_y << "," << result_x << ","
-               << result_y << std::endl;
+      const auto multi_ndt_result_x = multi_ndt_result.pose(0, 3);
+      const auto multi_ndt_result_y = multi_ndt_result.pose(1, 3);
+      ofs_mndt << j << "," << nvtl << "," << initial_x << "," << initial_y << ","
+               << multi_ndt_result_x << "," << multi_ndt_result_y << std::endl;
     }
 
     // output multi ndt score result
@@ -197,14 +197,14 @@ int main(int argc, char ** argv)
     ofs_mndt_score << "index,score,initial_x,initial_y,result_x,result_y" << std::endl;
     ofs_mndt_score << std::fixed;
     for (int j = 0; j < n_mndt_score; j++) {
-      const pclomp::NdtResult & ndt_result = result_of_mndt_score.ndt_results[j];
-      const auto nvtl = ndt_result.nearest_voxel_transformation_likelihood;
+      const pclomp::NdtResult & multi_ndt_score_result = result_of_mndt_score.ndt_results[j];
+      const auto nvtl = multi_ndt_score_result.nearest_voxel_transformation_likelihood;
       const auto initial_x = result_of_mndt_score.ndt_initial_poses[j](0, 3);
       const auto initial_y = result_of_mndt_score.ndt_initial_poses[j](1, 3);
-      const auto result_x = ndt_result.pose(0, 3);
-      const auto result_y = ndt_result.pose(1, 3);
-      ofs_mndt_score << j << "," << nvtl << "," << initial_x << "," << initial_y << "," << result_x
-                     << "," << result_y << std::endl;
+      const auto multi_ndt_score_result_x = multi_ndt_score_result.pose(0, 3);
+      const auto multi_ndt_score_result_y = multi_ndt_score_result.pose(1, 3);
+      ofs_mndt_score << j << "," << nvtl << "," << initial_x << "," << initial_y << ","
+                     << multi_ndt_score_result_x << "," << multi_ndt_score_result_y << std::endl;
     }
   }
 }

@@ -54,12 +54,12 @@ public:
     const int y_min = static_cast<int>(std::ceil((y - get_around_) / resolution_));
     const int y_max = static_cast<int>(std::ceil((y + get_around_) / resolution_));
     std::vector<std::pair<int, int>> curr_keys;
-    for (int x = x_min; x <= x_max; x++) {
-      for (int y = y_min; y <= y_max; y++) {
-        if (map_grid_.count(std::make_pair(x, y)) == 0) {
+    for (int x_ind = x_min; x_ind <= x_max; x_ind++) {
+      for (int y_ind = y_min; y_ind <= y_max; y_ind++) {
+        if (map_grid_.count(std::make_pair(x_ind, y_ind)) == 0) {
           continue;
         }
-        curr_keys.emplace_back(std::make_pair(x, y));
+        curr_keys.emplace_back(std::make_pair(x_ind, y_ind));
       }
     }
 
