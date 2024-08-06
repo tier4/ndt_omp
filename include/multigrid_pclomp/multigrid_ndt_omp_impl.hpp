@@ -194,12 +194,9 @@ MultiGridNormalDistributionsTransform<
   params_.regularization_scale_factor = 0.0f;
   params_.use_line_search = false;
 
-  double gauss_c1 = NAN;
-  double gauss_c2 = NAN;
-
   // Initializes the gaussian fitting parameters (eq. 6.8) [Magnusson 2009]
-  gauss_c1 = 10.0 * (1 - outlier_ratio_);
-  gauss_c2 = outlier_ratio_ / pow(params_.resolution, 3);
+  double gauss_c1 = 10.0 * (1 - outlier_ratio_);
+  double gauss_c2 = outlier_ratio_ / pow(params_.resolution, 3);
   gauss_d3_ = -log(gauss_c2);
   gauss_d1_ = -log(gauss_c1 + gauss_c2) - gauss_d3_;
   gauss_d2_ = -2 * log((-log(gauss_c1 * exp(-0.5) + gauss_c2) - gauss_d3_) / gauss_d1_);
@@ -213,12 +210,9 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
   nr_iterations_ = 0;
   converged_ = false;
 
-  double gauss_c1 = NAN;
-  double gauss_c2 = NAN;
-
   // Initializes the gaussian fitting parameters (eq. 6.8) [Magnusson 2009]
-  gauss_c1 = 10 * (1 - outlier_ratio_);
-  gauss_c2 = outlier_ratio_ / pow(params_.resolution, 3);
+  double gauss_c1 = 10 * (1 - outlier_ratio_);
+  double gauss_c2 = outlier_ratio_ / pow(params_.resolution, 3);
   gauss_d3_ = -log(gauss_c2);
   gauss_d1_ = -log(gauss_c1 + gauss_c2) - gauss_d3_;
   gauss_d2_ = -2.0 * log((-log(gauss_c1 * exp(-0.5) + gauss_c2) - gauss_d3_) / gauss_d1_);
@@ -252,7 +246,6 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
   Eigen::Matrix<double, 6, 6> hessian;
 
   double score = 0;
-  double delta_p_norm = NAN;
 
   if (regularization_pose_) {
     Eigen::Transform<float, 3, Eigen::Affine, Eigen::ColMajor> regularization_pose_transformation;
@@ -275,7 +268,7 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
     delta_p = sv.solve(-score_gradient);
 
     // Calculate step length with guaranteed sufficient decrease [More, Thuente 1994]
-    delta_p_norm = delta_p.norm();
+    double delta_p_norm = delta_p.norm();
 
     if (delta_p_norm == 0 || delta_p_norm != delta_p_norm) {
       if (input_->empty()) {
@@ -506,12 +499,12 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeAng
   Eigen::Matrix<double, 6, 1> & p, bool compute_hessian)
 {
   // Simplified math for near 0 angles
-  double cx = NAN;
-  double cy = NAN;
-  double cz = NAN;
-  double sx = NAN;
-  double sy = NAN;
-  double sz = NAN;
+  double cx = 1.0;
+  double cy = 1.0;
+  double cz = 1.0;
+  double sx = 0.0;
+  double sy = 0.0;
+  double sz = 0.0;
   if (fabs(p(3)) < 10e-5) {
     // p(3) = 0;
     cx = 1.0;
@@ -874,7 +867,7 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::trialVal
     // Equation 2.4.5 [Sun, Yuan 2006]
     double a_s = a_l - (a_l - a_t) / (g_l - g_t) * g_l;
 
-    double a_t_next = NAN;
+    double a_t_next = 0.0;
 
     if (std::fabs(a_c - a_t) < std::fabs(a_s - a_t))
       a_t_next = a_c;
