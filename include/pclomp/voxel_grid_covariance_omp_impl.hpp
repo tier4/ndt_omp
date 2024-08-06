@@ -130,8 +130,8 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
   // viewpoint first...
   if (!filter_field_name_.empty()) {
     // Get the distance field index
-    std::vector<pcl::PCLPointField> fields;
-    int distance_idx = pcl::getFieldIndex<PointT>(filter_field_name_, fields);
+    std::vector<pcl::PCLPointField> distance_fields;
+    int distance_idx = pcl::getFieldIndex<PointT>(filter_field_name_, distance_fields);
     if (distance_idx == -1)
       PCL_WARN(
         "[pcl::%s::applyFilter] Invalid filter field name. Index is %d.\n", getClassName().c_str(),
@@ -149,7 +149,7 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
       // Get the distance value
       const auto * pt_data = reinterpret_cast<const uint8_t *>(&input_->points[cp]);
       float distance_value = 0;
-      memcpy(&distance_value, pt_data + fields[distance_idx].offset, sizeof(float));
+      memcpy(&distance_value, pt_data + distance_fields[distance_idx].offset, sizeof(float));
 
       if (filter_limit_negative_) {
         // Use a threshold for cutting out points which inside the interval

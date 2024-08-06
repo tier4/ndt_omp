@@ -730,7 +730,7 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHes
     // Equations 6.18 and 6.20 [Magnusson 2009]
     computePointDerivatives(x, point_gradient, point_hessian);
 
-    for (auto & cell : neighborhood) {
+    for (const auto & cell : neighborhood) {
       // Update hessian, lines 21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13,
       // respectively [Magnusson 2009]
       updateHessian(
@@ -740,7 +740,7 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHes
   }
 
   // Sum over t_hessians
-  for (auto & th : t_hessians) {
+  for (const auto & th : t_hessians) {
     hessian += th;
   }
 }
@@ -1098,7 +1098,7 @@ MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculateTransf
   }
 
   // Sum the point-wise scores
-  for (auto & ts : t_scores) {
+  for (const auto & ts : t_scores) {
     score += ts;
   }
 

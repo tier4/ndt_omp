@@ -227,7 +227,6 @@ void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::
 
   int inner_iterations_ = 0;
   int result = bfgs.minimizeInit(x);
-  result = BFGSSpace::Running;
   do {
     inner_iterations_++;
     result = bfgs.minimizeOneStep(x);
@@ -467,9 +466,9 @@ pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::computeTrans
         Eigen::Matrix4f & M_ = mahalanobis_[i];
         M_.setZero();
 
-        Eigen::Matrix3d M = M_.block<3, 3>(0, 0).cast<double>();
+        // Eigen::Matrix3d M = M_.block<3, 3>(0, 0).cast<double>();
         // M = R*C1
-        M = R * C1;
+        Eigen::Matrix3d M = R * C1;
         // temp = M*R' + C2 = R*C1*R' + C2
         Eigen::Matrix3d temp = M * R.transpose();
         temp += C2;
