@@ -79,18 +79,21 @@ int main(int argc, char ** argv)
   std::cout << "--- pcl::GICP ---" << std::endl;
   pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>::Ptr gicp(
     new pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>());
-  align(gicp, target_cloud, source_cloud);
+  // cppcheck-suppress redundantAssignment
+  aligned = align(gicp, target_cloud, source_cloud);
 
   std::cout << "--- pclomp::GICP ---" << std::endl;
   pclomp::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>::Ptr gicp_omp(
     new pclomp::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>());
+  // cppcheck-suppress redundantAssignment
   aligned = align(gicp_omp, target_cloud, source_cloud);
 
   std::cout << "--- pcl::NDT ---" << std::endl;
   pcl::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr ndt(
     new pcl::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
   ndt->setResolution(1.0);
-  align(ndt, target_cloud, source_cloud);
+  // cppcheck-suppress redundantAssignment
+  aligned = align(ndt, target_cloud, source_cloud);
 
   std::vector<int> num_threads = {1, omp_get_max_threads()};
   std::vector<std::pair<std::string, pclomp::NeighborSearchMethod>> search_methods = {
@@ -110,11 +113,13 @@ int main(int argc, char ** argv)
                 << std::endl;
       ndt_omp->setNumThreads(n);
       ndt_omp->setNeighborhoodSearchMethod(search_method.second);
-      align(ndt_omp, target_cloud, source_cloud);
+      // cppcheck-suppress redundantAssignment
+      aligned = align(ndt_omp, target_cloud, source_cloud);
     }
 
     std::cout << "--- multigrid_pclomp::NDT (" << n << " threads) ---" << std::endl;
     mg_ndt_omp->setNumThreads(n);
+    // cppcheck-suppress redundantAssignment
     aligned = align(mg_ndt_omp, target_cloud, source_cloud);
   }
 
