@@ -329,6 +329,10 @@ public:
   {
     sync();
 
+    if (thread_num <= 0) {
+      thread_num = 1;
+    }
+
     thread_num_ = thread_num;
     thread_futs_.resize(thread_num_);
     processing_inputs_.resize(thread_num_);
