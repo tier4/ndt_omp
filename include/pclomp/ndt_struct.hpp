@@ -89,13 +89,13 @@ struct NdtResult
 
 struct NdtParams
 {
-  double trans_epsilon;
-  double step_size;
-  double resolution;
-  int max_iterations;
-  NeighborSearchMethod search_method;
-  int num_threads;
-  float regularization_scale_factor;
+  double trans_epsilon{};
+  double step_size{};
+  double resolution{};
+  int max_iterations{};
+  NeighborSearchMethod search_method{};
+  int num_threads{};
+  float regularization_scale_factor{};
 
   // line search is false by default
   // "use_lines_search = true" is not tested well

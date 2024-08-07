@@ -340,7 +340,7 @@ protected:
   /// \brief optimization functor structure
   struct OptimizationFunctorWithIndices : public BFGSDummyFunctor<double, 6>
   {
-    OptimizationFunctorWithIndices(const GeneralizedIterativeClosestPoint * gicp)
+    explicit OptimizationFunctorWithIndices(const GeneralizedIterativeClosestPoint * gicp)
     : BFGSDummyFunctor<double, 6>(), gicp_(gicp)
     {
     }

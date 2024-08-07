@@ -16,6 +16,12 @@
 #define NDT_OMP__APPS__PCD_MAP_GRID_MANAGER_HPP_
 
 #include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
 
 using AddPair = std::pair<std::string, pcl::PointCloud<pcl::PointXYZ>::Ptr>;
 using AddResult = std::vector<AddPair>;
@@ -24,7 +30,7 @@ using RemoveResult = std::vector<std::string>;
 class MapGridManager
 {
 public:
-  MapGridManager(const pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud)
+  explicit MapGridManager(const pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud)
   : target_cloud_(target_cloud)
   {
     for (const auto & point : target_cloud_->points) {
@@ -48,12 +54,12 @@ public:
     const int y_min = static_cast<int>(std::ceil((y - get_around_) / resolution_));
     const int y_max = static_cast<int>(std::ceil((y + get_around_) / resolution_));
     std::vector<std::pair<int, int>> curr_keys;
-    for (int x = x_min; x <= x_max; x++) {
-      for (int y = y_min; y <= y_max; y++) {
-        if (map_grid_.count(std::make_pair(x, y)) == 0) {
+    for (int x_ind = x_min; x_ind <= x_max; x_ind++) {
+      for (int y_ind = y_min; y_ind <= y_max; y_ind++) {
+        if (map_grid_.count(std::make_pair(x_ind, y_ind)) == 0) {
           continue;
         }
-        curr_keys.push_back(std::make_pair(x, y));
+        curr_keys.emplace_back(std::make_pair(x_ind, y_ind));
       }
     }
 
@@ -84,7 +90,7 @@ private:
   std::map<std::pair<int, int>, pcl::PointCloud<pcl::PointXYZ>::Ptr> map_grid_;
   std::vector<std::pair<int, int>> held_keys_;
 
-  std::string to_string_key(const std::pair<int, int> & key)
+  static std::string to_string_key(const std::pair<int, int> & key)
   {
     return std::to_string(key.first) + "_" + std::to_string(key.second);
   }

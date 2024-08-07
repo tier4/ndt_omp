@@ -62,7 +62,7 @@ int main(int argc, char ** argv)
     std::cerr << "initial_pose_list.size() != source_pcd_list.size()" << std::endl;
     return 1;
   }
-  const int64_t n_data = initial_pose_list.size();
+  const auto n_data = static_cast<int64_t>(initial_pose_list.size());
 
   // prepare ndt
   pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr mg_ndt_omp(
@@ -89,7 +89,7 @@ int main(int argc, char ** argv)
   // execute align
   for (int64_t i = 0; i < n_data; i++) {
     // get input
-    const Eigen::Matrix4f initial_pose = initial_pose_list[i];
+    const Eigen::Matrix4f & initial_pose = initial_pose_list[i];
     const std::string & source_pcd = source_pcd_list[i];
     const pcl::PointCloud<pcl::PointXYZ>::Ptr source_cloud = load_pcd(source_pcd);
     mg_ndt_omp->setInputSource(source_cloud);

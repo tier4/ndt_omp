@@ -46,6 +46,10 @@
 #include <pcl/common/common.h>
 #include <pcl/filters/boost.h>
 
+#include <cmath>
+#include <limits>
+#include <vector>
+
 //////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT>
 void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
@@ -65,7 +69,8 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
   output.is_dense = true;  // we filter out invalid points
   output.points.clear();
 
-  Eigen::Vector4f min_p, max_p;
+  Eigen::Vector4f min_p;
+  Eigen::Vector4f max_p;
   // Get the minimum and maximum dimensions
   if (!filter_field_name_.empty())  // If we don't want to process the entire cloud...
     pcl::getMinMax3D<PointT>(
@@ -117,7 +122,7 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
   rgba_index = pcl::getFieldIndex<PointT>("rgb", fields);
   if (rgba_index == -1) rgba_index = pcl::getFieldIndex<PointT>("rgba", fields);
   if (rgba_index >= 0) {
-    rgba_index = fields[rgba_index].offset;
+    rgba_index = static_cast<int>(fields[rgba_index].offset);
     centroid_size += 3;
   }
 
@@ -125,8 +130,8 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
   // viewpoint first...
   if (!filter_field_name_.empty()) {
     // Get the distance field index
-    std::vector<pcl::PCLPointField> fields;
-    int distance_idx = pcl::getFieldIndex<PointT>(filter_field_name_, fields);
+    std::vector<pcl::PCLPointField> distance_fields;
+    int distance_idx = pcl::getFieldIndex<PointT>(filter_field_name_, distance_fields);
     if (distance_idx == -1)
       PCL_WARN(
         "[pcl::%s::applyFilter] Invalid filter field name. Index is %d.\n", getClassName().c_str(),
@@ -142,9 +147,9 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
           continue;
 
       // Get the distance value
-      const uint8_t * pt_data = reinterpret_cast<const uint8_t *>(&input_->points[cp]);
+      const auto * pt_data = reinterpret_cast<const uint8_t *>(&input_->points[cp]);
       float distance_value = 0;
-      memcpy(&distance_value, pt_data + fields[distance_idx].offset, sizeof(float));
+      memcpy(&distance_value, pt_data + distance_fields[distance_idx].offset, sizeof(float));
 
       if (filter_limit_negative_) {
         // Use a threshold for cutting out points which inside the interval
@@ -186,12 +191,13 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
         // ---[ RGB special case
         if (rgba_index >= 0) {
           // fill r/g/b data
-          int rgb;
+          unsigned int rgb = 0;
           memcpy(
-            &rgb, reinterpret_cast<const char *>(&input_->points[cp]) + rgba_index, sizeof(int));
-          centroid[centroid_size - 3] = static_cast<float>((rgb >> 16) & 0x0000ff);
-          centroid[centroid_size - 2] = static_cast<float>((rgb >> 8) & 0x0000ff);
-          centroid[centroid_size - 1] = static_cast<float>((rgb) & 0x0000ff);
+            &rgb, reinterpret_cast<const char *>(&input_->points[cp]) + rgba_index,
+            sizeof(unsigned int));
+          centroid[centroid_size - 3] = static_cast<float>((rgb >> 16u) & 0x0000ffu);
+          centroid[centroid_size - 2] = static_cast<float>((rgb >> 8u) & 0x0000ffu);
+          centroid[centroid_size - 1] = static_cast<float>((rgb) & 0x0000ffu);
         }
         pcl::for_each_type<FieldList>(
           pcl::NdCopyPointEigenFunctor<PointT>(input_->points[cp], centroid));
@@ -199,9 +205,8 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
       }
       ++leaf.nr_points;
     }
-  }
-  // No distance filtering, process all data
-  else {
+    // No distance filtering, process all data
+  } else {
     // First pass: go over all points and insert them into the right leaf
     for (size_t cp = 0; cp < input_->points.size(); ++cp) {
       if (!input_->is_dense)
@@ -245,12 +250,12 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
         // ---[ RGB special case
         if (rgba_index >= 0) {
           // Fill r/g/b data, assuming that the order is BGRA
-          int rgb;
+          unsigned int rgb = 0;
           memcpy(
             &rgb, reinterpret_cast<const char *>(&input_->points[cp]) + rgba_index, sizeof(int));
-          centroid[centroid_size - 3] = static_cast<float>((rgb >> 16) & 0x0000ff);
-          centroid[centroid_size - 2] = static_cast<float>((rgb >> 8) & 0x0000ff);
-          centroid[centroid_size - 1] = static_cast<float>((rgb) & 0x0000ff);
+          centroid[centroid_size - 3] = static_cast<float>((rgb >> 16u) & 0x0000ffu);
+          centroid[centroid_size - 2] = static_cast<float>((rgb >> 8u) & 0x0000ffu);
+          centroid[centroid_size - 1] = static_cast<float>((rgb) & 0x0000ffu);
         }
         pcl::for_each_type<FieldList>(
           pcl::NdCopyPointEigenFunctor<PointT>(input_->points[cp], centroid));
@@ -273,7 +278,7 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
 
   // Eigen values less than a threshold of max eigen value are inflated to a set fraction of the max
   // eigen value.
-  double min_covar_eigvalue;
+  double min_covar_eigvalue = NAN;
 
   for (auto it = leaves_.begin(); it != leaves_.end(); ++it) {
     // Normalize the centroid
@@ -305,10 +310,12 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
         // ---[ RGB special case
         if (rgba_index >= 0) {
           // pack r/g/b into rgb
-          float r = leaf.centroid[centroid_size - 3], g = leaf.centroid[centroid_size - 2],
-                b = leaf.centroid[centroid_size - 1];
-          int rgb =
-            (static_cast<int>(r)) << 16 | (static_cast<int>(g)) << 8 | (static_cast<int>(b));
+          float r = leaf.centroid[centroid_size - 3];
+          float g = leaf.centroid[centroid_size - 2];
+          float b = leaf.centroid[centroid_size - 1];
+          int rgb = static_cast<int>(
+            (static_cast<unsigned int>(r)) << 16u | (static_cast<unsigned int>(g)) << 8u |
+            (static_cast<unsigned int>(b)));
           memcpy(reinterpret_cast<char *>(&output.points.back()) + rgba_index, &rgb, sizeof(float));
         }
       }

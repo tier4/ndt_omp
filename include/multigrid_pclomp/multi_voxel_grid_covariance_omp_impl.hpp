@@ -57,6 +57,12 @@
 #include <pcl/common/common.h>
 #include <pcl/filters/boost.h>
 
+#include <limits>
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
+
 namespace pclomp
 {
 
@@ -83,7 +89,8 @@ MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(const MultiVoxelGridC
 }
 
 template <typename PointT>
-MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(MultiVoxelGridCovariance && other)
+MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(
+  MultiVoxelGridCovariance && other) noexcept
 : pcl::VoxelGrid<PointT>(std::move(other)),
   voxel_centroids_ptr_(std::move(other.voxel_centroids_ptr_)),
   sid_to_iid_(std::move(other.sid_to_iid_)),
@@ -126,9 +133,8 @@ MultiVoxelGridCovariance<PointT> & pclomp::MultiVoxelGridCovariance<PointT>::ope
 
 template <typename PointT>
 MultiVoxelGridCovariance<PointT> & pclomp::MultiVoxelGridCovariance<PointT>::operator=(
-  MultiVoxelGridCovariance && other)
+  MultiVoxelGridCovariance && other) noexcept
 {
-  pcl::VoxelGrid<PointT>::operator=(std::move(other));
   voxel_centroids_ptr_ = std::move(other.voxel_centroids_ptr_);
   sid_to_iid_ = std::move(other.sid_to_iid_);
   grid_list_ = std::move(other.grid_list_);
@@ -140,6 +146,8 @@ MultiVoxelGridCovariance<PointT> & pclomp::MultiVoxelGridCovariance<PointT>::ope
 
   setThreadNum(other.thread_num_);
   last_check_tid_ = -1;
+
+  pcl::VoxelGrid<PointT>::operator=(std::move(other));
 
   return *this;
 }
@@ -301,7 +309,8 @@ void MultiVoxelGridCovariance<PointT>::applyFilter(
     return;
   }
 
-  Eigen::Vector4f min_p, max_p;
+  Eigen::Vector4f min_p;
+  Eigen::Vector4f max_p;
   pcl::getMinMax3D<PointT>(*input, min_p, max_p);
 
   // Check that the leaf size is not too small, given the size of the data

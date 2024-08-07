@@ -24,12 +24,12 @@ class Timer
 public:
   void start() { start_time_ = std::chrono::steady_clock::now(); }
 
-  double elapsed_milliseconds() const
+  [[nodiscard]] double elapsed_milliseconds() const
   {
     const auto end_time = std::chrono::steady_clock::now();
     const auto elapsed_time = end_time - start_time_;
-    const double microseconds =
-      std::chrono::duration_cast<std::chrono::microseconds>(elapsed_time).count();
+    const double microseconds = static_cast<double>(
+      std::chrono::duration_cast<std::chrono::microseconds>(elapsed_time).count());
     return microseconds / 1000.0;
   }
 

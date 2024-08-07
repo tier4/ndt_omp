@@ -116,12 +116,13 @@ public:
 
   // Copy & move constructor
   MultiGridNormalDistributionsTransform(const MultiGridNormalDistributionsTransform & other);
-  MultiGridNormalDistributionsTransform(MultiGridNormalDistributionsTransform && other);
+  MultiGridNormalDistributionsTransform(MultiGridNormalDistributionsTransform && other) noexcept;
 
   // Copy & move assignments
   MultiGridNormalDistributionsTransform & operator=(
     const MultiGridNormalDistributionsTransform & other);
-  MultiGridNormalDistributionsTransform & operator=(MultiGridNormalDistributionsTransform && other);
+  MultiGridNormalDistributionsTransform & operator=(
+    MultiGridNormalDistributionsTransform && other) noexcept;
 
   /** \brief Empty destructor */
   virtual ~MultiGridNormalDistributionsTransform() {}
@@ -228,7 +229,7 @@ public:
   inline Eigen::Matrix<double, 6, 6> getHessian() const { return hessian_; }
 
   /** \brief Return the transformation array */
-  inline const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>>
+  inline const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> &
   getFinalTransformationArray() const
   {
     return transformation_array_;
@@ -548,7 +549,7 @@ protected:
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> transformation_array_;
   std::vector<float> transform_probability_array_;
   std::vector<float> nearest_voxel_transformation_likelihood_array_;
-  double nearest_voxel_transformation_likelihood_;
+  double nearest_voxel_transformation_likelihood_{};
 
   boost::optional<Eigen::Matrix4f> regularization_pose_;
   Eigen::Vector3f regularization_pose_translation_;

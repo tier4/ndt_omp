@@ -44,6 +44,9 @@
 #include <pcl/registration/exceptions.h>
 
 #include <atomic>
+#include <limits>
+#include <utility>
+#include <vector>
 
 ////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget>
@@ -52,7 +55,7 @@ void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::compute
   typename pcl::PointCloud<PointT>::ConstPtr cloud,
   const typename pcl::search::KdTree<PointT>::ConstPtr kdtree, MatricesVector & cloud_covariances)
 {
-  if (k_correspondences_ > int(cloud->size())) {
+  if (k_correspondences_ > static_cast<int>(cloud->size())) {
     PCL_ERROR(
       "[pcl::GeneralizedIterativeClosestPoint::computeCovariances] Number of points in cloud (%lu) "
       "is less than k_correspondences_ (%lu)!\n",
@@ -224,7 +227,6 @@ void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::
 
   int inner_iterations_ = 0;
   int result = bfgs.minimizeInit(x);
-  result = BFGSSpace::Running;
   do {
     inner_iterations_++;
     result = bfgs.minimizeOneStep(x);
@@ -240,12 +242,13 @@ void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::
     PCL_DEBUG("BFGS solver finished with exit code %i \n", result);
     transformation_matrix.setIdentity();
     applyState(transformation_matrix, x);
-  } else
+  } else {
     PCL_THROW_EXCEPTION(
       pcl::SolverDidntConvergeException,
       "[pcl::" << getClassName()
                << "::TransformationEstimationBFGS::estimateRigidTransformation] BFGS solver didn't "
                   "converge!");
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -370,7 +373,7 @@ inline void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::
         .template cast<double>() *
       res);
     // Increment total error
-    f += double(res.transpose() * temp);
+    f += static_cast<double>(res.transpose() * temp);
     // Increment translation gradient
     // g.head<3> ()+= 2*M*res/num_matches (we postpone 2/num_matches after the loop closes)
     g.head<3>() += temp;
@@ -379,8 +382,8 @@ inline void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::
     // Increment rotation gradient
     R += p_src3 * temp.transpose();
   }
-  f /= double(m);
-  g.head<3>() *= double(2.0 / m);
+  f /= static_cast<double>(m);
+  g.head<3>() *= static_cast<double>(2.0 / m);
   R *= 2.0 / m;
   gicp_->computeRDerivative(x, R, g);
 }
@@ -392,7 +395,6 @@ pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::computeTrans
   PointCloudSource & output, const Eigen::Matrix4f & guess)
 {
   pcl::IterativeClosestPoint<PointSource, PointTarget>::initComputeReciprocal();
-  using namespace std;
   // Difference between consecutive transforms
   double delta = 0;
   // Get the size of the target
@@ -436,7 +438,8 @@ pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::computeTrans
     for (size_t i = 0; i < 4; i++)
       for (size_t j = 0; j < 4; j++)
         for (size_t k = 0; k < 4; k++)
-          transform_R(i, j) += double(transformation_(i, k)) * double(guess(k, j));
+          transform_R(i, j) +=
+            static_cast<double>(transformation_(i, k)) * static_cast<double>(guess(k, j));
 
     const Eigen::Matrix3d R = transform_R.topLeftCorner<3, 3>();
 
@@ -463,9 +466,9 @@ pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::computeTrans
         Eigen::Matrix4f & M_ = mahalanobis_[i];
         M_.setZero();
 
-        Eigen::Matrix3d M = M_.block<3, 3>(0, 0).cast<double>();
+        // Eigen::Matrix3d M = M_.block<3, 3>(0, 0).cast<double>();
         // M = R*C1
-        M = R * C1;
+        Eigen::Matrix3d M = R * C1;
         // temp = M*R' + C2 = R*C1*R' + C2
         Eigen::Matrix3d temp = M * R.transpose();
         temp += C2;
@@ -533,8 +536,9 @@ pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::computeTrans
         "Transformation difference: %f\n",
         getClassName().c_str(), nr_iterations_, max_iterations_,
         (transformation_ - previous_transformation_).array().abs().sum());
-    } else
+    } else {
       PCL_DEBUG("[pcl::%s::computeTransformation] Convergence failed\n", getClassName().c_str());
+    }
   }
   final_transformation_ = previous_transformation_ * guess;
 

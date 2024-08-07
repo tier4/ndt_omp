@@ -57,6 +57,10 @@
 
 #include "multigrid_pclomp/multigrid_ndt_omp.h"
 
+#include <algorithm>
+#include <utility>
+#include <vector>
+
 namespace pclomp
 {
 
@@ -87,7 +91,7 @@ MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 
 template <typename PointSource, typename PointTarget>
 MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
-  MultiGridNormalDistributionsTransform(MultiGridNormalDistributionsTransform && other)
+  MultiGridNormalDistributionsTransform(MultiGridNormalDistributionsTransform && other) noexcept
 : BaseRegType(std::move(other)),
   target_cells_(std::move(other.target_cells_)),
   params_(std::move(other.params_))
@@ -114,8 +118,6 @@ MultiGridNormalDistributionsTransform<PointSource, PointTarget> &
 MultiGridNormalDistributionsTransform<PointSource, PointTarget>::operator=(
   const MultiGridNormalDistributionsTransform & other)
 {
-  BaseRegType::operator=(other);
-
   target_cells_ = other.target_cells_;
   params_ = other.params_;
 
@@ -135,16 +137,16 @@ MultiGridNormalDistributionsTransform<PointSource, PointTarget>::operator=(
   regularization_pose_ = other.regularization_pose_;
   regularization_pose_translation_ = other.regularization_pose_translation_;
 
+  BaseRegType::operator=(other);
+
   return *this;
 }
 
 template <typename PointSource, typename PointTarget>
 MultiGridNormalDistributionsTransform<PointSource, PointTarget> &
 MultiGridNormalDistributionsTransform<PointSource, PointTarget>::operator=(
-  MultiGridNormalDistributionsTransform && other)
+  MultiGridNormalDistributionsTransform && other) noexcept
 {
-  BaseRegType::operator=(std::move(other));
-
   target_cells_ = std::move(other.target_cells_);
   params_ = std::move(other.params_);
 
@@ -163,6 +165,8 @@ MultiGridNormalDistributionsTransform<PointSource, PointTarget>::operator=(
 
   regularization_pose_ = other.regularization_pose_;
   regularization_pose_translation_ = other.regularization_pose_translation_;
+
+  BaseRegType::operator=(std::move(other));
 
   return *this;
 }
@@ -190,11 +194,9 @@ MultiGridNormalDistributionsTransform<
   params_.regularization_scale_factor = 0.0f;
   params_.use_line_search = false;
 
-  double gauss_c1, gauss_c2;
-
   // Initializes the gaussian fitting parameters (eq. 6.8) [Magnusson 2009]
-  gauss_c1 = 10.0 * (1 - outlier_ratio_);
-  gauss_c2 = outlier_ratio_ / pow(params_.resolution, 3);
+  double gauss_c1 = 10.0 * (1 - outlier_ratio_);
+  double gauss_c2 = outlier_ratio_ / pow(params_.resolution, 3);
   gauss_d3_ = -log(gauss_c2);
   gauss_d1_ = -log(gauss_c1 + gauss_c2) - gauss_d3_;
   gauss_d2_ = -2 * log((-log(gauss_c1 * exp(-0.5) + gauss_c2) - gauss_d3_) / gauss_d1_);
@@ -208,11 +210,9 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
   nr_iterations_ = 0;
   converged_ = false;
 
-  double gauss_c1, gauss_c2;
-
   // Initializes the gaussian fitting parameters (eq. 6.8) [Magnusson 2009]
-  gauss_c1 = 10 * (1 - outlier_ratio_);
-  gauss_c2 = outlier_ratio_ / pow(params_.resolution, 3);
+  double gauss_c1 = 10 * (1 - outlier_ratio_);
+  double gauss_c2 = outlier_ratio_ / pow(params_.resolution, 3);
   gauss_d3_ = -log(gauss_c2);
   gauss_d1_ = -log(gauss_c1 + gauss_c2) - gauss_d3_;
   gauss_d2_ = -2.0 * log((-log(gauss_c1 * exp(-0.5) + gauss_c2) - gauss_d3_) / gauss_d1_);
@@ -234,7 +234,9 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
   nearest_voxel_transformation_likelihood_array_.clear();
 
   // Convert initial guess matrix to 6 element transformation vector
-  Eigen::Matrix<double, 6, 1> p, delta_p, score_gradient;
+  Eigen::Matrix<double, 6, 1> p;
+  Eigen::Matrix<double, 6, 1> delta_p;
+  Eigen::Matrix<double, 6, 1> score_gradient;
   Eigen::Vector3f init_translation = eig_transformation.translation();
   Eigen::Vector3f init_rotation = eig_transformation.rotation().eulerAngles(0, 1, 2);
 
@@ -244,7 +246,6 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
   Eigen::Matrix<double, 6, 6> hessian;
 
   double score = 0;
-  double delta_p_norm;
 
   if (regularization_pose_) {
     Eigen::Transform<float, 3, Eigen::Affine, Eigen::ColMajor> regularization_pose_transformation;
@@ -267,7 +268,7 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeTra
     delta_p = sv.solve(-score_gradient);
 
     // Calculate step length with guaranteed sufficient decrease [More, Thuente 1994]
-    delta_p_norm = delta_p.norm();
+    double delta_p_norm = delta_p.norm();
 
     if (delta_p_norm == 0 || delta_p_norm != delta_p_norm) {
       if (input_->empty()) {
@@ -498,7 +499,12 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeAng
   Eigen::Matrix<double, 6, 1> & p, bool compute_hessian)
 {
   // Simplified math for near 0 angles
-  double cx, cy, cz, sx, sy, sz;
+  double cx = 1.0;
+  double cy = 1.0;
+  double cz = 1.0;
+  double sx = 0.0;
+  double sy = 0.0;
+  double sz = 0.0;
   if (fabs(p(3)) < 10e-5) {
     // p(3) = 0;
     cx = 1.0;
@@ -724,7 +730,7 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHes
     // Equations 6.18 and 6.20 [Magnusson 2009]
     computePointDerivatives(x, point_gradient, point_hessian);
 
-    for (auto & cell : neighborhood) {
+    for (const auto & cell : neighborhood) {
       // Update hessian, lines 21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13,
       // respectively [Magnusson 2009]
       updateHessian(
@@ -734,7 +740,7 @@ void MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeHes
   }
 
   // Sum over t_hessians
-  for (auto & th : t_hessians) {
+  for (const auto & th : t_hessians) {
     hessian += th;
   }
 }
@@ -786,14 +792,14 @@ bool MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateInte
     return (false);
   }
   // Case U2 in Update Algorithm and Case b in Modified Update Algorithm [More, Thuente 1994]
-  else if (g_t * (a_l - a_t) > 0) {
+  if (g_t * (a_l - a_t) > 0) {
     a_l = a_t;
     f_l = f_t;
     g_l = g_t;
     return (false);
   }
   // Case U3 in Update Algorithm and Case c in Modified Update Algorithm [More, Thuente 1994]
-  else if (g_t * (a_l - a_t) < 0) {
+  if (g_t * (a_l - a_t) < 0) {
     a_u = a_l;
     f_u = f_l;
     g_u = g_l;
@@ -804,8 +810,7 @@ bool MultiGridNormalDistributionsTransform<PointSource, PointTarget>::updateInte
     return (false);
   }
   // Interval Converged
-  else
-    return (true);
+  return (true);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -827,13 +832,13 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::trialVal
     // Equation 2.4.2 [Sun, Yuan 2006]
     double a_q = a_l - 0.5 * (a_l - a_t) * g_l / (g_l - (f_l - f_t) / (a_l - a_t));
 
-    if (std::fabs(a_c - a_l) < std::fabs(a_q - a_l))
+    if (std::fabs(a_c - a_l) < std::fabs(a_q - a_l)) {
       return (a_c);
-    else
-      return (0.5 * (a_q + a_c));
+    }
+    return (0.5 * (a_q + a_c));
   }
   // Case 2 in Trial Value Selection [More, Thuente 1994]
-  else if (g_t * g_l < 0) {
+  if (g_t * g_l < 0) {
     // Calculate the minimizer of the cubic that interpolates f_l, f_t, g_l and g_t
     // Equation 2.4.52 [Sun, Yuan 2006]
     double z = 3 * (f_t - f_l) / (a_t - a_l) - g_t - g_l;
@@ -845,13 +850,13 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::trialVal
     // Equation 2.4.5 [Sun, Yuan 2006]
     double a_s = a_l - (a_l - a_t) / (g_l - g_t) * g_l;
 
-    if (std::fabs(a_c - a_t) >= std::fabs(a_s - a_t))
+    if (std::fabs(a_c - a_t) >= std::fabs(a_s - a_t)) {
       return (a_c);
-    else
-      return (a_s);
+    }
+    return (a_s);
   }
   // Case 3 in Trial Value Selection [More, Thuente 1994]
-  else if (std::fabs(g_t) <= std::fabs(g_l)) {
+  if (std::fabs(g_t) <= std::fabs(g_l)) {
     // Calculate the minimizer of the cubic that interpolates f_l, f_t, g_l and g_t
     // Equation 2.4.52 [Sun, Yuan 2006]
     double z = 3 * (f_t - f_l) / (a_t - a_l) - g_t - g_l;
@@ -862,27 +867,25 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::trialVal
     // Equation 2.4.5 [Sun, Yuan 2006]
     double a_s = a_l - (a_l - a_t) / (g_l - g_t) * g_l;
 
-    double a_t_next;
+    double a_t_next = 0.0;
 
     if (std::fabs(a_c - a_t) < std::fabs(a_s - a_t))
       a_t_next = a_c;
     else
       a_t_next = a_s;
 
-    if (a_t > a_l)
+    if (a_t > a_l) {
       return (std::min(a_t + 0.66 * (a_u - a_t), a_t_next));
-    else
-      return (std::max(a_t + 0.66 * (a_u - a_t), a_t_next));
+    }
+    return (std::max(a_t + 0.66 * (a_u - a_t), a_t_next));
   }
   // Case 4 in Trial Value Selection [More, Thuente 1994]
-  else {
-    // Calculate the minimizer of the cubic that interpolates f_u, f_t, g_u and g_t
-    // Equation 2.4.52 [Sun, Yuan 2006]
-    double z = 3 * (f_t - f_u) / (a_t - a_u) - g_t - g_u;
-    double w = std::sqrt(z * z - g_t * g_u);
-    // Equation 2.4.56 [Sun, Yuan 2006]
-    return (a_u + (a_t - a_u) * (w - g_u - z) / (g_t - g_u + 2 * w));
-  }
+  // Calculate the minimizer of the cubic that interpolates f_u, f_t, g_u and g_t
+  // Equation 2.4.52 [Sun, Yuan 2006]
+  double z = 3 * (f_t - f_u) / (a_t - a_u) - g_t - g_u;
+  double w = std::sqrt(z * z - g_t * g_u);
+  // Equation 2.4.56 [Sun, Yuan 2006]
+  return (a_u + (a_t - a_u) * (w - g_u - z) / (g_t - g_u + 2 * w));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -901,13 +904,11 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeS
 
   if (d_phi_0 >= 0) {
     // Not a decent direction
-    if (d_phi_0 == 0)
-      return 0;
-    else {
-      // Reverse step direction and calculate optimal step.
-      d_phi_0 *= -1;
-      step_dir *= -1;
-    }
+    if (d_phi_0 == 0) return 0;
+
+    // Reverse step direction and calculate optimal step.
+    d_phi_0 *= -1;
+    step_dir *= -1;
   }
 
   // The Search Algorithm for T(mu) [More, Thuente 1994]
@@ -921,7 +922,8 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeS
   double nu = 0.9;
 
   // Initial endpoints of Interval I,
-  double a_l = 0, a_u = 0;
+  double a_l = 0;
+  double a_u = 0;
 
   // Auxiliary function psi is used until I is determined ot be a closed interval, Equation 2.1
   // [More, Thuente 1994]
@@ -933,7 +935,8 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::computeS
 
   // Check used to allow More-Thuente step length calculation to be skipped by making step_min ==
   // step_max
-  bool interval_converged = (step_max - step_min) < 0, open_interval = true;
+  bool interval_converged = (step_max - step_min) < 0;
+  bool open_interval = true;
 
   double a_t = step_init;
   a_t = std::min(a_t, step_max);
@@ -1095,7 +1098,7 @@ MultiGridNormalDistributionsTransform<PointSource, PointTarget>::calculateTransf
   }
 
   // Sum the point-wise scores
-  for (auto & ts : t_scores) {
+  for (const auto & ts : t_scores) {
     score += ts;
   }
 

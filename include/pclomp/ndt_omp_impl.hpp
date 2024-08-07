@@ -1,4 +1,6 @@
 #include "ndt_omp.h"
+
+#include <cmath>
 /*
  * Software License Agreement (BSD License)
  *
@@ -42,6 +44,9 @@
 #ifndef PCL_REGISTRATION_NDT_OMP_IMPL_H_
 #define PCL_REGISTRATION_NDT_OMP_IMPL_H_
 
+#include <algorithm>
+#include <vector>
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget>
 pclomp::NormalDistributionsTransform<PointSource, PointTarget>::NormalDistributionsTransform()
@@ -51,30 +56,7 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::NormalDistributi
   gauss_d2_(),
   gauss_d3_(),
   trans_probability_(),
-  regularization_pose_(boost::none),
-  j_ang_a_(),
-  j_ang_b_(),
-  j_ang_c_(),
-  j_ang_d_(),
-  j_ang_e_(),
-  j_ang_f_(),
-  j_ang_g_(),
-  j_ang_h_(),
-  h_ang_a2_(),
-  h_ang_a3_(),
-  h_ang_b2_(),
-  h_ang_b3_(),
-  h_ang_c2_(),
-  h_ang_c3_(),
-  h_ang_d1_(),
-  h_ang_d2_(),
-  h_ang_d3_(),
-  h_ang_e1_(),
-  h_ang_e2_(),
-  h_ang_e3_(),
-  h_ang_f1_(),
-  h_ang_f2_(),
-  h_ang_f3_()
+  regularization_pose_(boost::none)
 {
   reg_name_ = "NormalDistributionsTransform";
 
@@ -87,7 +69,8 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::NormalDistributi
   params_.regularization_scale_factor = 0.0f;
   params_.use_line_search = false;
 
-  double gauss_c1, gauss_c2;
+  double gauss_c1 = NAN;
+  double gauss_c2 = NAN;
 
   // Initializes the gaussian fitting parameters (eq. 6.8) [Magnusson 2009]
   gauss_c1 = 10.0 * (1 - outlier_ratio_);
@@ -105,7 +88,8 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeTran
   nr_iterations_ = 0;
   converged_ = false;
 
-  double gauss_c1, gauss_c2;
+  double gauss_c1 = NAN;
+  double gauss_c2 = NAN;
 
   // Initializes the gaussian fitting parameters (eq. 6.8) [Magnusson 2009]
   gauss_c1 = 10 * (1 - outlier_ratio_);
@@ -127,7 +111,9 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeTran
   transformation_array_.push_back(final_transformation_);
 
   // Convert initial guess matrix to 6 element transformation vector
-  Eigen::Matrix<double, 6, 1> p, delta_p, score_gradient;
+  Eigen::Matrix<double, 6, 1> p;
+  Eigen::Matrix<double, 6, 1> delta_p;
+  Eigen::Matrix<double, 6, 1> score_gradient;
   Eigen::Vector3f init_translation = eig_transformation.translation();
   Eigen::Vector3f init_rotation = eig_transformation.rotation().eulerAngles(0, 1, 2);
   p << init_translation(0), init_translation(1), init_translation(2), init_rotation(0),
@@ -136,7 +122,7 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeTran
   Eigen::Matrix<double, 6, 6> hessian;
 
   double score = 0;
-  double delta_p_norm;
+  double delta_p_norm = NAN;
 
   if (regularization_pose_) {
     Eigen::Transform<float, 3, Eigen::Affine, Eigen::ColMajor> regularization_pose_transformation;
@@ -268,20 +254,22 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeDe
     int thread_n = omp_get_thread_num();
 
     // Original Point and Transformed Point
-    PointSource x_pt, x_trans_pt;
+    PointSource x_pt;
+    PointSource x_trans_pt;
     // Original Point and Transformed Point (for math)
-    Eigen::Vector3d x, x_trans;
+    Eigen::Vector3d x;
+    Eigen::Vector3d x_trans;
     // Occupied Voxel
     TargetGridLeafConstPtr cell;
     // Inverse Covariance of Occupied Voxel
     Eigen::Matrix3d c_inv;
 
     // Initialize Point Gradient and Hessian
-    Eigen::Matrix<float, 4, 6> point_gradient_;
-    Eigen::Matrix<float, 24, 6> point_hessian_;
-    point_gradient_.setZero();
-    point_gradient_.block<3, 3>(0, 0).setIdentity();
-    point_hessian_.setZero();
+    Eigen::Matrix<float, 4, 6> point_gradient;
+    Eigen::Matrix<float, 24, 6> point_hessian;
+    point_gradient.setZero();
+    point_gradient.block<3, 3>(0, 0).setIdentity();
+    point_hessian.setZero();
 
     x_trans_pt = trans_cloud.points[idx];
 
@@ -313,7 +301,7 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeDe
 
     for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it =
            neighborhood.begin();
-         neighborhood_it != neighborhood.end(); neighborhood_it++) {
+         neighborhood_it != neighborhood.end(); ++neighborhood_it) {
       cell = *neighborhood_it;
       x_pt = input_->points[idx];
       x = Eigen::Vector3d(x_pt.x, x_pt.y, x_pt.z);
@@ -327,11 +315,11 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeDe
 
       // Compute derivative of transform function w.r.t. transform vector, J_E and H_E in
       // Equations 6.18 and 6.20 [Magnusson 2009]
-      computePointDerivatives(x, point_gradient_, point_hessian_);
+      computePointDerivatives(x, point_gradient, point_hessian);
       // Update score, gradient and hessian, lines 19-21 in Algorithm 2, according to
       // Equations 6.10, 6.12 and 6.13, respectively [Magnusson 2009]
       double score_pt = updateDerivatives(
-        score_gradient_pt, hessian_pt, point_gradient_, point_hessian_, x_trans, c_inv,
+        score_gradient_pt, hessian_pt, point_gradient, point_hessian, x_trans, c_inv,
         compute_hessian);
       neighborhood_count++;
       sum_score_pt += score_pt;
@@ -412,7 +400,12 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeAngl
   Eigen::Matrix<double, 6, 1> & p, bool compute_hessian)
 {
   // Simplified math for near 0 angles
-  double cx, cy, cz, sx, sy, sz;
+  double cx = NAN;
+  double cy = NAN;
+  double cz = NAN;
+  double sx = NAN;
+  double sy = NAN;
+  double sz = NAN;
   if (fabs(p(3)) < 10e-5) {
     // p(3) = 0;
     cx = 1.0;
@@ -450,18 +443,28 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeAngl
   j_ang_h_ << (sx * cz + cx * sy * sz), (cx * sy * cz - sx * sz), 0;
 
   j_ang.setZero();
-  j_ang.row(0).noalias() =
-    Eigen::Vector4f((-sx * sz + cx * sy * cz), (-sx * cz - cx * sy * sz), (-cx * cy), 0.0f);
-  j_ang.row(1).noalias() =
-    Eigen::Vector4f((cx * sz + sx * sy * cz), (cx * cz - sx * sy * sz), (-sx * cy), 0.0f);
-  j_ang.row(2).noalias() = Eigen::Vector4f((-sy * cz), sy * sz, cy, 0.0f);
-  j_ang.row(3).noalias() = Eigen::Vector4f(sx * cy * cz, (-sx * cy * sz), sx * sy, 0.0f);
-  j_ang.row(4).noalias() = Eigen::Vector4f((-cx * cy * cz), cx * cy * sz, (-cx * sy), 0.0f);
-  j_ang.row(5).noalias() = Eigen::Vector4f((-cy * sz), (-cy * cz), 0, 0.0f);
-  j_ang.row(6).noalias() =
-    Eigen::Vector4f((cx * cz - sx * sy * sz), (-cx * sz - sx * sy * cz), 0, 0.0f);
-  j_ang.row(7).noalias() =
-    Eigen::Vector4f((sx * cz + cx * sy * sz), (cx * sy * cz - sx * sz), 0, 0.0f);
+  j_ang.row(0).noalias() = Eigen::Vector4f(
+    static_cast<float>(-sx * sz + cx * sy * cz), static_cast<float>(-sx * cz - cx * sy * sz),
+    static_cast<float>(-cx * cy), 0.0f);
+  j_ang.row(1).noalias() = Eigen::Vector4f(
+    static_cast<float>(cx * sz + sx * sy * cz), static_cast<float>(cx * cz - sx * sy * sz),
+    static_cast<float>(-sx * cy), 0.0f);
+  j_ang.row(2).noalias() = Eigen::Vector4f(
+    static_cast<float>(-sy * cz), static_cast<float>(sy * sz), static_cast<float>(cy), 0.0f);
+  j_ang.row(3).noalias() = Eigen::Vector4f(
+    static_cast<float>(sx * cy * cz), static_cast<float>(-sx * cy * sz),
+    static_cast<float>(sx * sy), 0.0f);
+  j_ang.row(4).noalias() = Eigen::Vector4f(
+    static_cast<float>(-cx * cy * cz), static_cast<float>(cx * cy * sz),
+    static_cast<float>(-cx * sy), 0.0f);
+  j_ang.row(5).noalias() =
+    Eigen::Vector4f(static_cast<float>(-cy * sz), static_cast<float>(-cy * cz), 0.0f, 0.0f);
+  j_ang.row(6).noalias() = Eigen::Vector4f(
+    static_cast<float>(cx * cz - sx * sy * sz), static_cast<float>(-cx * sz - sx * sy * cz), 0,
+    0.0f);
+  j_ang.row(7).noalias() = Eigen::Vector4f(
+    static_cast<float>(sx * cz + cx * sy * sz), static_cast<float>(cx * sy * cz - sx * sz), 0,
+    0.0f);
 
   if (compute_hessian) {
     // Precomputed angular hessian components. Letters correspond to Equation 6.21 and numbers
@@ -488,36 +491,52 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeAngl
     h_ang_f3_ << (-sx * sz + cx * sy * cz), (-cx * sy * sz - sx * cz), 0;
 
     h_ang.setZero();
-    h_ang.row(0).noalias() =
-      Eigen::Vector4f((-cx * sz - sx * sy * cz), (-cx * cz + sx * sy * sz), sx * cy, 0.0f);  // a2
+    h_ang.row(0).noalias() = Eigen::Vector4f(
+      static_cast<float>(-cx * sz - sx * sy * cz), static_cast<float>(-cx * cz + sx * sy * sz),
+      static_cast<float>(sx * cy), 0.0f);  // a2
     h_ang.row(1).noalias() = Eigen::Vector4f(
-      (-sx * sz + cx * sy * cz), (-cx * sy * sz - sx * cz), (-cx * cy), 0.0f);  // a3
+      static_cast<float>(-sx * sz + cx * sy * cz), static_cast<float>(-cx * sy * sz - sx * cz),
+      static_cast<float>(-cx * cy), 0.0f);  // a3
 
-    h_ang.row(2).noalias() =
-      Eigen::Vector4f((cx * cy * cz), (-cx * cy * sz), (cx * sy), 0.0f);  // b2
-    h_ang.row(3).noalias() =
-      Eigen::Vector4f((sx * cy * cz), (-sx * cy * sz), (sx * sy), 0.0f);  // b3
+    h_ang.row(2).noalias() = Eigen::Vector4f(
+      static_cast<float>(cx * cy * cz), static_cast<float>(-cx * cy * sz),
+      static_cast<float>(cx * sy), 0.0f);  // b2
+    h_ang.row(3).noalias() = Eigen::Vector4f(
+      static_cast<float>(sx * cy * cz), static_cast<float>(-sx * cy * sz),
+      static_cast<float>(sx * sy), 0.0f);  // b3
 
-    h_ang.row(4).noalias() =
-      Eigen::Vector4f((-sx * cz - cx * sy * sz), (sx * sz - cx * sy * cz), 0, 0.0f);  // c2
-    h_ang.row(5).noalias() =
-      Eigen::Vector4f((cx * cz - sx * sy * sz), (-sx * sy * cz - cx * sz), 0, 0.0f);  // c3
+    h_ang.row(4).noalias() = Eigen::Vector4f(
+      static_cast<float>(-sx * cz - cx * sy * sz), static_cast<float>(sx * sz - cx * sy * cz), 0.0f,
+      0.0f);  // c2
+    h_ang.row(5).noalias() = Eigen::Vector4f(
+      static_cast<float>(cx * cz - sx * sy * sz), static_cast<float>(-sx * sy * cz - cx * sz), 0.0f,
+      0.0f);  // c3
 
-    h_ang.row(6).noalias() = Eigen::Vector4f((-cy * cz), (cy * sz), (sy), 0.0f);  // d1
-    h_ang.row(7).noalias() =
-      Eigen::Vector4f((-sx * sy * cz), (sx * sy * sz), (sx * cy), 0.0f);  // d2
-    h_ang.row(8).noalias() =
-      Eigen::Vector4f((cx * sy * cz), (-cx * sy * sz), (-cx * cy), 0.0f);  // d3
+    h_ang.row(6).noalias() = Eigen::Vector4f(
+      static_cast<float>(-cy * cz), static_cast<float>(cy * sz), static_cast<float>(sy),
+      0.0f);  // d1
+    h_ang.row(7).noalias() = Eigen::Vector4f(
+      static_cast<float>(-sx * sy * cz), static_cast<float>(sx * sy * sz),
+      static_cast<float>(sx * cy), 0.0f);  // d2
+    h_ang.row(8).noalias() = Eigen::Vector4f(
+      static_cast<float>(cx * sy * cz), static_cast<float>(-cx * sy * sz),
+      static_cast<float>(-cx * cy), 0.0f);  // d3
 
-    h_ang.row(9).noalias() = Eigen::Vector4f((sy * sz), (sy * cz), 0, 0.0f);               // e1
-    h_ang.row(10).noalias() = Eigen::Vector4f((-sx * cy * sz), (-sx * cy * cz), 0, 0.0f);  // e2
-    h_ang.row(11).noalias() = Eigen::Vector4f((cx * cy * sz), (cx * cy * cz), 0, 0.0f);    // e3
+    h_ang.row(9).noalias() =
+      Eigen::Vector4f(static_cast<float>(sy * sz), static_cast<float>(sy * cz), 0.0f, 0.0f);  // e1
+    h_ang.row(10).noalias() = Eigen::Vector4f(
+      static_cast<float>(-sx * cy * sz), static_cast<float>(-sx * cy * cz), 0.0f, 0.0f);  // e2
+    h_ang.row(11).noalias() = Eigen::Vector4f(
+      static_cast<float>(cx * cy * sz), static_cast<float>(cx * cy * cz), 0.0f, 0.0f);  // e3
 
-    h_ang.row(12).noalias() = Eigen::Vector4f((-cy * cz), (cy * sz), 0, 0.0f);  // f1
-    h_ang.row(13).noalias() =
-      Eigen::Vector4f((-cx * sz - sx * sy * cz), (-cx * cz + sx * sy * sz), 0, 0.0f);  // f2
-    h_ang.row(14).noalias() =
-      Eigen::Vector4f((-sx * sz + cx * sy * cz), (-cx * sy * sz - sx * cz), 0, 0.0f);  // f3
+    h_ang.row(12).noalias() =
+      Eigen::Vector4f(static_cast<float>(-cy * cz), static_cast<float>(cy * sz), 0.0f, 0.0f);  // f1
+    h_ang.row(13).noalias() = Eigen::Vector4f(
+      static_cast<float>(-cx * sz - sx * sy * cz), static_cast<float>(-cx * cz + sx * sy * sz),
+      0.0f, 0.0f);  // f2
+    h_ang.row(14).noalias() = Eigen::Vector4f(
+      static_cast<float>(-sx * sz + cx * sy * cz), static_cast<float>(-cx * sy * sz - sx * cz),
+      0.0f, 0.0f);  // f3
   }
 }
 
@@ -527,7 +546,8 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computePoin
   Eigen::Vector3d & x, Eigen::Matrix<float, 4, 6> & point_gradient_,
   Eigen::Matrix<float, 24, 6> & point_hessian_, bool compute_hessian) const
 {
-  Eigen::Vector4f x4(x[0], x[1], x[2], 0.0f);
+  Eigen::Vector4f x4(
+    static_cast<float>(x[0]), static_cast<float>(x[1]), static_cast<float>(x[2]), 0.0f);
 
   // Calculate first derivative of Transformation Equation 6.17 w.r.t. transform vector p.
   // Derivative w.r.t. ith element of transform vector corresponds to column i, Equation 6.18
@@ -589,7 +609,12 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computePoin
 
   if (compute_hessian) {
     // Vectors from Equation 6.21 [Magnusson 2009]
-    Eigen::Vector3d a, b, c, d, e, f;
+    Eigen::Vector3d a;
+    Eigen::Vector3d b;
+    Eigen::Vector3d c;
+    Eigen::Vector3d d;
+    Eigen::Vector3d e;
+    Eigen::Vector3d f;
 
     a << 0, x.dot(h_ang_a2_), x.dot(h_ang_a3_);
     b << 0, x.dot(h_ang_b2_), x.dot(h_ang_b3_);
@@ -621,7 +646,9 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::updateDer
   const Eigen::Matrix<float, 24, 6> & point_hessian_, const Eigen::Vector3d & x_trans,
   const Eigen::Matrix3d & c_inv, bool compute_hessian) const
 {
-  Eigen::Matrix<float, 1, 4> x_trans4(x_trans[0], x_trans[1], x_trans[2], 0.0f);
+  Eigen::Matrix<float, 1, 4> x_trans4(
+    static_cast<float>(x_trans[0]), static_cast<float>(x_trans[1]), static_cast<float>(x_trans[2]),
+    0.0f);
   Eigen::Matrix4f c_inv4 = Eigen::Matrix4f::Zero();
   c_inv4.topLeftCorner(3, 3) = c_inv.cast<float>();
 
@@ -679,20 +706,22 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeHess
   Eigen::Matrix<double, 6, 1> &)
 {
   // Original Point and Transformed Point
-  PointSource x_pt, x_trans_pt;
+  PointSource x_pt;
+  PointSource x_trans_pt;
   // Original Point and Transformed Point (for math)
-  Eigen::Vector3d x, x_trans;
+  Eigen::Vector3d x;
+  Eigen::Vector3d x_trans;
   // Occupied Voxel
   TargetGridLeafConstPtr cell;
   // Inverse Covariance of Occupied Voxel
   Eigen::Matrix3d c_inv;
 
   // Initialize Point Gradient and Hessian
-  Eigen::Matrix<double, 3, 6> point_gradient_;
-  Eigen::Matrix<double, 18, 6> point_hessian_;
-  point_gradient_.setZero();
-  point_gradient_.block<3, 3>(0, 0).setIdentity();
-  point_hessian_.setZero();
+  Eigen::Matrix<double, 3, 6> point_gradient;
+  Eigen::Matrix<double, 18, 6> point_hessian;
+  point_gradient.setZero();
+  point_gradient.block<3, 3>(0, 0).setIdentity();
+  point_hessian.setZero();
 
   hessian.setZero();
 
@@ -724,7 +753,7 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeHess
 
     for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it =
            neighborhood.begin();
-         neighborhood_it != neighborhood.end(); neighborhood_it++) {
+         neighborhood_it != neighborhood.end(); ++neighborhood_it) {
       cell = *neighborhood_it;
 
       {
@@ -740,10 +769,10 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeHess
 
         // Compute derivative of transform function w.r.t. transform vector, J_E and H_E in
         // Equations 6.18 and 6.20 [Magnusson 2009]
-        computePointDerivatives(x, point_gradient_, point_hessian_);
+        computePointDerivatives(x, point_gradient, point_hessian);
         // Update hessian, lines 21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13,
         // respectively [Magnusson 2009]
-        updateHessian(hessian, point_gradient_, point_hessian_, x_trans, c_inv);
+        updateHessian(hessian, point_gradient, point_hessian, x_trans, c_inv);
       }
     }
   }
@@ -794,14 +823,14 @@ bool pclomp::NormalDistributionsTransform<PointSource, PointTarget>::updateInter
     return (false);
   }
   // Case U2 in Update Algorithm and Case b in Modified Update Algorithm [More, Thuente 1994]
-  else if (g_t * (a_l - a_t) > 0) {
+  if (g_t * (a_l - a_t) > 0) {
     a_l = a_t;
     f_l = f_t;
     g_l = g_t;
     return (false);
   }
   // Case U3 in Update Algorithm and Case c in Modified Update Algorithm [More, Thuente 1994]
-  else if (g_t * (a_l - a_t) < 0) {
+  if (g_t * (a_l - a_t) < 0) {
     a_u = a_l;
     f_u = f_l;
     g_u = g_l;
@@ -812,8 +841,7 @@ bool pclomp::NormalDistributionsTransform<PointSource, PointTarget>::updateInter
     return (false);
   }
   // Interval Converged
-  else
-    return (true);
+  return (true);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -835,13 +863,13 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::trialValu
     // Equation 2.4.2 [Sun, Yuan 2006]
     double a_q = a_l - 0.5 * (a_l - a_t) * g_l / (g_l - (f_l - f_t) / (a_l - a_t));
 
-    if (std::fabs(a_c - a_l) < std::fabs(a_q - a_l))
+    if (std::fabs(a_c - a_l) < std::fabs(a_q - a_l)) {
       return (a_c);
-    else
-      return (0.5 * (a_q + a_c));
+    }
+    return (0.5 * (a_q + a_c));
   }
   // Case 2 in Trial Value Selection [More, Thuente 1994]
-  else if (g_t * g_l < 0) {
+  if (g_t * g_l < 0) {
     // Calculate the minimizer of the cubic that interpolates f_l, f_t, g_l and g_t
     // Equation 2.4.52 [Sun, Yuan 2006]
     double z = 3 * (f_t - f_l) / (a_t - a_l) - g_t - g_l;
@@ -853,13 +881,13 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::trialValu
     // Equation 2.4.5 [Sun, Yuan 2006]
     double a_s = a_l - (a_l - a_t) / (g_l - g_t) * g_l;
 
-    if (std::fabs(a_c - a_t) >= std::fabs(a_s - a_t))
+    if (std::fabs(a_c - a_t) >= std::fabs(a_s - a_t)) {
       return (a_c);
-    else
-      return (a_s);
+    }
+    return (a_s);
   }
   // Case 3 in Trial Value Selection [More, Thuente 1994]
-  else if (std::fabs(g_t) <= std::fabs(g_l)) {
+  if (std::fabs(g_t) <= std::fabs(g_l)) {
     // Calculate the minimizer of the cubic that interpolates f_l, f_t, g_l and g_t
     // Equation 2.4.52 [Sun, Yuan 2006]
     double z = 3 * (f_t - f_l) / (a_t - a_l) - g_t - g_l;
@@ -870,27 +898,25 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::trialValu
     // Equation 2.4.5 [Sun, Yuan 2006]
     double a_s = a_l - (a_l - a_t) / (g_l - g_t) * g_l;
 
-    double a_t_next;
+    double a_t_next = NAN;
 
     if (std::fabs(a_c - a_t) < std::fabs(a_s - a_t))
       a_t_next = a_c;
     else
       a_t_next = a_s;
 
-    if (a_t > a_l)
+    if (a_t > a_l) {
       return (std::min(a_t + 0.66 * (a_u - a_t), a_t_next));
-    else
-      return (std::max(a_t + 0.66 * (a_u - a_t), a_t_next));
+    }
+    return (std::max(a_t + 0.66 * (a_u - a_t), a_t_next));
   }
   // Case 4 in Trial Value Selection [More, Thuente 1994]
-  else {
-    // Calculate the minimizer of the cubic that interpolates f_u, f_t, g_u and g_t
-    // Equation 2.4.52 [Sun, Yuan 2006]
-    double z = 3 * (f_t - f_u) / (a_t - a_u) - g_t - g_u;
-    double w = std::sqrt(z * z - g_t * g_u);
-    // Equation 2.4.56 [Sun, Yuan 2006]
-    return (a_u + (a_t - a_u) * (w - g_u - z) / (g_t - g_u + 2 * w));
-  }
+  // Calculate the minimizer of the cubic that interpolates f_u, f_t, g_u and g_t
+  // Equation 2.4.52 [Sun, Yuan 2006]
+  double z = 3 * (f_t - f_u) / (a_t - a_u) - g_t - g_u;
+  double w = std::sqrt(z * z - g_t * g_u);
+  // Equation 2.4.56 [Sun, Yuan 2006]
+  return (a_u + (a_t - a_u) * (w - g_u - z) / (g_t - g_u + 2 * w));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -909,13 +935,11 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeSt
 
   if (d_phi_0 >= 0) {
     // Not a decent direction
-    if (d_phi_0 == 0)
-      return 0;
-    else {
-      // Reverse step direction and calculate optimal step.
-      d_phi_0 *= -1;
-      step_dir *= -1;
-    }
+    if (d_phi_0 == 0) return 0;
+
+    // Reverse step direction and calculate optimal step.
+    d_phi_0 *= -1;
+    step_dir *= -1;
   }
 
   // The Search Algorithm for T(mu) [More, Thuente 1994]
@@ -929,7 +953,8 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeSt
   double nu = 0.9;
 
   // Initial endpoints of Interval I,
-  double a_l = 0, a_u = 0;
+  double a_l = 0;
+  double a_u = 0;
 
   // Auxiliary function psi is used until I is determined ot be a closed interval, Equation 2.1
   // [More, Thuente 1994]
@@ -941,7 +966,8 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeSt
 
   // Check used to allow More-Thuente step length calculation to be skipped by making step_min ==
   // step_max
-  bool interval_converged = (step_max - step_min) < 0, open_interval = true;
+  bool interval_converged = (step_max - step_min) < 0;
+  bool open_interval = true;
 
   double a_t = step_init;
   a_t = std::min(a_t, step_max);
@@ -1091,7 +1117,7 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
 
     for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it =
            neighborhood.begin();
-         neighborhood_it != neighborhood.end(); neighborhood_it++) {
+         neighborhood_it != neighborhood.end(); ++neighborhood_it) {
       TargetGridLeafConstPtr cell = *neighborhood_it;
 
       Eigen::Vector3d x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
@@ -1148,7 +1174,7 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateTransfo
 
     for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it =
            neighborhood.begin();
-         neighborhood_it != neighborhood.end(); neighborhood_it++) {
+         neighborhood_it != neighborhood.end(); ++neighborhood_it) {
       TargetGridLeafConstPtr cell = *neighborhood_it;
 
       Eigen::Vector3d x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
@@ -1206,7 +1232,7 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::
 
     for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it =
            neighborhood.begin();
-         neighborhood_it != neighborhood.end(); neighborhood_it++) {
+         neighborhood_it != neighborhood.end(); ++neighborhood_it) {
       TargetGridLeafConstPtr cell = *neighborhood_it;
 
       Eigen::Vector3d x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
