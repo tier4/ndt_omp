@@ -23,11 +23,6 @@ struct ResultOfMultiNdtCovarianceEstimation
 /** \brief Estimate functions */
 Eigen::Matrix2d estimate_xy_covariance_by_laplace_approximation(
   const Eigen::Matrix<double, 6, 6> & hessian);
-// temporal compatibility until
-//   https://github.com/autowarefoundation/autoware.universe/pull/8124
-// get merged
-Eigen::Matrix2d estimate_xy_covariance_by_Laplace_approximation(
-  const Eigen::Matrix<double, 6, 6> & hessian);
 ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt(
   const NdtResult & ndt_result,
   const std::shared_ptr<
