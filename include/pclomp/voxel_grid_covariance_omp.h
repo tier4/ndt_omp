@@ -97,22 +97,23 @@ public:
 #endif
 
   /** \brief Simple structure to hold a centroid, covariance and the number of points in a leaf.
-    * Inverse covariance, eigen vectors and eigen values are precomputed. */
+   * Inverse covariance, eigen vectors and eigen values are precomputed. */
   struct Leaf
   {
     /** \brief Constructor.
-     * Sets \ref nr_points, \ref icov_, \ref mean_ and \ref evals_ to 0 and \ref cov_ and \ref evecs_ to the identity matrix
+     * Sets \ref nr_points_, \ref icov_, \ref mean_ and \ref evals_ to 0 and \ref cov_ and \ref
+     * evecs_ to the identity matrix
      */
-    Leaf () :
-      nr_points (0),
-      mean_ (Eigen::Vector3d::Zero ()),
+    Leaf()
+    : nr_points_(0),
+      mean_(Eigen::Vector3d::Zero()),
       // add 20220721 konishi
-      voxelXYZ_ (Eigen::Vector3d::Zero ()),
-      centroid_ (),
-      cov_ (Eigen::Matrix3d::Identity ()),
-      icov_ (Eigen::Matrix3d::Zero ()),
-      evecs_ (Eigen::Matrix3d::Identity ()),
-      evals_ (Eigen::Vector3d::Zero ())
+      voxelXYZ_(Eigen::Vector3d::Zero()),
+      centroid_(),
+      cov_(Eigen::Matrix3d::Identity()),
+      icov_(Eigen::Matrix3d::Zero()),
+      evecs_(Eigen::Matrix3d::Identity()),
+      evals_(Eigen::Vector3d::Zero())
     {
     }
 
@@ -127,19 +128,11 @@ public:
     Eigen::Matrix3d getInverseCov() const { return (icov_); }
 
     /** \brief Get the voxel centroid.
-      * \return centroid
-      */
-    Eigen::Vector3d
-    getMean () const
-    {
-      return (mean_);
-    }
+     * \return centroid
+     */
+    Eigen::Vector3d getMean() const { return (mean_); }
     // add at 20220721 by konishi
-    Eigen::Vector3d
-    getLeafCenter () const
-    {
-      return (voxelXYZ);
-    }
+    Eigen::Vector3d getLeafCenter() const { return (voxelXYZ_); }
 
     /** \brief Get the eigen vectors of the voxel covariance.
      * \note Order corresponds with \ref getEvals
@@ -156,10 +149,10 @@ public:
     /** \brief Get the number of points contained by this voxel.
      * \return number of points
      */
-    int getPointCount() const { return (nr_points); }
+    int getPointCount() const { return (nr_points_); }
 
     /** \brief Number of points contained by voxel */
-    int nr_points;
+    int nr_points_;
 
     /** \brief 3D voxel centroid */
     Eigen::Vector3d mean_;
@@ -233,7 +226,10 @@ public:
   /** \brief Get the minimum number of points required for a cell to be used.
    * \return the minimum number of points for required for a voxel to be used
    */
-  inline int getMinPointPerVoxel() { return min_points_per_voxel_; }
+  inline int getMinPointPerVoxel()
+  {
+    return min_points_per_voxel_;
+  }
 
   /** \brief Set the minimum allowable ratio between eigenvalues to prevent singular covariance
    * matrices. \param[in] min_covar_eigvalue_mult the minimum allowable ratio between eigenvalues
@@ -246,7 +242,10 @@ public:
   /** \brief Get the minimum allowable ratio between eigenvalues to prevent singular covariance
    * matrices. \return the minimum allowable ratio between eigenvalues
    */
-  inline double getCovEigValueInflationRatio() { return min_covar_eigvalue_mult_; }
+  inline double getCovEigValueInflationRatio()
+  {
+    return min_covar_eigvalue_mult_;
+  }
 
   /** \brief Filter cloud and initializes voxel structure.
    * \param[out] output cloud containing centroids of voxels containing a sufficient number of
@@ -343,6 +342,36 @@ public:
       return NULL;
   }
 
+  // add at 20220218 by konishi
+  inline size_t getLeafIndex(const Eigen::Vector3d & p)
+  {
+    // Generate index associated with p
+    int ijk0 = static_cast<int>(floor(p[0] * inverse_leaf_size_[0]) - min_b_[0]);
+    int ijk1 = static_cast<int>(floor(p[1] * inverse_leaf_size_[1]) - min_b_[1]);
+    int ijk2 = static_cast<int>(floor(p[2] * inverse_leaf_size_[2]) - min_b_[2]);
+
+    // Compute the centroid leaf index
+    return (ijk0 * divb_mul_[0] + ijk1 * divb_mul_[1] + ijk2 * divb_mul_[2]);
+  }
+
+  // add at 20220721 by konishi
+  inline Eigen::Vector3d
+  // getLeafCenterの命名ほうがよい
+  getLeafCenter(const size_t index)
+  {
+    int ijk2 = index / divb_mul_[2];
+    int ijk1 = (index % divb_mul_[2]) / divb_mul_[1];
+    int ijk0 = ((index % divb_mul_[2]) % divb_mul_[1]) / divb_mul_[0];
+
+    Eigen::Vector3d p;
+
+    p[0] = (static_cast<double>(ijk0 + min_b_[0]) + 0.5) / inverse_leaf_size_[0];
+    p[1] = (static_cast<double>(ijk1 + min_b_[1]) + 0.5) / inverse_leaf_size_[1];
+    p[2] = (static_cast<double>(ijk2 + min_b_[2]) + 0.5) / inverse_leaf_size_[2];
+
+    return p;
+  }
+
   /** \brief Get the voxels surrounding point p, not including the voxel containing point p.
    * \note Only voxels containing a sufficient number of points are used (slower than radius search
    * in practice). \param[in] reference_point the point to get the leaf structure at \param[out]
@@ -361,13 +390,19 @@ public:
   /** \brief Get the leaf structure map
    * \return a map containing all leaves
    */
-  inline const Map & getLeaves() { return leaves_; }
+  inline const Map & getLeaves()
+  {
+    return leaves_;
+  }
 
   /** \brief Get a pointcloud containing the voxel centroids
    * \note Only voxels containing a sufficient number of points are used.
    * \return a map containing all leaves
    */
-  inline PointCloudPtr getCentroids() { return voxel_centroids_; }
+  inline PointCloudPtr getCentroids()
+  {
+    return voxel_centroids_;
+  }
 
   /** \brief Get a cloud to visualize each voxels normal distribution.
    * \param[out] cell_cloud a cloud created by sampling the normal distributions of each voxel

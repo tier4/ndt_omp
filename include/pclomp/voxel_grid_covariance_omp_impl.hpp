@@ -170,9 +170,9 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
       int idx = ijk0 * divb_mul_[0] + ijk1 * divb_mul_[1] + ijk2 * divb_mul_[2];
 
       Leaf & leaf = leaves_[idx];
-      if (leaf.nr_points == 0) {
-        leaf.centroid.resize(centroid_size);
-        leaf.centroid.setZero();
+      if (leaf.nr_points_ == 0) {
+        leaf.centroid_.resize(centroid_size);
+        leaf.centroid_.setZero();
       }
 
       Eigen::Vector3d pt3d(input_->points[cp].x, input_->points[cp].y, input_->points[cp].z);
@@ -184,7 +184,7 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
       // Do we need to process all the fields?
       if (!downsample_all_data_) {
         Eigen::Vector4f pt(input_->points[cp].x, input_->points[cp].y, input_->points[cp].z, 0);
-        leaf.centroid.template head<4>() += pt;
+        leaf.centroid_.template head<4>() += pt;
       } else {
         // Copy all the fields
         Eigen::VectorXf centroid = Eigen::VectorXf::Zero(centroid_size);
@@ -197,13 +197,13 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
             sizeof(unsigned int));
           centroid[centroid_size - 3] = static_cast<float>((rgb >> 16u) & 0x0000ffu);
           centroid[centroid_size - 2] = static_cast<float>((rgb >> 8u) & 0x0000ffu);
-          centroid[centroid_size - 1] = static_cast<float>((rgb) & 0x0000ffu);
+          centroid[centroid_size - 1] = static_cast<float>((rgb)&0x0000ffu);
         }
         pcl::for_each_type<FieldList>(
           pcl::NdCopyPointEigenFunctor<PointT>(input_->points[cp], centroid));
-        leaf.centroid += centroid;
+        leaf.centroid_ += centroid;
       }
-      ++leaf.nr_points;
+      ++leaf.nr_points_;
     }
     // No distance filtering, process all data
   } else {
@@ -225,12 +225,11 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
 
       // Compute the centroid leaf index
       int idx = ijk0 * divb_mul_[0] + ijk1 * divb_mul_[1] + ijk2 * divb_mul_[2];
-      Leaf& leaf = leaves_[idx];
+      Leaf & leaf = leaves_[idx];
 
-      if (leaf.nr_points == 0)
-      {
-        leaf.centroid.resize (centroid_size);
-        leaf.centroid.setZero ();
+      if (leaf.nr_points_ == 0) {
+        leaf.centroid_.resize(centroid_size);
+        leaf.centroid_.setZero();
       }
 
       Eigen::Vector3d pt3d(input_->points[cp].x, input_->points[cp].y, input_->points[cp].z);
@@ -242,7 +241,7 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
       // Do we need to process all the fields?
       if (!downsample_all_data_) {
         Eigen::Vector4f pt(input_->points[cp].x, input_->points[cp].y, input_->points[cp].z, 0);
-        leaf.centroid.template head<4>() += pt;
+        leaf.centroid_.template head<4>() += pt;
       } else {
         // Copy all the fields
         Eigen::VectorXf centroid = Eigen::VectorXf::Zero(centroid_size);
@@ -254,13 +253,13 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
             &rgb, reinterpret_cast<const char *>(&input_->points[cp]) + rgba_index, sizeof(int));
           centroid[centroid_size - 3] = static_cast<float>((rgb >> 16u) & 0x0000ffu);
           centroid[centroid_size - 2] = static_cast<float>((rgb >> 8u) & 0x0000ffu);
-          centroid[centroid_size - 1] = static_cast<float>((rgb) & 0x0000ffu);
+          centroid[centroid_size - 1] = static_cast<float>((rgb)&0x0000ffu);
         }
         pcl::for_each_type<FieldList>(
           pcl::NdCopyPointEigenFunctor<PointT>(input_->points[cp], centroid));
-        leaf.centroid += centroid;
+        leaf.centroid_ += centroid;
       }
-      ++leaf.nr_points;
+      ++leaf.nr_points_;
     }
   }
 
@@ -284,37 +283,35 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
     Leaf & leaf = it->second;
 
     // Normalize the centroid
-    leaf.centroid /= static_cast<float>(leaf.nr_points);
+    leaf.centroid_ /= static_cast<float>(leaf.nr_points_);
     // Point sum used for single pass covariance calculation
     pt_sum = leaf.mean_;
     // Normalize mean
-    leaf.mean_ /= leaf.nr_points;
+    leaf.mean_ /= leaf.nr_points_;
 
     // If the voxel contains sufficient points, its covariance is calculated and is added to the
     // voxel centroids and output clouds. Points with less than the minimum points will have a can
     // not be accurately approximated using a normal distribution.
-    if (leaf.nr_points >= min_points_per_voxel_) {
+    if (leaf.nr_points_ >= min_points_per_voxel_) {
       if (save_leaf_layout_) leaf_layout_[it->first] = cp++;
 
       output.push_back(PointT());
 
       // Do we need to process all the fields?
-      if (!downsample_all_data_)
-      { 
+      if (!downsample_all_data_) {
         // Replace centroid by mean
-        output.points.back ().x = leaf.mean_(0);
-        output.points.back ().y = leaf.mean_(1);
-        output.points.back ().z = leaf.mean_(2);
-      }
-      else
-      {
-        pcl::for_each_type<FieldList> (pcl::NdCopyEigenPointFunctor<PointT> (leaf.centroid, output.back ()));
+        output.points.back().x = leaf.mean_(0);
+        output.points.back().y = leaf.mean_(1);
+        output.points.back().z = leaf.mean_(2);
+      } else {
+        pcl::for_each_type<FieldList>(
+          pcl::NdCopyEigenPointFunctor<PointT>(leaf.centroid_, output.back()));
         // ---[ RGB special case
         if (rgba_index >= 0) {
           // pack r/g/b into rgb
-          float r = leaf.centroid[centroid_size - 3];
-          float g = leaf.centroid[centroid_size - 2];
-          float b = leaf.centroid[centroid_size - 1];
+          float r = leaf.centroid_[centroid_size - 3];
+          float g = leaf.centroid_[centroid_size - 2];
+          float b = leaf.centroid_[centroid_size - 1];
           int rgb = static_cast<int>(
             (static_cast<unsigned int>(r)) << 16u | (static_cast<unsigned int>(g)) << 8u |
             (static_cast<unsigned int>(b)));
@@ -326,9 +323,9 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
       if (searchable_) voxel_centroids_leaf_indices_.push_back(static_cast<int>(it->first));
 
       // Single pass covariance calculation
-      leaf.cov_ = (leaf.cov_ - 2 * (pt_sum * leaf.mean_.transpose())) / leaf.nr_points +
+      leaf.cov_ = (leaf.cov_ - 2 * (pt_sum * leaf.mean_.transpose())) / leaf.nr_points_ +
                   leaf.mean_ * leaf.mean_.transpose();
-      leaf.cov_ *= (leaf.nr_points - 1.0) / leaf.nr_points;
+      leaf.cov_ *= (leaf.nr_points_ - 1.0) / leaf.nr_points_;
 
       // Normalize Eigen Val such that max no more than 100x min.
       eigensolver.compute(leaf.cov_);
@@ -336,7 +333,7 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
       leaf.evecs_ = eigensolver.eigenvectors();
 
       if (eigen_val(0, 0) < 0 || eigen_val(1, 1) < 0 || eigen_val(2, 2) <= 0) {
-        leaf.nr_points = -1;
+        leaf.nr_points_ = -1;
         continue;
       }
 
@@ -358,7 +355,7 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
       if (
         leaf.icov_.maxCoeff() == std::numeric_limits<float>::infinity() ||
         leaf.icov_.minCoeff() == -std::numeric_limits<float>::infinity()) {
-        leaf.nr_points = -1;
+        leaf.nr_points_ = -1;
       }
     }
   }
@@ -391,7 +388,7 @@ int pclomp::VoxelGridCovariance<PointT>::getNeighborhoodAtPoint(
     // Checking if the specified cell is in the grid
     if ((diff2min <= displacement.array()).all() && (diff2max >= displacement.array()).all()) {
       auto leaf_iter = leaves_.find(((ijk + displacement - min_b_).dot(divb_mul_)));
-      if (leaf_iter != leaves_.end() && leaf_iter->second.nr_points >= min_points_per_voxel_) {
+      if (leaf_iter != leaves_.end() && leaf_iter->second.nr_points_ >= min_points_per_voxel_) {
         LeafConstPtr leaf = &(leaf_iter->second);
         neighbors.push_back(leaf);
       }
@@ -463,7 +460,7 @@ void pclomp::VoxelGridCovariance<PointT>::getDisplayCloud(
   for (auto it = leaves_.begin(); it != leaves_.end(); ++it) {
     Leaf & leaf = it->second;
 
-    if (leaf.nr_points >= min_points_per_voxel_) {
+    if (leaf.nr_points_ >= min_points_per_voxel_) {
       cell_mean = leaf.mean_;
       llt_of_cov.compute(leaf.cov_);
       cholesky_decomp = llt_of_cov.matrixL();

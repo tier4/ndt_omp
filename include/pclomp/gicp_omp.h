@@ -217,12 +217,18 @@ public:
    * converged to the final solution.
    * \param epsilon the rotation epsilon
    */
-  inline void setRotationEpsilon(double epsilon) { rotation_epsilon_ = epsilon; }
+  inline void setRotationEpsilon(double epsilon)
+  {
+    rotation_epsilon_ = epsilon;
+  }
 
   /** \brief Get the rotation epsilon (maximum allowable difference between two
    * consecutive rotations) as set by the user.
    */
-  inline double getRotationEpsilon() { return (rotation_epsilon_); }
+  inline double getRotationEpsilon()
+  {
+    return (rotation_epsilon_);
+  }
 
   /** \brief Set the number of neighbors used when selecting a point neighbourhood
    * to compute covariances.
@@ -230,20 +236,32 @@ public:
    * covariances computation slower.
    * \param k the number of neighbors to use when computing covariances
    */
-  void setCorrespondenceRandomness(int k) { k_correspondences_ = k; }
+  void setCorrespondenceRandomness(int k)
+  {
+    k_correspondences_ = k;
+  }
 
   /** \brief Get the number of neighbors used when computing covariances as set by
    * the user
    */
-  int getCorrespondenceRandomness() { return (k_correspondences_); }
+  int getCorrespondenceRandomness()
+  {
+    return (k_correspondences_);
+  }
 
   /** set maximum number of iterations at the optimization step
    * \param[in] max maximum number of iterations for the optimizer
    */
-  void setMaximumOptimizerIterations(int max) { max_inner_iterations_ = max; }
+  void setMaximumOptimizerIterations(int max)
+  {
+    max_inner_iterations_ = max;
+  }
 
   ///\return maximum number of iterations at the optimization step
-  int getMaximumOptimizerIterations() { return (max_inner_iterations_); }
+  int getMaximumOptimizerIterations()
+  {
+    return (max_inner_iterations_);
+  }
 
 protected:
   /** \brief The number of neighbors used for covariances computation.

@@ -43,8 +43,8 @@
 
 #include "ndt_omp.h"
 
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -102,7 +102,7 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeTran
     // Initialise final transformation to the guessed one
     final_transformation_ = guess;
     // Apply guessed transformation prior to search for neighbours
-    transformPointCloud (*input_, output, guess);
+    transformPointCloud(*input_, output, guess);
   }
 
   Eigen::Transform<float, 3, Eigen::Affine, Eigen::ColMajor> eig_transformation;
@@ -130,11 +130,11 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeTran
     regularization_pose_translation_ = regularization_pose_transformation.translation();
   }
 
-  // Calculate derivatives of initial transform vector, subsequent derivative calculations are done in the step length determination.
-  score = computeDerivatives (score_gradient, hessian, output, p);
-  
-  while (!converged_)
-  {
+  // Calculate derivatives of initial transform vector, subsequent derivative calculations are done
+  // in the step length determination.
+  score = computeDerivatives(score_gradient, hessian, output, p);
+
+  while (!converged_) {
     // Store previous transformation
     previous_transformation_ = transformation_;
 
@@ -299,10 +299,7 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeDe
     Eigen::Matrix<double, 6, 6> hessian_pt = Eigen::Matrix<double, 6, 6>::Zero();
     int neighborhood_count = 0;
 
-    for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it =
-           neighborhood.begin();
-         neighborhood_it != neighborhood.end(); ++neighborhood_it) {
-      cell = *neighborhood_it;
+    for (auto & cell : neighborhood) {
       x_pt = input_->points[idx];
       x = Eigen::Vector3d(x_pt.x, x_pt.y, x_pt.z);
 
@@ -751,29 +748,23 @@ void pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeHess
         break;
     }
 
-    for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it =
-           neighborhood.begin();
-         neighborhood_it != neighborhood.end(); ++neighborhood_it) {
-      cell = *neighborhood_it;
+    for (auto & cell : neighborhood) {
+      x_pt = input_->points[idx];
+      x = Eigen::Vector3d(x_pt.x, x_pt.y, x_pt.z);
 
-      {
-        x_pt = input_->points[idx];
-        x = Eigen::Vector3d(x_pt.x, x_pt.y, x_pt.z);
+      x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
 
-        x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
+      // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
+      x_trans -= cell->getMean();
+      // Uses precomputed covariance for speed.
+      c_inv = cell->getInverseCov();
 
-        // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
-        x_trans -= cell->getMean();
-        // Uses precomputed covariance for speed.
-        c_inv = cell->getInverseCov();
-
-        // Compute derivative of transform function w.r.t. transform vector, J_E and H_E in
-        // Equations 6.18 and 6.20 [Magnusson 2009]
-        computePointDerivatives(x, point_gradient, point_hessian);
-        // Update hessian, lines 21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13,
-        // respectively [Magnusson 2009]
-        updateHessian(hessian, point_gradient, point_hessian, x_trans, c_inv);
-      }
+      // Compute derivative of transform function w.r.t. transform vector, J_E and H_E in
+      // Equations 6.18 and 6.20 [Magnusson 2009]
+      computePointDerivatives(x, point_gradient, point_hessian);
+      // Update hessian, lines 21 in Algorithm 2, according to Equations 6.10, 6.12 and 6.13,
+      // respectively [Magnusson 2009]
+      updateHessian(hessian, point_gradient, point_hessian, x_trans, c_inv);
     }
   }
 }
@@ -1087,17 +1078,13 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeSt
   return (a_t);
 }
 
-
-// template<typename PointSource, typename PointTarget>
-// double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateScore(const PointCloudSource & trans_cloud) const
-// {
-// 	double score = 0;
 // change at 20220721 konishi
-template<typename PointSource, typename PointTarget>
-double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateScore(const PointCloudSource & trans_cloud)
+template <typename PointSource, typename PointTarget>
+double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateScore(
+  const PointCloudSource & trans_cloud)
 {
-	double score = 0;
-  std::map<size_t,size_t> voxel_points_num;
+  double score = 0;
+  std::map<size_t, size_t> voxel_points_num;
 
   for (std::size_t idx = 0; idx < trans_cloud.points.size(); idx++) {
     PointSource x_trans_pt = trans_cloud.points[idx];
@@ -1124,25 +1111,23 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
     // add at 20220218 by konishi
     size_t voxel_idx;
 
-    if (neighborhood.size() == 0){
+    if (neighborhood.size() == 0) {
       // Compute the 3D index of the voxel containing the query point
       Eigen::Vector3i vid;
 
-      vid(0) = static_cast<int>(floor(x_trans_pt.x / resolution_));
-      vid(1) = static_cast<int>(floor(x_trans_pt.y / resolution_));
-      vid(2) = static_cast<int>(floor(x_trans_pt.z / resolution_));
+      vid(0) = static_cast<int>(floor(x_trans_pt.x / params_.resolution));
+      vid(1) = static_cast<int>(floor(x_trans_pt.y / params_.resolution));
+      vid(2) = static_cast<int>(floor(x_trans_pt.z / params_.resolution));
 
       empty_voxels_.insert(vid);
 
-      if (nomap_points_num_.count(voxel_idx) == 0)
-      {
+      if (nomap_points_num_.count(voxel_idx) == 0) {
         nomap_points_num_[voxel_idx] = 0;
       }
       nomap_points_num_[voxel_idx] += 1;
-    }else{
-      for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin(); neighborhood_it != neighborhood.end(); neighborhood_it++)
-      {
-        TargetGridLeafConstPtr cell = *neighborhood_it;
+
+    } else {
+      for (auto & cell : neighborhood) {
         PointSource x_pt = input_->points[idx];
         Eigen::Vector3d x = Eigen::Vector3d(x_pt.x, x_pt.y, x_pt.z);
 
@@ -1162,26 +1147,29 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
 
         voxel_idx = target_cells_.getLeafIndex(cell->getMean());
 
-        if (voxel_points_num.count(voxel_idx) == 0){
+        if (voxel_points_num.count(voxel_idx) == 0) {
           voxel_points_num[voxel_idx] = 0;
           voxel_score_map_[voxel_idx] = 0;
         }
+
         voxel_score_map_[voxel_idx] += score_inc;
         voxel_points_num[voxel_idx] += 1;
       }
     }
   }
-  for (auto &voxel_score_output: voxel_score_map_){
-    if (voxel_points_num[voxel_score_output.first] != 0){
+  for (auto & voxel_score_output : voxel_score_map_) {
+    if (voxel_points_num[voxel_score_output.first] != 0) {
       voxel_score_output.second /= (voxel_points_num[voxel_score_output.first]);
     }
   }
 
-	return (score) / static_cast<double> (trans_cloud.size());
+  return (score) / static_cast<double>(trans_cloud.size());
 }
 
-template<typename PointSource, typename PointTarget>
-double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateTransformationProbability(const PointCloudSource & trans_cloud) const
+template <typename PointSource, typename PointTarget>
+double
+pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculateTransformationProbability(
+  const PointCloudSource & trans_cloud) const
 {
   double score = 0;
 
@@ -1207,11 +1195,7 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::calculate
         break;
     }
 
-    for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it =
-           neighborhood.begin();
-         neighborhood_it != neighborhood.end(); ++neighborhood_it) {
-      TargetGridLeafConstPtr cell = *neighborhood_it;
-
+    for (auto & cell : neighborhood) {
       Eigen::Vector3d x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
 
       // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
@@ -1265,11 +1249,7 @@ double pclomp::NormalDistributionsTransform<PointSource, PointTarget>::
         break;
     }
 
-    for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it =
-           neighborhood.begin();
-         neighborhood_it != neighborhood.end(); ++neighborhood_it) {
-      TargetGridLeafConstPtr cell = *neighborhood_it;
-
+    for (auto & cell : neighborhood) {
       Eigen::Vector3d x_trans = Eigen::Vector3d(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
 
       // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]

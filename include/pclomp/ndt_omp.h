@@ -56,29 +56,29 @@ namespace pclomp
 
 struct EigenCmp
 {
-  bool operator()(const Eigen::Vector3i& a, const Eigen::Vector3i& b)
+  bool operator()(const Eigen::Vector3i & a, const Eigen::Vector3i & b) const
   {
-    return (a(0) < b(0) || (a(0) == b(0) && a(1) < b(1)) ||
-        (a(0) == b(0) && a(1) == b(1) && a(2) < b(2)));
+    return (
+      a(0) < b(0) || (a(0) == b(0) && a(1) < b(1)) ||
+      (a(0) == b(0) && a(1) == b(1) && a(2) < b(2)));
   }
 };
 
 /** \brief A 3D Normal Distribution Transform registration implementation for point cloud data.
-  * \note For more information please see
-  * <b>Magnusson, M. (2009). The Three-Dimensional Normal-Distributions Transform —
-  * an Efficient Representation for Registration, Surface Analysis, and Loop Detection.
-  * PhD thesis, Orebro University. Orebro Studies in Technology 36.</b>,
-  * <b>More, J., and Thuente, D. (1994). Line Search Algorithm with Guaranteed Sufficient Decrease
-  * In ACM Transactions on Mathematical Software.</b> and
-  * Sun, W. and Yuan, Y, (2006) Optimization Theory and Methods: Nonlinear Programming. 89-100
-  * \note Math refactored by Todor Stoyanov.
-  * \author Brian Okorn (Space and Naval Warfare Systems Center Pacific)
-  */
-template<typename PointSource, typename PointTarget>
+ * \note For more information please see
+ * <b>Magnusson, M. (2009). The Three-Dimensional Normal-Distributions Transform —
+ * an Efficient Representation for Registration, Surface Analysis, and Loop Detection.
+ * PhD thesis, Orebro University. Orebro Studies in Technology 36.</b>,
+ * <b>More, J., and Thuente, D. (1994). Line Search Algorithm with Guaranteed Sufficient Decrease
+ * In ACM Transactions on Mathematical Software.</b> and
+ * Sun, W. and Yuan, Y, (2006) Optimization Theory and Methods: Nonlinear Programming. 89-100
+ * \note Math refactored by Todor Stoyanov.
+ * \author Brian Okorn (Space and Naval Warfare Systems Center Pacific)
+ */
+template <typename PointSource, typename PointTarget>
 class NormalDistributionsTransform : public pcl::Registration<PointSource, PointTarget>
 {
 protected:
-
   typedef typename pcl::Registration<PointSource, PointTarget>::PointCloudSource PointCloudSource;
   typedef typename PointCloudSource::Ptr PointCloudSourcePtr;
   typedef typename PointCloudSource::ConstPtr PointCloudSourceConstPtr;
@@ -114,11 +114,19 @@ public:
   NormalDistributionsTransform();
 
   /** \brief Empty destructor */
-  virtual ~NormalDistributionsTransform() {}
+  virtual ~NormalDistributionsTransform()
+  {
+  }
 
-  void setNumThreads(int n) { params_.num_threads = n; }
+  void setNumThreads(int n)
+  {
+    params_.num_threads = n;
+  }
 
-  inline int getNumThreads() const { return params_.num_threads; }
+  inline int getNumThreads() const
+  {
+    return params_.num_threads;
+  }
 
   /** \brief Provide a pointer to the input target (e.g., the point cloud that we want to align the
    * input source to). \param[in] cloud the input point cloud target
@@ -144,39 +152,60 @@ public:
   /** \brief Get voxel grid resolution.
    * \return side length of voxels
    */
-  inline float getResolution() const { return (params_.resolution); }
+  inline float getResolution() const
+  {
+    return (params_.resolution);
+  }
 
   /** \brief Get the newton line search maximum step length.
    * \return maximum step length
    */
-  inline double getStepSize() const { return (params_.step_size); }
+  inline double getStepSize() const
+  {
+    return (params_.step_size);
+  }
 
   /** \brief Set/change the newton line search maximum step length.
    * \param[in] step_size maximum step length
    */
-  inline void setStepSize(double step_size) { params_.step_size = step_size; }
+  inline void setStepSize(double step_size)
+  {
+    params_.step_size = step_size;
+  }
 
   /** \brief Get the point cloud outlier ratio.
    * \return outlier ratio
    */
-  inline double getOutlierRatio() const { return (outlier_ratio_); }
+  inline double getOutlierRatio() const
+  {
+    return (outlier_ratio_);
+  }
 
   /** \brief Set/change the point cloud outlier ratio.
    * \param[in] outlier_ratio outlier ratio
    */
-  inline void setOutlierRatio(double outlier_ratio) { outlier_ratio_ = outlier_ratio; }
+  inline void setOutlierRatio(double outlier_ratio)
+  {
+    outlier_ratio_ = outlier_ratio;
+  }
 
   inline void setNeighborhoodSearchMethod(NeighborSearchMethod method)
   {
     params_.search_method = method;
   }
 
-  inline NeighborSearchMethod getNeighborhoodSearchMethod() const { return params_.search_method; }
+  inline NeighborSearchMethod getNeighborhoodSearchMethod() const
+  {
+    return params_.search_method;
+  }
 
   /** \brief Get the registration alignment probability.
    * \return transformation probability
    */
-  inline double getTransformationProbability() const { return (trans_probability_); }
+  inline double getTransformationProbability() const
+  {
+    return (trans_probability_);
+  }
 
   inline double getNearestVoxelTransformationLikelihood() const
   {
@@ -186,10 +215,16 @@ public:
   /** \brief Get the number of iterations required to calculate alignment.
    * \return final number of iterations
    */
-  inline int getFinalNumIteration() const { return (nr_iterations_); }
+  inline int getFinalNumIteration() const
+  {
+    return (nr_iterations_);
+  }
 
   /** \brief Return the hessian matrix */
-  inline Eigen::Matrix<double, 6, 6> getHessian() const { return hessian_; }
+  inline Eigen::Matrix<double, 6, 6> getHessian() const
+  {
+    return hessian_;
+  }
 
   /** \brief Return the transformation array */
   inline const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> &
@@ -220,30 +255,31 @@ public:
     convertTransform(x, _affine);
     trans = _affine.matrix();
   }
-  
-  //add at 20220721 konishi
-  inline const std::vector<double>
-    getScores() const
+
+  // add at 20220721 konishi
+  inline const std::vector<double> getScores() const
   {
     return scores_;
   }
 
-  inline const TargetGrid
-    getTargetCells() const 
+  inline const TargetGrid getTargetCells() const
   {
     return target_cells_;
   }
 
-  inline const std::map<size_t,double>
-    getScoreMap() const
+  inline const std::map<size_t, double> getScoreMap() const
   {
     return voxel_score_map_;
   }
 
-  inline const std::map<size_t,size_t>
-    getNoPointMap() const
+  inline const std::map<size_t, size_t> getNoPointMap() const
   {
     return nomap_points_num_;
+  }
+
+  std::set<Eigen::Vector3i, EigenCmp> & getEmptyVoxels()
+  {
+    return empty_voxels_;
   }
 
   // For debug
@@ -270,7 +306,10 @@ public:
     regularization_pose_ = regularization_pose;
   }
 
-  inline void unsetRegularizationPose() { regularization_pose_ = boost::none; }
+  inline void unsetRegularizationPose()
+  {
+    regularization_pose_ = boost::none;
+  }
 
   NdtResult getResult()
   {
@@ -290,19 +329,37 @@ public:
    * transformation epsilon in order for an optimization to be considered as having
    * converged to the final solution.
    */
-  inline void setTransformationEpsilon(double epsilon) { params_.trans_epsilon = epsilon; }
+  inline void setTransformationEpsilon(double epsilon)
+  {
+    params_.trans_epsilon = epsilon;
+  }
 
   /** \brief Get the transformation epsilon (maximum allowable translation squared
    * difference between two consecutive transformations) as set by the user.
    */
-  inline double getTransformationEpsilon() { return (params_.trans_epsilon); }
+  inline double getTransformationEpsilon()
+  {
+    return (params_.trans_epsilon);
+  }
 
-  inline void setMaximumIterations(int max_iterations) { params_.max_iterations = max_iterations; }
-  inline int getMaxIterations() const { return params_.max_iterations; }
+  inline void setMaximumIterations(int max_iterations)
+  {
+    params_.max_iterations = max_iterations;
+  }
+  inline int getMaxIterations() const
+  {
+    return params_.max_iterations;
+  }
 
-  void setParams(const NdtParams & ndt_params) { params_ = ndt_params; }
+  void setParams(const NdtParams & ndt_params)
+  {
+    params_ = ndt_params;
+  }
 
-  NdtParams getParams() const { return params_; }
+  NdtParams getParams() const
+  {
+    return params_;
+  }
 
 protected:
   using pcl::Registration<PointSource, PointTarget>::reg_name_;
@@ -553,12 +610,12 @@ protected:
   boost::optional<Eigen::Matrix4f> regularization_pose_;
   Eigen::Vector3f regularization_pose_translation_;
 
-	// add at 20220721 konishi
-	std::vector<double> scores_;
-	std::map<size_t,double> voxel_score_map_;
-	std::map<size_t,size_t> nomap_points_num_;
-	// For recording voxels that contain no map point
-	std::set<Eigen::Vector3i, EigenCmp> empty_voxels_;
+  // add at 20220721 konishi
+  std::vector<double> scores_;
+  std::map<size_t, double> voxel_score_map_;
+  std::map<size_t, size_t> nomap_points_num_;
+  // For recording voxels that contain no map point
+  std::set<Eigen::Vector3i, EigenCmp> empty_voxels_;
 
   NdtParams params_;
 
