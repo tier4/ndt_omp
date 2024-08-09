@@ -197,7 +197,7 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
             sizeof(unsigned int));
           centroid[centroid_size - 3] = static_cast<float>((rgb >> 16u) & 0x0000ffu);
           centroid[centroid_size - 2] = static_cast<float>((rgb >> 8u) & 0x0000ffu);
-          centroid[centroid_size - 1] = static_cast<float>((rgb)&0x0000ffu);
+          centroid[centroid_size - 1] = static_cast<float>((rgb) & 0x0000ffu);
         }
         pcl::for_each_type<FieldList>(
           pcl::NdCopyPointEigenFunctor<PointT>(input_->points[cp], centroid));
@@ -253,7 +253,7 @@ void pclomp::VoxelGridCovariance<PointT>::applyFilter(PointCloud & output)
             &rgb, reinterpret_cast<const char *>(&input_->points[cp]) + rgba_index, sizeof(int));
           centroid[centroid_size - 3] = static_cast<float>((rgb >> 16u) & 0x0000ffu);
           centroid[centroid_size - 2] = static_cast<float>((rgb >> 8u) & 0x0000ffu);
-          centroid[centroid_size - 1] = static_cast<float>((rgb)&0x0000ffu);
+          centroid[centroid_size - 1] = static_cast<float>((rgb) & 0x0000ffu);
         }
         pcl::for_each_type<FieldList>(
           pcl::NdCopyPointEigenFunctor<PointT>(input_->points[cp], centroid));

@@ -226,10 +226,7 @@ public:
   /** \brief Get the minimum number of points required for a cell to be used.
    * \return the minimum number of points for required for a voxel to be used
    */
-  inline int getMinPointPerVoxel()
-  {
-    return min_points_per_voxel_;
-  }
+  inline int getMinPointPerVoxel() { return min_points_per_voxel_; }
 
   /** \brief Set the minimum allowable ratio between eigenvalues to prevent singular covariance
    * matrices. \param[in] min_covar_eigvalue_mult the minimum allowable ratio between eigenvalues
@@ -242,10 +239,7 @@ public:
   /** \brief Get the minimum allowable ratio between eigenvalues to prevent singular covariance
    * matrices. \return the minimum allowable ratio between eigenvalues
    */
-  inline double getCovEigValueInflationRatio()
-  {
-    return min_covar_eigvalue_mult_;
-  }
+  inline double getCovEigValueInflationRatio() { return min_covar_eigvalue_mult_; }
 
   /** \brief Filter cloud and initializes voxel structure.
    * \param[out] output cloud containing centroids of voxels containing a sufficient number of
@@ -390,19 +384,13 @@ public:
   /** \brief Get the leaf structure map
    * \return a map containing all leaves
    */
-  inline const Map & getLeaves()
-  {
-    return leaves_;
-  }
+  inline const Map & getLeaves() { return leaves_; }
 
   /** \brief Get a pointcloud containing the voxel centroids
    * \note Only voxels containing a sufficient number of points are used.
    * \return a map containing all leaves
    */
-  inline PointCloudPtr getCentroids()
-  {
-    return voxel_centroids_;
-  }
+  inline PointCloudPtr getCentroids() { return voxel_centroids_; }
 
   /** \brief Get a cloud to visualize each voxels normal distribution.
    * \param[out] cell_cloud a cloud created by sampling the normal distributions of each voxel
