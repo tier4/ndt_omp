@@ -101,13 +101,15 @@ public:
   struct Leaf
   {
     /** \brief Constructor.
-     * Sets \ref nr_points, \ref icov_, \ref mean_ and \ref evals_ to 0 and \ref cov_ and \ref
+     * Sets \ref nr_points_, \ref icov_, \ref mean_ and \ref evals_ to 0 and \ref cov_ and \ref
      * evecs_ to the identity matrix
      */
     Leaf()
-    : nr_points(0),
+    : nr_points_(0),
       mean_(Eigen::Vector3d::Zero()),
-      centroid(),
+      // add 20220721 konishi
+      voxelXYZ_(Eigen::Vector3d::Zero()),
+      centroid_(),
       cov_(Eigen::Matrix3d::Identity()),
       icov_(Eigen::Matrix3d::Zero()),
       evecs_(Eigen::Matrix3d::Identity()),
@@ -129,6 +131,8 @@ public:
      * \return centroid
      */
     Eigen::Vector3d getMean() const { return (mean_); }
+    // add at 20220721 by konishi
+    Eigen::Vector3d getLeafCenter() const { return (voxelXYZ_); }
 
     /** \brief Get the eigen vectors of the voxel covariance.
      * \note Order corresponds with \ref getEvals
@@ -145,18 +149,21 @@ public:
     /** \brief Get the number of points contained by this voxel.
      * \return number of points
      */
-    int getPointCount() const { return (nr_points); }
+    int getPointCount() const { return (nr_points_); }
 
     /** \brief Number of points contained by voxel */
-    int nr_points;
+    int nr_points_;
 
     /** \brief 3D voxel centroid */
     Eigen::Vector3d mean_;
 
+    // add at 20220721 by konishi
+    Eigen::Vector3d voxelXYZ_;
+
     /** \brief Nd voxel centroid
      * \note Differs from \ref mean_ when color data is used
      */
-    Eigen::VectorXf centroid;
+    Eigen::VectorXf centroid_;
 
     /** \brief Voxel covariance matrix */
     Eigen::Matrix3d cov_;
@@ -327,6 +334,36 @@ public:
       return ret;
     } else
       return NULL;
+  }
+
+  // add at 20220218 by konishi
+  inline size_t getLeafIndex(const Eigen::Vector3d & p)
+  {
+    // Generate index associated with p
+    int ijk0 = static_cast<int>(floor(p[0] * inverse_leaf_size_[0]) - min_b_[0]);
+    int ijk1 = static_cast<int>(floor(p[1] * inverse_leaf_size_[1]) - min_b_[1]);
+    int ijk2 = static_cast<int>(floor(p[2] * inverse_leaf_size_[2]) - min_b_[2]);
+
+    // Compute the centroid leaf index
+    return (ijk0 * divb_mul_[0] + ijk1 * divb_mul_[1] + ijk2 * divb_mul_[2]);
+  }
+
+  // add at 20220721 by konishi
+  inline Eigen::Vector3d
+  // getLeafCenterの命名ほうがよい
+  getLeafCenter(const size_t index)
+  {
+    int ijk2 = index / divb_mul_[2];
+    int ijk1 = (index % divb_mul_[2]) / divb_mul_[1];
+    int ijk0 = ((index % divb_mul_[2]) % divb_mul_[1]) / divb_mul_[0];
+
+    Eigen::Vector3d p;
+
+    p[0] = (static_cast<double>(ijk0 + min_b_[0]) + 0.5) / inverse_leaf_size_[0];
+    p[1] = (static_cast<double>(ijk1 + min_b_[1]) + 0.5) / inverse_leaf_size_[1];
+    p[2] = (static_cast<double>(ijk2 + min_b_[2]) + 0.5) / inverse_leaf_size_[2];
+
+    return p;
   }
 
   /** \brief Get the voxels surrounding point p, not including the voxel containing point p.

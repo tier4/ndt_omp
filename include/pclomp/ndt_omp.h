@@ -54,6 +54,16 @@
 namespace pclomp
 {
 
+struct EigenCmp
+{
+  bool operator()(const Eigen::Vector3i & a, const Eigen::Vector3i & b) const
+  {
+    return (
+      a(0) < b(0) || (a(0) == b(0) && a(1) < b(1)) ||
+      (a(0) == b(0) && a(1) == b(1) && a(2) < b(2)));
+  }
+};
+
 /** \brief A 3D Normal Distribution Transform registration implementation for point cloud data.
  * \note For more information please see
  * <b>Magnusson, M. (2009). The Three-Dimensional Normal-Distributions Transform —
@@ -211,9 +221,28 @@ public:
     trans = _affine.matrix();
   }
 
+  // add at 20220721 konishi
+  inline const std::vector<double> getScores() const { return scores_; }
+
+  inline const TargetGrid getTargetCells() const { return target_cells_; }
+
+  inline const std::map<size_t, double> getScoreMap() const { return voxel_score_map_; }
+
+  inline const std::map<size_t, size_t> getNoPointMap() const { return nomap_points_num_; }
+
+  std::set<Eigen::Vector3i, EigenCmp> & getEmptyVoxels() { return empty_voxels_; }
+
+  // For debug
+  void cleanScores()
+  {
+    voxel_score_map_.clear();
+    nomap_points_num_.clear();
+  }
+  // End
+
   // negative log likelihood function
   // lower is better
-  double calculateScore(const PointCloudSource & cloud) const;
+  double calculateScore(const PointCloudSource & cloud);
   double calculateTransformationProbability(const PointCloudSource & cloud) const;
   double calculateNearestVoxelTransformationLikelihood(const PointCloudSource & cloud) const;
 
@@ -509,6 +538,13 @@ protected:
 
   boost::optional<Eigen::Matrix4f> regularization_pose_;
   Eigen::Vector3f regularization_pose_translation_;
+
+  // add at 20220721 konishi
+  std::vector<double> scores_;
+  std::map<size_t, double> voxel_score_map_;
+  std::map<size_t, size_t> nomap_points_num_;
+  // For recording voxels that contain no map point
+  std::set<Eigen::Vector3i, EigenCmp> empty_voxels_;
 
   NdtParams params_;
 
