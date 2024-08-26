@@ -59,6 +59,8 @@
 
 #include <vector>
 
+#include <pcl/common/common.h>
+
 namespace pclomp
 {
 
