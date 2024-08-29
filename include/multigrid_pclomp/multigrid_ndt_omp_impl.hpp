@@ -1119,8 +1119,6 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
   // Thread-wise results
   std::vector<double> t_nvs(params_.num_threads);
   std::vector<size_t> t_found_nnvn(params_.num_threads);
-  std::vector<pcl::PointCloud<pcl::PointXYZI>> threads_pc(params_.num_threads);
-  pcl::PointCloud<pcl::PointXYZI>::Ptr score_points (new pcl::PointCloud<pcl::PointXYZI>);
 
   for (int i = 0; i < params_.num_threads; ++i) {
     t_nvs[i] = 0;
@@ -1159,9 +1157,64 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
         nearest_voxel_score_pt = score_inc;
       }
     }
-
     t_nvs[tid] += nearest_voxel_score_pt;
     ++t_found_nnvn[tid];
+  }
+
+  // Sum up point-wise scores
+  for (size_t idx = 0; idx < params_.num_threads; ++idx) {
+    found_neighborhood_voxel_num += t_found_nnvn[idx];
+    nearest_voxel_score += t_nvs[idx];
+  }
+
+  double output_score = 0;
+
+  if (found_neighborhood_voxel_num != 0) {
+    output_score = nearest_voxel_score / static_cast<double>(found_neighborhood_voxel_num);
+  }
+  return output_score;
+}
+
+template <typename PointSource, typename PointTarget>
+pcl::PointCloud<pcl::PointXYZI>::Ptr MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
+  calculateNearestVoxelScoreEachPoint(const PointCloudSource & trans_cloud) const
+{
+  // Thread-wise results
+  std::vector<pcl::PointCloud<pcl::PointXYZI>> threads_pc(params_.num_threads);
+  pcl::PointCloud<pcl::PointXYZI>::Ptr score_points (new pcl::PointCloud<pcl::PointXYZI>);
+
+#pragma omp parallel for num_threads(params_.num_threads) schedule(guided, 8)
+  for (size_t idx = 0; idx < trans_cloud.size(); ++idx) {
+    int tid = omp_get_thread_num();
+    PointSource x_trans_pt = trans_cloud[idx];
+
+    // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
+    std::vector<TargetGridLeafConstPtr> neighborhood;
+
+    // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
+    target_cells_.radiusSearch(x_trans_pt, params_.resolution, neighborhood);
+
+    if (neighborhood.empty()) {
+      continue;
+    }
+
+    double nearest_voxel_score_pt = 0;
+
+    for (auto & cell : neighborhood) {
+      Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
+
+      // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
+      x_trans -= cell->getMean();
+
+      // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
+      double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(cell->getInverseCov() * x_trans) / 2.0);
+      // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
+      double score_inc = -gauss_d1_ * e_x_cov_x;
+
+      if (score_inc > nearest_voxel_score_pt) {
+        nearest_voxel_score_pt = score_inc;
+      }
+    }
 
     pcl::PointXYZI sensor_point_score;
     sensor_point_score.x = trans_cloud.points[idx].x;
@@ -1173,20 +1226,12 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 
   // Sum up point-wise scores
   for (size_t idx = 0; idx < params_.num_threads; ++idx) {
-    found_neighborhood_voxel_num += t_found_nnvn[idx];
-    nearest_voxel_score += t_nvs[idx];
     for(size_t p_idx = 0; p_idx < threads_pc[idx].size(); ++p_idx){
       score_points->points.push_back(threads_pc[idx].points[p_idx]);
     }
   }
 
-  *score_points_ = *score_points;
-  double output_score = 0;
-
-  if (found_neighborhood_voxel_num != 0) {
-    output_score = nearest_voxel_score / static_cast<double>(found_neighborhood_voxel_num);
-  }
-  return output_score;
+  return score_points;
 }
 
 }  // namespace pclomp
