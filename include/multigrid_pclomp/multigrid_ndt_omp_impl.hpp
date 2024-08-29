@@ -1121,9 +1121,6 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
   std::vector<size_t> t_found_nnvn(params_.num_threads);
   std::vector<pcl::PointCloud<pcl::PointXYZI>> threads_pc(params_.num_threads);
   pcl::PointCloud<pcl::PointXYZI>::Ptr score_points (new pcl::PointCloud<pcl::PointXYZI>);
-  const float min_nvs = 1.0f;
-  const float max_nvs = 4.0f;
-  const float k = 255/(max_nvs - min_nvs);
 
   for (int i = 0; i < params_.num_threads; ++i) {
     t_nvs[i] = 0;
@@ -1170,19 +1167,10 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
     sensor_point_score.x = trans_cloud.points[idx].x;
     sensor_point_score.y = trans_cloud.points[idx].y;
     sensor_point_score.z = trans_cloud.points[idx].z;
-    if(nearest_voxel_score_pt > max_nvs){
-      sensor_point_score.intensity = 255;
-    }
-    else if(min_nvs > nearest_voxel_score_pt){
-      sensor_point_score.intensity = 0;
-    }
-    else{
-      sensor_point_score.intensity = (nearest_voxel_score_pt - min_nvs) * k;
-    }
-    //std::cerr<< "nearest_voxel_score_pt:" << nearest_voxel_score_pt << std::endl;
+    sensor_point_score.intensity = nearest_voxel_score_pt;
     threads_pc[tid].points.push_back(sensor_point_score);
   }
-  
+
   // Sum up point-wise scores
   for (size_t idx = 0; idx < params_.num_threads; ++idx) {
     found_neighborhood_voxel_num += t_found_nnvn[idx];
@@ -1192,10 +1180,7 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
     }
   }
 
-  if(score_points){
-    *score_points_ = *score_points;
-  }
-
+  *score_points_ = *score_points;
   double output_score = 0;
 
   if (found_neighborhood_voxel_num != 0) {
