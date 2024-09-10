@@ -48,7 +48,7 @@ int main(int argc, char ** argv)
 
   // load target pcd
   const std::string target_pcd = input_dir + "/pointcloud_map.pcd";
-  const pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud = load_pcd(target_pcd);
+  const pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud = load_pcd_recursive(target_pcd);
 
   // prepare sensor_pcd
   const std::string source_pcd_dir = input_dir + "/sensor_pcd/";
