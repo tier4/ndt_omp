@@ -16,6 +16,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("rosbag_path", type=pathlib.Path)
     parser.add_argument("output_dir", type=pathlib.Path)
+    parser.add_argument("--pose_topic", type=str, default="/localization/kinematic_state")
     return parser.parse_args()
 
 
@@ -23,6 +24,7 @@ if __name__ == "__main__":
     args = parse_args()
     rosbag_path = args.rosbag_path
     output_dir = args.output_dir
+    pose_topic = args.pose_topic
 
     serialization_format = "cdr"
     storage_options = rosbag2_py.StorageOptions(
@@ -42,7 +44,7 @@ if __name__ == "__main__":
     }
 
     target_topics = [
-        "/localization/kinematic_state",
+        pose_topic,
         "/localization/util/downsample/pointcloud",
     ]
     storage_filter = rosbag2_py.StorageFilter(topics=target_topics)
@@ -58,7 +60,7 @@ if __name__ == "__main__":
         timestamp_header = (
             int(msg.header.stamp.sec) + int(msg.header.stamp.nanosec) * 1e-9
         )
-        if topic == "/localization/kinematic_state":
+        if topic == pose_topic:
             pose = msg.pose.pose
             twist = msg.twist.twist
             kinematic_state_list.append(
