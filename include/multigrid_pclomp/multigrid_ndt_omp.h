@@ -264,8 +264,6 @@ public:
   double calculateNearestVoxelTransformationLikelihood(const PointCloudSource & cloud) const;
   pcl::PointCloud<pcl::PointXYZI>::Ptr calculateNearestVoxelScoreEachPoint(const PointCloudSource & cloud) const;
 
-  //inline pcl::PointCloud<pcl::PointXYZI>::Ptr getScorePoints() const { return (score_points_); }
-
   inline void setRegularizationScaleFactor(float regularization_scale_factor)
   {
     params_.regularization_scale_factor = regularization_scale_factor;

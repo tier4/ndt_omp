@@ -1157,6 +1157,7 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
         nearest_voxel_score_pt = score_inc;
       }
     }
+
     t_nvs[tid] += nearest_voxel_score_pt;
     ++t_found_nnvn[tid];
   }
