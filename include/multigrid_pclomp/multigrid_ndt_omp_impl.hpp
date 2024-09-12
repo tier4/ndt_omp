@@ -1177,9 +1177,8 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 }
 
 template <typename PointSource, typename PointTarget>
-pcl::PointCloud<pcl::PointXYZI> MultiGridNormalDistributionsTransform<
-  PointSource, PointTarget>::calculateNearestVoxelScoreEachPoint(const PointCloudSource &
-                                                                   trans_cloud) const
+pcl::PointCloud<pcl::PointXYZI> MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
+  calculateNearestVoxelScoreEachPoint(const PointCloudSource & trans_cloud) const
 {
   // Thread-wise results
   std::vector<pcl::PointCloud<pcl::PointXYZI>> threads_pc(params_.num_threads);
