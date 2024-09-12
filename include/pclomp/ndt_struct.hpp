@@ -57,8 +57,6 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-#include <pcl/common/common.h>
-
 #include <vector>
 
 namespace pclomp

@@ -1177,13 +1177,13 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
 }
 
 template <typename PointSource, typename PointTarget>
-pcl::PointCloud<pcl::PointXYZI>::Ptr MultiGridNormalDistributionsTransform<
+pcl::PointCloud<pcl::PointXYZI> MultiGridNormalDistributionsTransform<
   PointSource, PointTarget>::calculateNearestVoxelScoreEachPoint(const PointCloudSource &
                                                                    trans_cloud) const
 {
   // Thread-wise results
   std::vector<pcl::PointCloud<pcl::PointXYZI>> threads_pc(params_.num_threads);
-  pcl::PointCloud<pcl::PointXYZI>::Ptr score_points(new pcl::PointCloud<pcl::PointXYZI>);
+  pcl::PointCloud<pcl::PointXYZI> score_points;
 
 #pragma omp parallel for num_threads(params_.num_threads) schedule(guided, 8)
   for (size_t idx = 0; idx < trans_cloud.size(); ++idx) {
@@ -1229,7 +1229,7 @@ pcl::PointCloud<pcl::PointXYZI>::Ptr MultiGridNormalDistributionsTransform<
   // Sum up point-wise scores
   for (size_t idx = 0; idx < params_.num_threads; ++idx) {
     for (size_t p_idx = 0; p_idx < threads_pc[idx].size(); ++p_idx) {
-      score_points->points.push_back(threads_pc[idx].points[p_idx]);
+      score_points.points.push_back(threads_pc[idx].points[p_idx]);
     }
   }
 

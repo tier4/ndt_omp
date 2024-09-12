@@ -262,7 +262,7 @@ public:
   // lower is better
   double calculateTransformationProbability(const PointCloudSource & cloud) const;
   double calculateNearestVoxelTransformationLikelihood(const PointCloudSource & cloud) const;
-  pcl::PointCloud<pcl::PointXYZI>::Ptr calculateNearestVoxelScoreEachPoint(
+  pcl::PointCloud<pcl::PointXYZI> calculateNearestVoxelScoreEachPoint(
     const PointCloudSource & cloud) const;
 
   inline void setRegularizationScaleFactor(float regularization_scale_factor)
@@ -555,8 +555,6 @@ protected:
 
   boost::optional<Eigen::Matrix4f> regularization_pose_;
   Eigen::Vector3f regularization_pose_translation_;
-
-  pcl::PointCloud<pcl::PointXYZI>::Ptr score_points_{new pcl::PointCloud<pcl::PointXYZI>};
 
   NdtParams params_;
 
