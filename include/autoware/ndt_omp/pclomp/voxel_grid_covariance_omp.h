@@ -50,7 +50,7 @@
 #include <map>
 #include <unordered_map>
 
-namespace pclomp
+namespace autoware::ndt_omp::pclomp
 {
 /** \brief A searchable voxel structure containing the mean and covariance of the data.
  * \note For more information please see
@@ -89,11 +89,11 @@ protected:
 
 public:
 #if PCL_VERSION >= PCL_VERSION_CALC(1, 10, 0)
-  typedef pcl::shared_ptr<pcl::VoxelGrid<PointT> > Ptr;
-  typedef pcl::shared_ptr<const pcl::VoxelGrid<PointT> > ConstPtr;
+  typedef pcl::shared_ptr<pcl::VoxelGrid<PointT>> Ptr;
+  typedef pcl::shared_ptr<const pcl::VoxelGrid<PointT>> ConstPtr;
 #else
-  typedef boost::shared_ptr<pcl::VoxelGrid<PointT> > Ptr;
-  typedef boost::shared_ptr<const pcl::VoxelGrid<PointT> > ConstPtr;
+  typedef boost::shared_ptr<pcl::VoxelGrid<PointT>> Ptr;
+  typedef boost::shared_ptr<const pcl::VoxelGrid<PointT>> ConstPtr;
 #endif
 
   /** \brief Simple structure to hold a centroid, covariance and the number of points in a leaf.
@@ -120,36 +120,36 @@ public:
     /** \brief Get the voxel covariance.
      * \return covariance matrix
      */
-    Eigen::Matrix3d getCov() const { return (cov_); }
+    Eigen::Matrix3d getCov() const { return cov_; }
 
     /** \brief Get the inverse of the voxel covariance.
      * \return inverse covariance matrix
      */
-    Eigen::Matrix3d getInverseCov() const { return (icov_); }
+    Eigen::Matrix3d getInverseCov() const { return icov_; }
 
     /** \brief Get the voxel centroid.
      * \return centroid
      */
-    Eigen::Vector3d getMean() const { return (mean_); }
+    Eigen::Vector3d getMean() const { return mean_; }
     // add at 20220721 by konishi
-    Eigen::Vector3d getLeafCenter() const { return (voxelXYZ_); }
+    Eigen::Vector3d getLeafCenter() const { return voxelXYZ_; }
 
     /** \brief Get the eigen vectors of the voxel covariance.
      * \note Order corresponds with \ref getEvals
      * \return matrix whose columns contain eigen vectors
      */
-    Eigen::Matrix3d getEvecs() const { return (evecs_); }
+    Eigen::Matrix3d getEvecs() const { return evecs_; }
 
     /** \brief Get the eigen values of the voxel covariance.
      * \note Order corresponds with \ref getEvecs
      * \return vector of eigen values
      */
-    Eigen::Vector3d getEvals() const { return (evals_); }
+    Eigen::Vector3d getEvals() const { return evals_; }
 
     /** \brief Get the number of points contained by this voxel.
      * \return number of points
      */
-    int getPointCount() const { return (nr_points_); }
+    int getPointCount() const { return nr_points_; }
 
     /** \brief Number of points contained by voxel */
     int nr_points_;
@@ -284,8 +284,9 @@ public:
     if (leaf_iter != leaves_.end()) {
       LeafConstPtr ret(&(leaf_iter->second));
       return ret;
-    } else
+    } else {
       return NULL;
+    }
   }
 
   /** \brief Get the voxel containing point p.
@@ -308,8 +309,9 @@ public:
       // If such a leaf exists return the pointer to the leaf structure
       LeafConstPtr ret(&(leaf_iter->second));
       return ret;
-    } else
+    } else {
       return NULL;
+    }
   }
 
   /** \brief Get the voxel containing point p.
@@ -332,8 +334,9 @@ public:
       // If such a leaf exists return the pointer to the leaf structure
       LeafConstPtr ret(&(leaf_iter->second));
       return ret;
-    } else
+    } else {
       return NULL;
+    }
   }
 
   // add at 20220218 by konishi
@@ -345,7 +348,7 @@ public:
     int ijk2 = static_cast<int>(floor(p[2] * inverse_leaf_size_[2]) - min_b_[2]);
 
     // Compute the centroid leaf index
-    return (ijk0 * divb_mul_[0] + ijk1 * divb_mul_[1] + ijk2 * divb_mul_[2]);
+    return ijk0 * divb_mul_[0] + ijk1 * divb_mul_[1] + ijk2 * divb_mul_[2];
   }
 
   // add at 20220721 by konishi
@@ -442,8 +445,10 @@ public:
     const PointCloud & cloud, int index, int k, std::vector<LeafConstPtr> & k_leaves,
     std::vector<float> & k_sqr_distances)
   {
-    if (index >= static_cast<int>(cloud.points.size()) || index < 0) return (0);
-    return (nearestKSearch(cloud.points[index], k, k_leaves, k_sqr_distances));
+    if (index >= static_cast<int>(cloud.points.size()) || index < 0) {
+      return 0;
+    }
+    return nearestKSearch(cloud.points[index], k, k_leaves, k_sqr_distances);
   }
 
   /** \brief Search for all the nearest occupied voxels of the query point in a given radius.
@@ -498,8 +503,10 @@ public:
     const PointCloud & cloud, int index, double radius, std::vector<LeafConstPtr> & k_leaves,
     std::vector<float> & k_sqr_distances, unsigned int max_nn = 0) const
   {
-    if (index >= static_cast<int>(cloud.points.size()) || index < 0) return (0);
-    return (radiusSearch(cloud.points[index], radius, k_leaves, k_sqr_distances, max_nn));
+    if (index >= static_cast<int>(cloud.points.size()) || index < 0) {
+      return 0;
+    }
+    return radiusSearch(cloud.points[index], radius, k_leaves, k_sqr_distances, max_nn);
   }
 
 protected:
@@ -533,6 +540,6 @@ protected:
   /** \brief KdTree generated using \ref voxel_centroids_ (used for searching). */
   pcl::KdTreeFLANN<PointT> kdtree_;
 };
-}  // namespace pclomp
+}  // namespace autoware::ndt_omp::pclomp
 
 #endif  // #ifndef PCL_VOXEL_GRID_COVARIANCE_H_

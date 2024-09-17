@@ -1,4 +1,6 @@
-#include <multigrid_pclomp/multigrid_ndt_omp.h>
+#include <autoware/ndt_omp/multigrid_pclomp/multigrid_ndt_omp.h>
+#include <autoware/ndt_omp/pclomp/gicp_omp.h>
+#include <autoware/ndt_omp/pclomp/ndt_omp.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_cloud.h>
@@ -6,8 +8,6 @@
 #include <pcl/registration/gicp.h>
 #include <pcl/registration/ndt.h>
 #include <pcl/visualization/pcl_visualizer.h>
-#include <pclomp/gicp_omp.h>
-#include <pclomp/ndt_omp.h>
 
 #include <chrono>
 #include <iostream>
@@ -82,9 +82,10 @@ int main(int argc, char ** argv)
   // cppcheck-suppress redundantAssignment
   aligned = align(gicp, target_cloud, source_cloud);
 
-  std::cout << "--- pclomp::GICP ---" << std::endl;
-  pclomp::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>::Ptr gicp_omp(
-    new pclomp::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>());
+  std::cout << "--- autoware::ndt_omp::pclomp::GICP ---" << std::endl;
+  autoware::ndt_omp::pclomp::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>::Ptr
+    gicp_omp(new autoware::ndt_omp::pclomp::GeneralizedIterativeClosestPoint<
+             pcl::PointXYZ, pcl::PointXYZ>());
   // cppcheck-suppress redundantAssignment
   aligned = align(gicp_omp, target_cloud, source_cloud);
 
@@ -96,21 +97,26 @@ int main(int argc, char ** argv)
   aligned = align(ndt, target_cloud, source_cloud);
 
   std::vector<int> num_threads = {1, omp_get_max_threads()};
-  std::vector<std::pair<std::string, pclomp::NeighborSearchMethod>> search_methods = {
-    {"KDTREE", pclomp::KDTREE}, {"DIRECT7", pclomp::DIRECT7}, {"DIRECT1", pclomp::DIRECT1}};
+  std::vector<std::pair<std::string, autoware::ndt_omp::pclomp::NeighborSearchMethod>>
+    search_methods = {
+      {"KDTREE", autoware::ndt_omp::pclomp::KDTREE},
+      {"DIRECT7", autoware::ndt_omp::pclomp::DIRECT7},
+      {"DIRECT1", autoware::ndt_omp::pclomp::DIRECT1}};
 
-  pclomp::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr ndt_omp(
-    new pclomp::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
+  autoware::ndt_omp::pclomp::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr
+    ndt_omp(
+      new autoware::ndt_omp::pclomp::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
   ndt_omp->setResolution(1.0);
 
-  pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr mg_ndt_omp(
-    new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
+  autoware::ndt_omp::pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::
+    Ptr mg_ndt_omp(new autoware::ndt_omp::pclomp::MultiGridNormalDistributionsTransform<
+                   pcl::PointXYZ, pcl::PointXYZ>());
   mg_ndt_omp->setResolution(1.0);
 
   for (int n : num_threads) {
     for (const auto & search_method : search_methods) {
-      std::cout << "--- pclomp::NDT (" << search_method.first << ", " << n << " threads) ---"
-                << std::endl;
+      std::cout << "--- autoware::ndt_omp::pclomp::NDT (" << search_method.first << ", " << n
+                << " threads) ---" << std::endl;
       ndt_omp->setNumThreads(n);
       ndt_omp->setNeighborhoodSearchMethod(search_method.second);
       // cppcheck-suppress redundantAssignment

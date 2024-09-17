@@ -1,7 +1,7 @@
 #ifndef NDT_OMP__ESTIMATE_COVARIANCE_HPP_
 #define NDT_OMP__ESTIMATE_COVARIANCE_HPP_
 
-#include "multigrid_pclomp/multigrid_ndt_omp.h"
+#include "autoware/ndt_omp/multigrid_pclomp/multigrid_ndt_omp.h"
 
 #include <Eigen/Core>
 
@@ -9,7 +9,7 @@
 #include <utility>
 #include <vector>
 
-namespace pclomp
+namespace autoware::ndt_omp::pclomp
 {
 
 struct ResultOfMultiNdtCovarianceEstimation
@@ -25,13 +25,13 @@ Eigen::Matrix2d estimate_xy_covariance_by_laplace_approximation(
   const Eigen::Matrix<double, 6, 6> & hessian);
 ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt(
   const NdtResult & ndt_result,
-  const std::shared_ptr<
-    pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> & ndt_ptr,
+  const std::shared_ptr<autoware::ndt_omp::pclomp::MultiGridNormalDistributionsTransform<
+    pcl::PointXYZ, pcl::PointXYZ>> & ndt_ptr,
   const std::vector<Eigen::Matrix4f> & poses_to_search);
 ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt_score(
   const NdtResult & ndt_result,
-  const std::shared_ptr<
-    pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> & ndt_ptr,
+  const std::shared_ptr<autoware::ndt_omp::pclomp::MultiGridNormalDistributionsTransform<
+    pcl::PointXYZ, pcl::PointXYZ>> & ndt_ptr,
   const std::vector<Eigen::Matrix4f> & poses_to_search, const double temperature);
 
 /** \brief Find rotation matrix aligning covariance to principal axes
@@ -71,6 +71,6 @@ Eigen::Matrix2d adjust_diagonal_covariance(
   const Eigen::Matrix2d & covariance, const Eigen::Matrix4f & pose, const double fixed_cov00,
   const double fixed_cov11);
 
-}  // namespace pclomp
+}  // namespace autoware::ndt_omp::pclomp
 
 #endif  // NDT_OMP__ESTIMATE_COVARIANCE_HPP_

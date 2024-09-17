@@ -1,6 +1,6 @@
-#include <pclomp/voxel_grid_covariance_omp_impl.hpp>
+#include <autoware/ndt_omp/pclomp/voxel_grid_covariance_omp_impl.hpp>
 
-#include <pclomp/voxel_grid_covariance_omp.h>
+#include <autoware/ndt_omp/pclomp/voxel_grid_covariance_omp.h>
 
-template class pclomp::VoxelGridCovariance<pcl::PointXYZ>;
-template class pclomp::VoxelGridCovariance<pcl::PointXYZI>;
+template class autoware::ndt_omp::pclomp::VoxelGridCovariance<pcl::PointXYZ>;
+template class autoware::ndt_omp::pclomp::VoxelGridCovariance<pcl::PointXYZI>;

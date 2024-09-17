@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(ndt_omp)
+project(autoware_ndt_omp)
 
 add_definitions(-std=c++17)
 set(CMAKE_CXX_FLAGS "-std=c++17")
@@ -39,16 +39,16 @@ find_package(OpenMP)
 ## Build ##
 ###########
 
-ament_auto_add_library(ndt_omp SHARED
+ament_auto_add_library(autoware_ndt_omp SHARED
   src/pclomp/voxel_grid_covariance_omp.cpp
   src/pclomp/ndt_omp.cpp
   src/pclomp/gicp_omp.cpp
 )
 
-target_link_libraries(ndt_omp ${PCL_LIBRARIES})
+target_link_libraries(autoware_ndt_omp ${PCL_LIBRARIES})
 
 if(OpenMP_CXX_FOUND)
-  target_link_libraries(ndt_omp OpenMP::OpenMP_CXX)
+  target_link_libraries(autoware_ndt_omp OpenMP::OpenMP_CXX)
 else()
   message(WARNING "OpenMP not found")
 endif()
@@ -56,14 +56,14 @@ endif()
 #############################
 ## ROS 2 multigrid ndt_omp ##
 #############################
-ament_auto_add_library(multigrid_ndt_omp SHARED
+ament_auto_add_library(autoware_multigrid_ndt_omp SHARED
   src/multigrid_pclomp/multi_voxel_grid_covariance_omp.cpp
   src/multigrid_pclomp/multigrid_ndt_omp.cpp
   src/estimate_covariance/estimate_covariance.cpp
 )
-target_link_libraries(multigrid_ndt_omp ${PCL_LIBRARIES})
+target_link_libraries(autoware_multigrid_ndt_omp ${PCL_LIBRARIES})
 if(OpenMP_CXX_FOUND)
-  target_link_libraries(multigrid_ndt_omp OpenMP::OpenMP_CXX)
+  target_link_libraries(autoware_multigrid_ndt_omp OpenMP::OpenMP_CXX)
 else()
   message(WARNING "OpenMP not found")
 endif()
@@ -81,6 +81,6 @@ set(EXECUTABLES
 
 foreach(executable IN LISTS EXECUTABLES)
   add_executable(${executable} apps/${executable}.cpp)
-  add_dependencies(${executable} ndt_omp multigrid_ndt_omp)
-  target_link_libraries(${executable} ndt_omp multigrid_ndt_omp ${PCL_LIBRARIES})
+  add_dependencies(${executable} autoware_ndt_omp autoware_multigrid_ndt_omp)
+  target_link_libraries(${executable} autoware_ndt_omp autoware_multigrid_ndt_omp ${PCL_LIBRARIES})
 endforeach()

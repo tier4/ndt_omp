@@ -52,7 +52,7 @@
 #ifndef PCL_MULTI_VOXEL_GRID_COVARIANCE_IMPL_OMP_H_
 #define PCL_MULTI_VOXEL_GRID_COVARIANCE_IMPL_OMP_H_
 
-#include "multigrid_pclomp/multi_voxel_grid_covariance_omp.h"
+#include "autoware/ndt_omp/multigrid_pclomp/multi_voxel_grid_covariance_omp.h"
 
 #include <pcl/common/common.h>
 #include <pcl/filters/boost.h>
@@ -63,7 +63,7 @@
 #include <utility>
 #include <vector>
 
-namespace pclomp
+namespace autoware::ndt_omp::pclomp
 {
 
 template <typename PointT>
@@ -106,7 +106,8 @@ MultiVoxelGridCovariance<PointT>::MultiVoxelGridCovariance(
 }
 
 template <typename PointT>
-MultiVoxelGridCovariance<PointT> & pclomp::MultiVoxelGridCovariance<PointT>::operator=(
+MultiVoxelGridCovariance<PointT> &
+autoware::ndt_omp::pclomp::MultiVoxelGridCovariance<PointT>::operator=(
   const MultiVoxelGridCovariance & other)
 {
   pcl::VoxelGrid<PointT>::operator=(other);
@@ -132,7 +133,8 @@ MultiVoxelGridCovariance<PointT> & pclomp::MultiVoxelGridCovariance<PointT>::ope
 }
 
 template <typename PointT>
-MultiVoxelGridCovariance<PointT> & pclomp::MultiVoxelGridCovariance<PointT>::operator=(
+MultiVoxelGridCovariance<PointT> &
+autoware::ndt_omp::pclomp::MultiVoxelGridCovariance<PointT>::operator=(
   MultiVoxelGridCovariance && other) noexcept
 {
   voxel_centroids_ptr_ = std::move(other.voxel_centroids_ptr_);
@@ -274,7 +276,7 @@ int MultiVoxelGridCovariance<PointT>::radiusSearch(
     return 0;
   }
 
-  return (radiusSearch(cloud[index], radius, k_leaves, max_nn));
+  return radiusSearch(cloud[index], radius, k_leaves, max_nn);
 }
 
 template <typename PointT>
@@ -352,7 +354,9 @@ void MultiVoxelGridCovariance<PointT>::applyFilter(
   for (auto & p : *input) {
     if (!input->is_dense) {
       // Check if the point is invalid
-      if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z)) continue;
+      if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z)) {
+        continue;
+      }
     }
     int64_t lid = getLeafID(p, bbox);
     Leaf & leaf = map_leaves[lid];
@@ -393,7 +397,7 @@ void MultiVoxelGridCovariance<PointT>::applyFilter(
 }
 
 template <typename PointT>
-int64_t pclomp::MultiVoxelGridCovariance<PointT>::getLeafID(
+int64_t autoware::ndt_omp::pclomp::MultiVoxelGridCovariance<PointT>::getLeafID(
   const PointT & point, const BoundingBox & bbox) const
 {
   int ijk0 =
@@ -407,7 +411,7 @@ int64_t pclomp::MultiVoxelGridCovariance<PointT>::getLeafID(
 }
 
 template <typename PointT>
-void pclomp::MultiVoxelGridCovariance<PointT>::updateLeaf(
+void autoware::ndt_omp::pclomp::MultiVoxelGridCovariance<PointT>::updateLeaf(
   const PointT & point, const int & centroid_size, Leaf & leaf) const
 {
   if (leaf.nr_points_ == 0) {
@@ -427,7 +431,7 @@ void pclomp::MultiVoxelGridCovariance<PointT>::updateLeaf(
 }
 
 template <typename PointT>
-void pclomp::MultiVoxelGridCovariance<PointT>::computeLeafParams(
+void autoware::ndt_omp::pclomp::MultiVoxelGridCovariance<PointT>::computeLeafParams(
   const Eigen::Vector3d & pt_sum, Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> & eigensolver,
   Leaf & leaf) const
 {
@@ -467,7 +471,7 @@ void pclomp::MultiVoxelGridCovariance<PointT>::computeLeafParams(
   }
 }
 
-}  // namespace pclomp
+}  // namespace autoware::ndt_omp::pclomp
 
 #define PCL_INSTANTIATE_VoxelGridCovariance(T) \
   template class PCL_EXPORTS pcl::VoxelGridCovariance<T>;

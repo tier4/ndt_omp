@@ -1,7 +1,8 @@
-#include "estimate_covariance/estimate_covariance.hpp"
+#include "autoware/ndt_omp/estimate_covariance/estimate_covariance.hpp"
 
+#include <autoware/ndt_omp/multigrid_pclomp/multigrid_ndt_omp.h>
+#include <autoware/ndt_omp/pclomp/gicp_omp.h>
 #include <glob.h>
-#include <multigrid_pclomp/multigrid_ndt_omp.h>
 #include <omp.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/io/pcd_io.h>
@@ -10,7 +11,6 @@
 #include <pcl/registration/gicp.h>
 #include <pcl/registration/ndt.h>
 #include <pcl/visualization/pcl_visualizer.h>
-#include <pclomp/gicp_omp.h>
 
 // this must included after pcd_io.h
 // clang-format off
@@ -50,8 +50,10 @@ int main(int argc, char ** argv)
   const auto n_data = static_cast<int64_t>(initial_pose_list.size());
 
   // prepare ndt
-  std::shared_ptr<pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>>
-    mg_ndt_omp(new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
+  std::shared_ptr<
+    autoware::ndt_omp::pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>>
+    mg_ndt_omp(new autoware::ndt_omp::pclomp::MultiGridNormalDistributionsTransform<
+               pcl::PointXYZ, pcl::PointXYZ>());
   mg_ndt_omp->setInputTarget(target_cloud);
   mg_ndt_omp->setResolution(2.0);
   mg_ndt_omp->setNumThreads(4);
@@ -103,19 +105,20 @@ int main(int argc, char ** argv)
     mg_ndt_omp->setInputSource(source_cloud);
     pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>());
     mg_ndt_omp->align(*aligned, initial_pose);
-    const pclomp::NdtResult ndt_result = mg_ndt_omp->getResult();
+    const autoware::ndt_omp::pclomp::NdtResult ndt_result = mg_ndt_omp->getResult();
     const double score = ndt_result.nearest_voxel_transformation_likelihood;
     std::cout << source_pcd << ", num=" << std::setw(4) << source_cloud->size()
               << " points, score=" << score << std::endl;
 
     const std::vector<Eigen::Matrix4f> poses_to_search =
-      pclomp::propose_poses_to_search(ndt_result, offset_x, offset_y);
+      autoware::ndt_omp::pclomp::propose_poses_to_search(ndt_result, offset_x, offset_y);
 
     // estimate covariance
     // (1) Laplace approximation
     t1 = std::chrono::system_clock::now();
     const Eigen::Matrix2d cov_by_la =
-      pclomp::estimate_xy_covariance_by_laplace_approximation(ndt_result.hessian);
+      autoware::ndt_omp::pclomp::estimate_xy_covariance_by_laplace_approximation(
+        ndt_result.hessian);
     t2 = std::chrono::system_clock::now();
     const auto elapsed_la =
       static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count()) /
@@ -123,9 +126,10 @@ int main(int argc, char ** argv)
 
     // (2) Multi NDT
     t1 = std::chrono::system_clock::now();
-    const pclomp::ResultOfMultiNdtCovarianceEstimation result_of_mndt =
-      pclomp::estimate_xy_covariance_by_multi_ndt(ndt_result, mg_ndt_omp, poses_to_search);
-    const Eigen::Matrix2d cov_by_mndt = pclomp::adjust_diagonal_covariance(
+    const autoware::ndt_omp::pclomp::ResultOfMultiNdtCovarianceEstimation result_of_mndt =
+      autoware::ndt_omp::pclomp::estimate_xy_covariance_by_multi_ndt(
+        ndt_result, mg_ndt_omp, poses_to_search);
+    const Eigen::Matrix2d cov_by_mndt = autoware::ndt_omp::pclomp::adjust_diagonal_covariance(
       result_of_mndt.covariance, ndt_result.pose, 0.0225, 0.0225);
     t2 = std::chrono::system_clock::now();
     const auto elapsed_mndt =
@@ -135,10 +139,10 @@ int main(int argc, char ** argv)
     // (3) Multi NDT with score
     const double temperature = 0.1;
     t1 = std::chrono::system_clock::now();
-    const pclomp::ResultOfMultiNdtCovarianceEstimation result_of_mndt_score =
-      pclomp::estimate_xy_covariance_by_multi_ndt_score(
+    const autoware::ndt_omp::pclomp::ResultOfMultiNdtCovarianceEstimation result_of_mndt_score =
+      autoware::ndt_omp::pclomp::estimate_xy_covariance_by_multi_ndt_score(
         ndt_result, mg_ndt_omp, poses_to_search, temperature);
-    const Eigen::Matrix2d cov_by_mndt_score = pclomp::adjust_diagonal_covariance(
+    const Eigen::Matrix2d cov_by_mndt_score = autoware::ndt_omp::pclomp::adjust_diagonal_covariance(
       result_of_mndt_score.covariance, ndt_result.pose, 0.0225, 0.0225);
     t2 = std::chrono::system_clock::now();
     const auto elapsed_mndt_score =
@@ -151,11 +155,11 @@ int main(int argc, char ** argv)
     const Eigen::Vector3f euler_initial = initial_pose.block<3, 3>(0, 0).eulerAngles(0, 1, 2);
     const Eigen::Vector3f euler_result = ndt_result.pose.block<3, 3>(0, 0).eulerAngles(0, 1, 2);
     const Eigen::Matrix2d cov_by_la_rotated =
-      pclomp::rotate_covariance_to_base_link(cov_by_la, ndt_result.pose);
+      autoware::ndt_omp::pclomp::rotate_covariance_to_base_link(cov_by_la, ndt_result.pose);
     const Eigen::Matrix2d cov_by_mndt_rotated =
-      pclomp::rotate_covariance_to_base_link(cov_by_mndt, ndt_result.pose);
+      autoware::ndt_omp::pclomp::rotate_covariance_to_base_link(cov_by_mndt, ndt_result.pose);
     const Eigen::Matrix2d cov_by_mndt_score_rotated =
-      pclomp::rotate_covariance_to_base_link(cov_by_mndt_score, ndt_result.pose);
+      autoware::ndt_omp::pclomp::rotate_covariance_to_base_link(cov_by_mndt_score, ndt_result.pose);
     ofs << i << "," << score << ",";
     ofs << initial_pose(0, 3) << "," << initial_pose(1, 3) << "," << euler_initial(2) << ",";
     ofs << result_x << "," << result_y << "," << euler_result(2) << ",";
@@ -181,7 +185,7 @@ int main(int argc, char ** argv)
     ofs_mndt << "index,score,initial_x,initial_y,result_x,result_y" << std::endl;
     ofs_mndt << std::fixed;
     for (int j = 0; j < n_mndt; j++) {
-      const pclomp::NdtResult & multi_ndt_result = result_of_mndt.ndt_results[j];
+      const autoware::ndt_omp::pclomp::NdtResult & multi_ndt_result = result_of_mndt.ndt_results[j];
       const auto nvtl = multi_ndt_result.nearest_voxel_transformation_likelihood;
       const auto initial_x = result_of_mndt.ndt_initial_poses[j](0, 3);
       const auto initial_y = result_of_mndt.ndt_initial_poses[j](1, 3);
@@ -197,7 +201,8 @@ int main(int argc, char ** argv)
     ofs_mndt_score << "index,score,initial_x,initial_y,result_x,result_y" << std::endl;
     ofs_mndt_score << std::fixed;
     for (int j = 0; j < n_mndt_score; j++) {
-      const pclomp::NdtResult & multi_ndt_score_result = result_of_mndt_score.ndt_results[j];
+      const autoware::ndt_omp::pclomp::NdtResult & multi_ndt_score_result =
+        result_of_mndt_score.ndt_results[j];
       const auto nvtl = multi_ndt_score_result.nearest_voxel_transformation_likelihood;
       const auto initial_x = result_of_mndt_score.ndt_initial_poses[j](0, 3);
       const auto initial_y = result_of_mndt_score.ndt_initial_poses[j](1, 3);

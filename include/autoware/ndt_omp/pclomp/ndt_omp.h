@@ -51,16 +51,15 @@
 
 #include <pcl/registration/registration.h>
 
-namespace pclomp
+namespace autoware::ndt_omp::pclomp
 {
 
 struct EigenCmp
 {
   bool operator()(const Eigen::Vector3i & a, const Eigen::Vector3i & b) const
   {
-    return (
-      a(0) < b(0) || (a(0) == b(0) && a(1) < b(1)) ||
-      (a(0) == b(0) && a(1) == b(1) && a(2) < b(2)));
+    return a(0) < b(0) || (a(0) == b(0) && a(1) < b(1)) ||
+           (a(0) == b(0) && a(1) == b(1) && a(2) < b(2));
   }
 };
 
@@ -91,7 +90,7 @@ protected:
   typedef pcl::PointIndices::ConstPtr PointIndicesConstPtr;
 
   /** \brief Typename of searchable voxel grid containing mean and covariance. */
-  typedef pclomp::VoxelGridCovariance<PointTarget> TargetGrid;
+  typedef autoware::ndt_omp::pclomp::VoxelGridCovariance<PointTarget> TargetGrid;
   /** \brief Typename of pointer to searchable voxel grid. */
   typedef TargetGrid * TargetGridPtr;
   /** \brief Typename of const pointer to searchable voxel grid. */
@@ -137,19 +136,21 @@ public:
     // Prevents unnecessary voxel initiations
     if (params_.resolution != resolution) {
       params_.resolution = resolution;
-      if (input_) init();
+      if (input_) {
+        init();
+      }
     }
   }
 
   /** \brief Get voxel grid resolution.
    * \return side length of voxels
    */
-  inline float getResolution() const { return (params_.resolution); }
+  inline float getResolution() const { return params_.resolution; }
 
   /** \brief Get the newton line search maximum step length.
    * \return maximum step length
    */
-  inline double getStepSize() const { return (params_.step_size); }
+  inline double getStepSize() const { return params_.step_size; }
 
   /** \brief Set/change the newton line search maximum step length.
    * \param[in] step_size maximum step length
@@ -159,7 +160,7 @@ public:
   /** \brief Get the point cloud outlier ratio.
    * \return outlier ratio
    */
-  inline double getOutlierRatio() const { return (outlier_ratio_); }
+  inline double getOutlierRatio() const { return outlier_ratio_; }
 
   /** \brief Set/change the point cloud outlier ratio.
    * \param[in] outlier_ratio outlier ratio
@@ -176,7 +177,7 @@ public:
   /** \brief Get the registration alignment probability.
    * \return transformation probability
    */
-  inline double getTransformationProbability() const { return (trans_probability_); }
+  inline double getTransformationProbability() const { return trans_probability_; }
 
   inline double getNearestVoxelTransformationLikelihood() const
   {
@@ -186,7 +187,7 @@ public:
   /** \brief Get the number of iterations required to calculate alignment.
    * \return final number of iterations
    */
-  inline int getFinalNumIteration() const { return (nr_iterations_); }
+  inline int getFinalNumIteration() const { return nr_iterations_; }
 
   /** \brief Return the hessian matrix */
   inline Eigen::Matrix<double, 6, 6> getHessian() const { return hessian_; }
@@ -281,7 +282,7 @@ public:
   /** \brief Get the transformation epsilon (maximum allowable translation squared
    * difference between two consecutive transformations) as set by the user.
    */
-  inline double getTransformationEpsilon() { return (params_.trans_epsilon); }
+  inline double getTransformationEpsilon() { return params_.trans_epsilon; }
 
   inline void setMaximumIterations(int max_iterations) { params_.max_iterations = max_iterations; }
   inline int getMaxIterations() const { return params_.max_iterations; }
@@ -473,7 +474,7 @@ protected:
   inline double auxiliaryFunction_PsiMT(
     double a, double f_a, double f_0, double g_0, double mu = 1.e-4)
   {
-    return (f_a - f_0 - mu * g_0 * a);
+    return f_a - f_0 - mu * g_0 * a;
   }
 
   /** \brief Auxiliary function derivative used to determine endpoints of More-Thuente interval.
@@ -485,7 +486,7 @@ protected:
    */
   inline double auxiliaryFunction_dPsiMT(double g_a, double g_0, double mu = 1.e-4)
   {
-    return (g_a - mu * g_0);
+    return g_a - mu * g_0;
   }
 
   /** \brief The voxel grid generated from target cloud containing point means and covariances. */
@@ -552,6 +553,6 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-}  // namespace pclomp
+}  // namespace autoware::ndt_omp::pclomp
 
 #endif  // PCL_REGISTRATION_NDT_H_

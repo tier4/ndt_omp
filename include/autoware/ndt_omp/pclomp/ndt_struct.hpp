@@ -59,7 +59,7 @@
 
 #include <vector>
 
-namespace pclomp
+namespace autoware::ndt_omp::pclomp
 {
 
 enum NeighborSearchMethod { KDTREE, DIRECT26, DIRECT7, DIRECT1 };
@@ -102,6 +102,6 @@ struct NdtParams
   bool use_line_search = false;
 };
 
-}  // namespace pclomp
+}  // namespace autoware::ndt_omp::pclomp
 
 #endif  // PCLOMP_NDT_STRUCT_HPP_

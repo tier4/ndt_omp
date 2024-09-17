@@ -1,9 +1,9 @@
-#include "estimate_covariance/estimate_covariance.hpp"
+#include "autoware/ndt_omp/estimate_covariance/estimate_covariance.hpp"
 
 #include <fstream>
 #include <iomanip>
 
-namespace pclomp
+namespace autoware::ndt_omp::pclomp
 {
 
 Eigen::Matrix2d estimate_xy_covariance_by_laplace_approximation(
@@ -16,8 +16,8 @@ Eigen::Matrix2d estimate_xy_covariance_by_laplace_approximation(
 
 ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt(
   const NdtResult & ndt_result,
-  const std::shared_ptr<
-    pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> & ndt_ptr,
+  const std::shared_ptr<autoware::ndt_omp::pclomp::MultiGridNormalDistributionsTransform<
+    pcl::PointXYZ, pcl::PointXYZ>> & ndt_ptr,
   const std::vector<Eigen::Matrix4f> & poses_to_search)
 {
   // initialize by the main result
@@ -52,8 +52,8 @@ ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt(
 
 ResultOfMultiNdtCovarianceEstimation estimate_xy_covariance_by_multi_ndt_score(
   const NdtResult & ndt_result,
-  const std::shared_ptr<
-    pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>> & ndt_ptr,
+  const std::shared_ptr<autoware::ndt_omp::pclomp::MultiGridNormalDistributionsTransform<
+    pcl::PointXYZ, pcl::PointXYZ>> & ndt_ptr,
   const std::vector<Eigen::Matrix4f> & poses_to_search, const double temperature)
 {
   // initialize by the main result
@@ -186,4 +186,4 @@ Eigen::Matrix2d adjust_diagonal_covariance(
   return cov_map;
 }
 
-}  // namespace pclomp
+}  // namespace autoware::ndt_omp::pclomp

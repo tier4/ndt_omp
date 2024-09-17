@@ -14,8 +14,9 @@
 
 #include "timer.hpp"
 
+#include <autoware/ndt_omp/multigrid_pclomp/multigrid_ndt_omp.h>
+#include <autoware/ndt_omp/pclomp/gicp_omp.h>
 #include <glob.h>
-#include <multigrid_pclomp/multigrid_ndt_omp.h>
 #include <omp.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/io/pcd_io.h>
@@ -24,7 +25,6 @@
 #include <pcl/registration/gicp.h>
 #include <pcl/registration/ndt.h>
 #include <pcl/visualization/pcl_visualizer.h>
-#include <pclomp/gicp_omp.h>
 
 // must include after including pcl header
 // clang-format off
@@ -65,8 +65,9 @@ int main(int argc, char ** argv)
   const auto n_data = static_cast<int64_t>(initial_pose_list.size());
 
   // prepare ndt
-  pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr mg_ndt_omp(
-    new pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
+  autoware::ndt_omp::pclomp::MultiGridNormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::
+    Ptr mg_ndt_omp(new autoware::ndt_omp::pclomp::MultiGridNormalDistributionsTransform<
+                   pcl::PointXYZ, pcl::PointXYZ>());
   mg_ndt_omp->setResolution(2.0);
   mg_ndt_omp->setNumThreads(4);
   mg_ndt_omp->setMaximumIterations(30);
@@ -112,7 +113,7 @@ int main(int argc, char ** argv)
     pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>());
     timer.start();
     mg_ndt_omp->align(*aligned, initial_pose);
-    const pclomp::NdtResult ndt_result = mg_ndt_omp->getResult();
+    const autoware::ndt_omp::pclomp::NdtResult ndt_result = mg_ndt_omp->getResult();
     const double elapsed = timer.elapsed_milliseconds();
 
     const float gain_tp =

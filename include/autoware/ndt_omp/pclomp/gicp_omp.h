@@ -44,7 +44,7 @@
 #include <pcl/registration/bfgs.h>
 #include <pcl/registration/icp.h>
 
-namespace pclomp
+namespace autoware::ndt_omp::pclomp
 {
 /** \brief GeneralizedIterativeClosestPoint is an ICP variant that implements the
  * generalized iterative closest point algorithm as described by Alex Segal et al. in
@@ -93,22 +93,22 @@ public:
   using InputKdTree = typename pcl::Registration<PointSource, PointTarget>::KdTree;
   using InputKdTreePtr = typename pcl::Registration<PointSource, PointTarget>::KdTreePtr;
 
-  using MatricesVector = std::vector<Eigen::Matrix3d, Eigen::aligned_allocator<Eigen::Matrix3d> >;
+  using MatricesVector = std::vector<Eigen::Matrix3d, Eigen::aligned_allocator<Eigen::Matrix3d>>;
 
 #if PCL_VERSION >= PCL_VERSION_CALC(1, 10, 0)
   using MatricesVectorPtr = pcl::shared_ptr<MatricesVector>;
   using MatricesVectorConstPtr = pcl::shared_ptr<const MatricesVector>;
 
-  using Ptr = pcl::shared_ptr<GeneralizedIterativeClosestPoint<PointSource, PointTarget> >;
+  using Ptr = pcl::shared_ptr<GeneralizedIterativeClosestPoint<PointSource, PointTarget>>;
   using ConstPtr =
-    pcl::shared_ptr<const GeneralizedIterativeClosestPoint<PointSource, PointTarget> >;
+    pcl::shared_ptr<const GeneralizedIterativeClosestPoint<PointSource, PointTarget>>;
 #else
   using MatricesVectorPtr = boost::shared_ptr<MatricesVector>;
   using MatricesVectorConstPtr = boost::shared_ptr<const MatricesVector>;
 
-  using Ptr = boost::shared_ptr<GeneralizedIterativeClosestPoint<PointSource, PointTarget> >;
+  using Ptr = boost::shared_ptr<GeneralizedIterativeClosestPoint<PointSource, PointTarget>>;
   using ConstPtr =
-    boost::shared_ptr<const GeneralizedIterativeClosestPoint<PointSource, PointTarget> >;
+    boost::shared_ptr<const GeneralizedIterativeClosestPoint<PointSource, PointTarget>>;
 #endif
 
   using Vector6d = Eigen::Matrix<double, 6, 1>;
@@ -149,7 +149,9 @@ public:
     }
     PointCloudSource input = *cloud;
     // Set all the point.data[3] values to 1 to aid the rigid transformation
-    for (size_t i = 0; i < input.size(); ++i) input[i].data[3] = 1.0;
+    for (size_t i = 0; i < input.size(); ++i) {
+      input[i].data[3] = 1.0;
+    }
 
     pcl::IterativeClosestPoint<PointSource, PointTarget>::setInputSource(cloud);
     input_covariances_.reset();
@@ -222,7 +224,7 @@ public:
   /** \brief Get the rotation epsilon (maximum allowable difference between two
    * consecutive rotations) as set by the user.
    */
-  inline double getRotationEpsilon() { return (rotation_epsilon_); }
+  inline double getRotationEpsilon() { return rotation_epsilon_; }
 
   /** \brief Set the number of neighbors used when selecting a point neighbourhood
    * to compute covariances.
@@ -235,7 +237,7 @@ public:
   /** \brief Get the number of neighbors used when computing covariances as set by
    * the user
    */
-  int getCorrespondenceRandomness() { return (k_correspondences_); }
+  int getCorrespondenceRandomness() { return k_correspondences_; }
 
   /** set maximum number of iterations at the optimization step
    * \param[in] max maximum number of iterations for the optimizer
@@ -243,7 +245,7 @@ public:
   void setMaximumOptimizerIterations(int max) { max_inner_iterations_ = max; }
 
   ///\return maximum number of iterations at the optimization step
-  int getMaximumOptimizerIterations() { return (max_inner_iterations_); }
+  int getMaximumOptimizerIterations() { return max_inner_iterations_; }
 
 protected:
   /** \brief The number of neighbors used for covariances computation.
@@ -310,8 +312,11 @@ protected:
     double r = 0.;
     size_t n = mat1.rows();
     // tr(mat1^t.mat2)
-    for (size_t i = 0; i < n; i++)
-      for (size_t j = 0; j < n; j++) r += mat1(j, i) * mat2(i, j);
+    for (size_t i = 0; i < n; i++) {
+      for (size_t j = 0; j < n; j++) {
+        r += mat1(j, i) * mat2(i, j);
+      }
+    }
     return r;
   }
 
@@ -330,8 +335,10 @@ protected:
     const PointSource & query, std::vector<int> & index, std::vector<float> & distance) const
   {
     int k = tree_->nearestKSearch(query, 1, index, distance);
-    if (k == 0) return (false);
-    return (true);
+    if (k == 0) {
+      return false;
+    }
+    return true;
   }
 
   /// \brief compute transformation matrix from transformation matrix
@@ -357,6 +364,6 @@ protected:
     Eigen::Matrix4f & transformation_matrix)>
     rigid_transformation_estimation_;
 };
-}  // namespace pclomp
+}  // namespace autoware::ndt_omp::pclomp
 
 #endif  // #ifndef PCL_GICP_H_

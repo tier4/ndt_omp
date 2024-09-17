@@ -1,6 +1,8 @@
-#include <pclomp/ndt_omp_impl.hpp>
+#include <autoware/ndt_omp/pclomp/ndt_omp_impl.hpp>
 
-#include <pclomp/ndt_omp.h>
+#include <autoware/ndt_omp/pclomp/ndt_omp.h>
 
-template class pclomp::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>;
-template class pclomp::NormalDistributionsTransform<pcl::PointXYZI, pcl::PointXYZI>;
+template class autoware::ndt_omp::pclomp::NormalDistributionsTransform<
+  pcl::PointXYZ, pcl::PointXYZ>;
+template class autoware::ndt_omp::pclomp::NormalDistributionsTransform<
+  pcl::PointXYZI, pcl::PointXYZI>;

@@ -51,9 +51,10 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget>
 template <typename PointT>
-void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::computeCovariances(
-  typename pcl::PointCloud<PointT>::ConstPtr cloud,
-  const typename pcl::search::KdTree<PointT>::ConstPtr kdtree, MatricesVector & cloud_covariances)
+void autoware::ndt_omp::pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::
+  computeCovariances(
+    typename pcl::PointCloud<PointT>::ConstPtr cloud,
+    const typename pcl::search::KdTree<PointT>::ConstPtr kdtree, MatricesVector & cloud_covariances)
 {
   if (k_correspondences_ > static_cast<int>(cloud->size())) {
     PCL_ERROR(
@@ -64,7 +65,9 @@ void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::compute
   }
 
   // We should never get there but who knows
-  if (cloud_covariances.size() < cloud->size()) cloud_covariances.resize(cloud->size());
+  if (cloud_covariances.size() < cloud->size()) {
+    cloud_covariances.resize(cloud->size());
+  }
 
   std::vector<std::vector<int>> nn_indices_array(omp_get_max_threads());
   std::vector<std::vector<float>> nn_dist_sq_array(omp_get_max_threads());
@@ -103,12 +106,13 @@ void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::compute
 
     mean /= static_cast<double>(k_correspondences_);
     // Get the actual covariance
-    for (int k = 0; k < 3; k++)
+    for (int k = 0; k < 3; k++) {
       for (int l = 0; l <= k; l++) {
         cov(k, l) /= static_cast<double>(k_correspondences_);
         cov(k, l) -= mean[k] * mean[l];
         cov(l, k) = cov(k, l);
       }
+    }
 
     // Compute the SVD (covariance matrix is symmetric so U = V')
     Eigen::JacobiSVD<Eigen::Matrix3d> svd(cov, Eigen::ComputeFullU);
@@ -119,8 +123,9 @@ void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::compute
     for (int k = 0; k < 3; k++) {
       Eigen::Vector3d col = U.col(k);
       double v = 1.;  // biggest 2 singular values replaced by 1
-      if (k == 2)     // smallest singular value replaced by gicp_epsilon
+      if (k == 2) {   // smallest singular value replaced by gicp_epsilon
         v = gicp_epsilon_;
+      }
       cov += v * col * col.transpose();
     }
   }
@@ -128,8 +133,8 @@ void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::compute
 
 ////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget>
-void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::computeRDerivative(
-  const Vector6d & x, const Eigen::Matrix3d & R, Vector6d & g) const
+void autoware::ndt_omp::pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::
+  computeRDerivative(const Vector6d & x, const Eigen::Matrix3d & R, Vector6d & g) const
 {
   Eigen::Matrix3d dR_dPhi;
   Eigen::Matrix3d dR_dTheta;
@@ -184,14 +189,13 @@ void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::compute
 
 ////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget>
-void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::
+void autoware::ndt_omp::pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::
   estimateRigidTransformationBFGS(
     const PointCloudSource & cloud_src, const std::vector<int> & indices_src,
     const PointCloudTarget & cloud_tgt, const std::vector<int> & indices_tgt,
     Eigen::Matrix4f & transformation_matrix)
 {
-  if (indices_src.size() < 4)  // need at least 4 samples
-  {
+  if (indices_src.size() < 4) {  // need at least 4 samples
     PCL_THROW_EXCEPTION(
       pcl::NotEnoughPointsException,
       "[pcl::GeneralizedIterativeClosestPoint::estimateRigidTransformationBFGS] Need at least 4 "
@@ -253,7 +257,7 @@ void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::
 
 ////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget>
-inline double pclomp::GeneralizedIterativeClosestPoint<
+inline double autoware::ndt_omp::pclomp::GeneralizedIterativeClosestPoint<
   PointSource, PointTarget>::OptimizationFunctorWithIndices::operator()(const Vector6d & x)
 {
   Eigen::Matrix4f transformation_matrix = gicp_->base_transformation_;
@@ -288,7 +292,7 @@ inline double pclomp::GeneralizedIterativeClosestPoint<
 
 ////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget>
-inline void pclomp::GeneralizedIterativeClosestPoint<
+inline void autoware::ndt_omp::pclomp::GeneralizedIterativeClosestPoint<
   PointSource, PointTarget>::OptimizationFunctorWithIndices::df(const Vector6d & x, Vector6d & g)
 {
   Eigen::Matrix4f transformation_matrix = gicp_->base_transformation_;
@@ -347,7 +351,7 @@ inline void pclomp::GeneralizedIterativeClosestPoint<
 
 ////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget>
-inline void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::
+inline void autoware::ndt_omp::pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::
   OptimizationFunctorWithIndices::fdf(const Vector6d & x, double & f, Vector6d & g)
 {
   Eigen::Matrix4f transformation_matrix = gicp_->base_transformation_;
@@ -390,9 +394,8 @@ inline void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::
 
 ////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget>
-inline void
-pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::computeTransformation(
-  PointCloudSource & output, const Eigen::Matrix4f & guess)
+inline void autoware::ndt_omp::pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::
+  computeTransformation(PointCloudSource & output, const Eigen::Matrix4f & guess)
 {
   pcl::IterativeClosestPoint<PointSource, PointTarget>::initComputeReciprocal();
   // Difference between consecutive transforms
@@ -435,11 +438,14 @@ pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::computeTrans
 
     // guess corresponds to base_t and transformation_ to t
     Eigen::Matrix4d transform_R = Eigen::Matrix4d::Zero();
-    for (size_t i = 0; i < 4; i++)
-      for (size_t j = 0; j < 4; j++)
-        for (size_t k = 0; k < 4; k++)
+    for (size_t i = 0; i < 4; i++) {
+      for (size_t j = 0; j < 4; j++) {
+        for (size_t k = 0; k < 4; k++) {
           transform_R(i, j) +=
             static_cast<double>(transformation_(i, k)) * static_cast<double>(guess(k, j));
+        }
+      }
+    }
 
     const Eigen::Matrix3d R = transform_R.topLeftCorner<3, 3>();
 
@@ -512,12 +518,15 @@ pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::computeTrans
       for (int k = 0; k < 4; k++) {
         for (int l = 0; l < 4; l++) {
           double ratio = 1;
-          if (k < 3 && l < 3)  // rotation part of the transform
+          if (k < 3 && l < 3) {  // rotation part of the transform
             ratio = 1. / rotation_epsilon_;
-          else
+          } else {
             ratio = 1. / transformation_epsilon_;
+          }
           double c_delta = ratio * std::abs(previous_transformation_(k, l) - transformation_(k, l));
-          if (c_delta > delta) delta = c_delta;
+          if (c_delta > delta) {
+            delta = c_delta;
+          }
         }
       }
     } catch (pcl::PCLException & e) {
@@ -547,8 +556,8 @@ pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::computeTrans
 }
 
 template <typename PointSource, typename PointTarget>
-void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::applyState(
-  Eigen::Matrix4f & t, const Vector6d & x) const
+void autoware::ndt_omp::pclomp::GeneralizedIterativeClosestPoint<
+  PointSource, PointTarget>::applyState(Eigen::Matrix4f & t, const Vector6d & x) const
 {
   // !!! CAUTION Stanford GICP uses the Z Y X euler angles convention
   Eigen::Matrix3f R;
