@@ -21,6 +21,7 @@
 #include <pcl/point_types.h>
 
 #include <algorithm>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -44,6 +45,43 @@ inline pcl::PointCloud<pcl::PointXYZ>::Ptr load_pcd(const std::string & path)
     std::cerr << "failed to load " << path << std::endl;
     std::exit(1);
   }
+  return pcd;
+}
+
+inline pcl::PointCloud<pcl::PointXYZ>::Ptr load_pcd_recursive(const std::string & file_path)
+{
+  pcl::PointCloud<pcl::PointXYZ>::Ptr pcd(new pcl::PointCloud<pcl::PointXYZ>());
+  if (!std::filesystem::exists(file_path)) {
+    std::cerr << "No such path: " << file_path << std::endl;
+    std::exit(1);
+  }
+  if (!std::filesystem::is_directory(file_path)) {
+    return load_pcd(file_path);
+  }
+
+  int pcd_count = 0;
+  for (const auto & file : std::filesystem::recursive_directory_iterator(file_path)) {
+    const std::string filename = file.path().c_str();
+    const std::string extension = file.path().extension().string();
+    if (extension != ".pcd" && extension != ".PCD") {
+      std::cerr << "ignore files: " << extension.c_str() << std::endl;
+      continue;
+    }
+    if (file.is_directory()) {
+      std::cerr << "ignore directory: " << filename.c_str() << std::endl;
+      continue;
+    }
+
+    // check load pcd
+    auto partial_pcd = load_pcd(filename);
+
+    // concatenate pcd
+    *pcd += *partial_pcd;
+
+    pcd_count++;
+    std::cout << "PCD loaded:" << filename << " (" << pcd_count << " files processed)" << std::endl;
+  }
+
   return pcd;
 }
 

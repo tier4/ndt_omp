@@ -73,40 +73,14 @@ endif()
 
 ament_auto_package()
 
-add_executable(align
-  apps/align.cpp
-)
-add_dependencies(align
-  ndt_omp multigrid_ndt_omp
-)
-target_link_libraries(align
-  ${PCL_LIBRARIES}
-  ndt_omp multigrid_ndt_omp
+set(EXECUTABLES
+  "align"
+  "regression_test"
+  "check_covariance"
 )
 
-# regression test
-add_executable(regression_test
-  apps/regression_test.cpp
-)
-add_dependencies(regression_test
-  ndt_omp multigrid_ndt_omp
-)
-target_link_libraries(regression_test
-  ${PCL_LIBRARIES}
-  ndt_omp multigrid_ndt_omp
-)
-
-# check_covariance
-add_executable(check_covariance
-  apps/check_covariance.cpp
-)
-add_dependencies(check_covariance
-  ndt_omp multigrid_ndt_omp
-)
-include_directories(
-  ${PROJECT_SOURCE_DIR}/include
-)
-target_link_libraries(check_covariance
-  ${PCL_LIBRARIES}
-  ndt_omp multigrid_ndt_omp
-)
+foreach(executable IN LISTS EXECUTABLES)
+  add_executable(${executable} apps/${executable}.cpp)
+  add_dependencies(${executable} ndt_omp multigrid_ndt_omp)
+  target_link_libraries(${executable} ndt_omp multigrid_ndt_omp ${PCL_LIBRARIES})
+endforeach()
