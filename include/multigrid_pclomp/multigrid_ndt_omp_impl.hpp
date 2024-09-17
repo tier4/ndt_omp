@@ -1176,6 +1176,65 @@ double MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
   return output_score;
 }
 
+template <typename PointSource, typename PointTarget>
+pcl::PointCloud<pcl::PointXYZI> MultiGridNormalDistributionsTransform<PointSource, PointTarget>::
+  calculateNearestVoxelScoreEachPoint(const PointCloudSource & trans_cloud) const
+{
+  // Thread-wise results
+  std::vector<pcl::PointCloud<pcl::PointXYZI>> threads_pc(params_.num_threads);
+  pcl::PointCloud<pcl::PointXYZI> score_points;
+
+#pragma omp parallel for num_threads(params_.num_threads) schedule(guided, 8)
+  for (size_t idx = 0; idx < trans_cloud.size(); ++idx) {
+    int tid = omp_get_thread_num();
+    PointSource x_trans_pt = trans_cloud[idx];
+
+    // Find neighbors (Radius search has been experimentally faster than direct neighbor checking.
+    std::vector<TargetGridLeafConstPtr> neighborhood;
+
+    // Neighborhood search method other than kdtree is disabled in multigrid_ndt_omp
+    target_cells_.radiusSearch(x_trans_pt, params_.resolution, neighborhood);
+
+    if (neighborhood.empty()) {
+      continue;
+    }
+
+    double nearest_voxel_score_pt = 0;
+
+    for (auto & cell : neighborhood) {
+      Eigen::Vector3d x_trans(x_trans_pt.x, x_trans_pt.y, x_trans_pt.z);
+
+      // Denorm point, x_k' in Equations 6.12 and 6.13 [Magnusson 2009]
+      x_trans -= cell->getMean();
+
+      // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
+      double e_x_cov_x = exp(-gauss_d2_ * x_trans.dot(cell->getInverseCov() * x_trans) / 2.0);
+      // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
+      double score_inc = -gauss_d1_ * e_x_cov_x;
+
+      if (score_inc > nearest_voxel_score_pt) {
+        nearest_voxel_score_pt = score_inc;
+      }
+    }
+
+    pcl::PointXYZI sensor_point_score;
+    sensor_point_score.x = trans_cloud.points[idx].x;
+    sensor_point_score.y = trans_cloud.points[idx].y;
+    sensor_point_score.z = trans_cloud.points[idx].z;
+    sensor_point_score.intensity = nearest_voxel_score_pt;
+    threads_pc[tid].points.push_back(sensor_point_score);
+  }
+
+  // Sum up point-wise scores
+  for (size_t idx = 0; idx < params_.num_threads; ++idx) {
+    for (size_t p_idx = 0; p_idx < threads_pc[idx].size(); ++p_idx) {
+      score_points.points.push_back(threads_pc[idx].points[p_idx]);
+    }
+  }
+
+  return score_points;
+}
+
 }  // namespace pclomp
 
 #endif  // PCL_REGISTRATION_NDT_OMP_MULTI_VOXEL_IMPL_H_
