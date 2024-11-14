@@ -497,7 +497,6 @@ namespace pclomp
 		  auto leaf = leaves_.find(voxel_centroids_leaf_indices_[*iter]);
 		  if (leaf == leaves_.end()) {
 			  std::cerr << "error : could not find the leaf corresponding to the voxel" << std::endl;
-			  std::cin.ignore(1);
 		  }
           k_leaves.push_back (&(leaf->second));
         }
