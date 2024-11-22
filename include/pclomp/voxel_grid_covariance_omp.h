@@ -98,7 +98,7 @@ namespace pclomp
       struct Leaf
       {
         /** \brief Constructor.
-         * Sets \ref nr_points, \ref icov_, \ref mean_ and \ref evals_ to 0 and \ref cov_ and \ref evecs_ to the identity matrix
+         * Sets \ref nr_points, \ref icov_, \ref mean_ and \ref cov_ to the identity matrix
          */
         Leaf () :
           nr_points (0),
@@ -106,8 +106,6 @@ namespace pclomp
           centroid (),
           cov_ (Eigen::Matrix3d::Identity ()),
           icov_ (Eigen::Matrix3d::Zero ()),
-          evecs_ (Eigen::Matrix3d::Identity ()),
-          evals_ (Eigen::Vector3d::Zero ())
         {
         }
 
@@ -138,26 +136,6 @@ namespace pclomp
           return (mean_);
         }
 
-        /** \brief Get the eigen vectors of the voxel covariance.
-          * \note Order corresponds with \ref getEvals
-          * \return matrix whose columns contain eigen vectors
-          */
-        Eigen::Matrix3d
-        getEvecs () const
-        {
-          return (evecs_);
-        }
-
-        /** \brief Get the eigen values of the voxel covariance.
-          * \note Order corresponds with \ref getEvecs
-          * \return vector of eigen values
-          */
-        Eigen::Vector3d
-        getEvals () const
-        {
-          return (evals_);
-        }
-
         /** \brief Get the number of points contained by this voxel.
           * \return number of points
           */
@@ -183,13 +161,6 @@ namespace pclomp
 
         /** \brief Inverse of voxel covariance matrix */
         Eigen::Matrix3d icov_;
-
-        /** \brief Eigen vectors of voxel covariance matrix */
-        Eigen::Matrix3d evecs_;
-
-        /** \brief Eigen values of voxel covariance matrix */
-        Eigen::Vector3d evals_;
-
       };
 
       /** \brief Pointer to VoxelGridCovariance leaf structure */
