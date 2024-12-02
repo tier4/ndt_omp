@@ -274,6 +274,7 @@ pclomp::VoxelGridCovariance<PointT>::applyFilter (PointCloud &output)
   // Eigen values and vectors calculated to prevent near singular matrices
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver;
   Eigen::Matrix3d eigen_val;
+  Eigen::Matrix3d eigen_vec;
   Eigen::Vector3d pt_sum;
 
   // Eigen values less than a threshold of max eigen value are inflated to a set fraction of the max eigen value.
@@ -332,7 +333,7 @@ pclomp::VoxelGridCovariance<PointT>::applyFilter (PointCloud &output)
       //Normalize Eigen Val such that max no more than 100x min.
       eigensolver.compute (leaf.cov_);
       eigen_val = eigensolver.eigenvalues ().asDiagonal ();
-      leaf.evecs_ = eigensolver.eigenvectors ();
+      eigen_vec = eigensolver.eigenvectors ();
 
       if (eigen_val (0, 0) < 0 || eigen_val (1, 1) < 0 || eigen_val (2, 2) <= 0)
       {
@@ -352,9 +353,8 @@ pclomp::VoxelGridCovariance<PointT>::applyFilter (PointCloud &output)
           eigen_val (1, 1) = min_covar_eigvalue;
         }
 
-        leaf.cov_ = leaf.evecs_ * eigen_val * leaf.evecs_.inverse ();
+        leaf.cov_ = eigen_vec * eigen_val * eigen_vec.inverse ();
       }
-      leaf.evals_ = eigen_val.diagonal ();
 
       leaf.icov_ = leaf.cov_.inverse ();
       if (leaf.icov_.maxCoeff () == std::numeric_limits<float>::infinity ( )
