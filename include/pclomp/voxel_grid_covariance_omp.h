@@ -105,7 +105,7 @@ namespace pclomp
           mean_ (Eigen::Vector3d::Zero ()),
           centroid (),
           cov_ (Eigen::Matrix3d::Identity ()),
-          icov_ (Eigen::Matrix3d::Zero ()),
+          icov_ (Eigen::Matrix3d::Zero ())
         {
         }
 
