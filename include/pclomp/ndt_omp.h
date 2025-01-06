@@ -48,6 +48,7 @@
 #include <unsupported/Eigen/NonLinearOptimization>
 
 #include "boost/optional.hpp"
+#include <set>
 
 #include <pcl/registration/registration.h>
 
