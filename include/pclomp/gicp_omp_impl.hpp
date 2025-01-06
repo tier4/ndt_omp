@@ -40,6 +40,7 @@
 #ifndef PCL_REGISTRATION_IMPL_GICP_OMP_HPP_
 #define PCL_REGISTRATION_IMPL_GICP_OMP_HPP_
 
+#include "pclomp/gicp_omp.h"
 #include <pcl/registration/boost.h>
 #include <pcl/registration/exceptions.h>
 
@@ -233,7 +234,7 @@ void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::
     if (result) {
       break;
     }
-    result = bfgs.testGradient(gradient_tol);
+    result = bfgs.testGradient(/*gradient_tol*/);
   } while (result == BFGSSpace::Running && inner_iterations_ < max_inner_iterations_);
   if (
     result == BFGSSpace::NoProgress || result == BFGSSpace::Success ||
