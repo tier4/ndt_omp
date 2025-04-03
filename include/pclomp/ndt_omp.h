@@ -132,6 +132,7 @@ namespace pclomp
 		{
 			pcl::Registration<PointSource, PointTarget>::setInputTarget(cloud);
 			init();
+			target_cloud_updated_ = false;
 		}
 
 		/** \brief Set/change the voxel grid resolution.
@@ -304,6 +305,7 @@ namespace pclomp
 		using pcl::Registration<PointSource, PointTarget>::converged_;
 		using pcl::Registration<PointSource, PointTarget>::corr_dist_threshold_;
 		using pcl::Registration<PointSource, PointTarget>::inlier_threshold_;
+		using pcl::Registration<PointSource, PointTarget>::target_cloud_updated_;
 
 		using pcl::Registration<PointSource, PointTarget>::update_visualizer_;
 
