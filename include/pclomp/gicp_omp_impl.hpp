@@ -233,7 +233,11 @@ void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::
     if (result) {
       break;
     }
+#if PCL_VERSION_COMPARE(<, 1, 11, 0)
     result = bfgs.testGradient(gradient_tol);
+#else
+    result = bfgs.testGradient();
+#endif
   } while (result == BFGSSpace::Running && inner_iterations_ < max_inner_iterations_);
   if (
     result == BFGSSpace::NoProgress || result == BFGSSpace::Success ||
@@ -387,6 +391,31 @@ inline void pclomp::GeneralizedIterativeClosestPoint<PointSource, PointTarget>::
   R *= 2.0 / m;
   gicp_->computeRDerivative(x, R, g);
 }
+
+#if PCL_VERSION_COMPARE(>=, 1, 11, 0)
+////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointSource, typename PointTarget>
+inline BFGSSpace::Status pclomp::GeneralizedIterativeClosestPoint<
+  PointSource, PointTarget>::OptimizationFunctorWithIndices::checkGradient(const Vector6d & g)
+{
+  auto translation_epsilon = gicp_->translation_gradient_tolerance_;
+  auto rotation_epsilon = gicp_->rotation_gradient_tolerance_;
+
+  if ((translation_epsilon < 0.) || (rotation_epsilon < 0.))
+    return BFGSSpace::NegativeGradientEpsilon;
+
+  // express translation gradient as norm of translation parameters
+  auto translation_grad = g.head<3>().norm();
+
+  // express rotation gradient as a norm of rotation parameters
+  auto rotation_grad = g.tail<3>().norm();
+
+  if ((translation_grad < translation_epsilon) && (rotation_grad < rotation_epsilon))
+    return BFGSSpace::Success;
+
+  return BFGSSpace::Running;
+}
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget>
