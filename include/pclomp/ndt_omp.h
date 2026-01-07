@@ -51,6 +51,8 @@
 
 #include <pcl/registration/registration.h>
 
+#include <set>
+
 namespace pclomp
 {
 
