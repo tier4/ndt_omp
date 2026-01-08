@@ -119,7 +119,9 @@ public:
     gicp_epsilon_(0.001),
     rotation_epsilon_(2e-3),
     mahalanobis_(0),
-    max_inner_iterations_(20)
+    max_inner_iterations_(20),
+    translation_gradient_tolerance_(1e-2),
+    rotation_gradient_tolerance_(1e-2)
   {
     min_number_correspondences_ = 4;
     reg_name_ = "GeneralizedIterativeClosestPoint";
@@ -245,6 +247,27 @@ public:
   ///\return maximum number of iterations at the optimization step
   int getMaximumOptimizerIterations() { return (max_inner_iterations_); }
 
+  /** \brief Set the minimal translation gradient threshold for early optimization stop
+   * \param[in] tolerance gradient threshold in meters
+   */
+  void setTranslationGradientTolerance(double tolerance)
+  {
+    translation_gradient_tolerance_ = tolerance;
+  }
+
+  /** \brief Return the minimal translation gradient threshold for early optimization stop
+   */
+  double getTranslationGradientTolerance() const { return translation_gradient_tolerance_; }
+
+  /** \brief Set the minimal rotation gradient threshold for early optimization stop
+   * \param[in] tolerance gradient threshold in radians
+   */
+  void setRotationGradientTolerance(double tolerance) { rotation_gradient_tolerance_ = tolerance; }
+
+  /** \brief Return the minimal rotation gradient threshold for early optimization stop
+   */
+  double getRotationGradientTolerance() const { return rotation_gradient_tolerance_; }
+
 protected:
   /** \brief The number of neighbors used for covariances computation.
    * default: 20
@@ -289,6 +312,12 @@ protected:
 
   /** \brief maximum number of optimizations */
   int max_inner_iterations_;
+
+  /** \brief minimal translation gradient for early optimization stop */
+  double translation_gradient_tolerance_;
+
+  /** \brief minimal rotation gradient for early optimization stop */
+  double rotation_gradient_tolerance_;
 
   /** \brief compute points covariances matrices according to the K nearest
    * neighbors. K is set via setCorrespondenceRandomness() method.
@@ -347,6 +376,9 @@ protected:
     double operator()(const Vector6d & x) override;
     void df(const Vector6d & x, Vector6d & df) override;
     void fdf(const Vector6d & x, double & f, Vector6d & df) override;
+#if PCL_VERSION_COMPARE(>=, 1, 11, 0)
+    BFGSSpace::Status checkGradient(const Vector6d & g) override;
+#endif
 
     const GeneralizedIterativeClosestPoint * gicp_;
   };
